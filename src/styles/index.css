@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+/*
+ * Every value below is lifted directly from Barbershop tenant webapp.dc.html
+ * (the Claude Design mockup for this app) rather than approximated — same
+ * oklch numbers, same font stack, following the same pattern
+ * igroom-frontend-bo used for Backoffice.dc.html. Registered via Tailwind
+ * v4's @theme so the app gets first-class utilities (bg-tn-surface,
+ * text-tn-ink, font-serif, etc.) instead of scattering raw oklch() calls
+ * through components. Re-theming later means editing values here, not
+ * hunting through JSX.
+ */
+@theme {
+  --font-serif: "Playfair Display", ui-serif, Georgia, serif;
+  --font-sans: "Work Sans", ui-sans-serif, system-ui, sans-serif;
+
+  /* Surfaces */
+  --color-tn-page: oklch(93% 0.015 65);
+  --color-tn-surface: oklch(99% 0.005 80);
+  --color-tn-table-head: oklch(96% 0.012 75);
+
+  /* Borders */
+  --color-tn-border: oklch(88% 0.015 60);
+  --color-tn-border-soft: oklch(93% 0.008 65);
+  --color-tn-border-softer: oklch(90% 0.01 65);
+  --color-tn-input-border: oklch(85% 0.02 60);
+
+  /* Text — darkest to lightest, names match usage frequency in the mockup */
+  --color-tn-ink: oklch(22% 0.02 50);
+  --color-tn-ink-soft: oklch(28% 0.02 50);
+  --color-tn-muted-1: oklch(38% 0.02 55);
+  --color-tn-muted-2: oklch(40% 0.02 55);
+  --color-tn-muted-3: oklch(42% 0.02 55);
+  --color-tn-muted-4: oklch(45% 0.02 60);
+  --color-tn-muted-5: oklch(48% 0.02 60);
+  --color-tn-muted-6: oklch(55% 0.02 60);
+  --color-tn-faint: oklch(60% 0.02 60);
+  --color-tn-faint-2: oklch(65% 0.02 60);
+  --color-tn-placeholder: oklch(70% 0.02 60);
+  --color-tn-nav-inactive: oklch(40% 0.02 55);
+
+  /* Dark surfaces — active nav item, primary buttons, avatars, loading/plan screens */
+  --color-tn-dark: oklch(30% 0.02 50);
+  --color-tn-on-dark: oklch(98% 0.005 80);
+  --color-tn-plan-bg: oklch(22% 0.015 55);
+  --color-tn-plan-track: oklch(24% 0.015 55);
+
+  /* Accent — links, focus rings, chart lines, plan highlight */
+  --color-tn-gold: oklch(48% 0.09 85);
+  --color-tn-gold-soft: oklch(78% 0.09 85);
+  --color-tn-gold-bg: oklch(78% 0.09 85 / 0.18);
+  --color-tn-gold-bg-soft: oklch(78% 0.09 85 / 0.1);
+
+  /* Status */
+  --color-tn-success: oklch(45% 0.15 145);
+  --color-tn-success-bg: oklch(45% 0.15 145 / 0.12);
+  --color-tn-danger: oklch(60% 0.15 25);
+  --color-tn-danger-strong: oklch(55% 0.17 25);
+  --color-tn-danger-bg: oklch(60% 0.15 25 / 0.12);
+  --color-tn-neutral-bg: oklch(93% 0.015 65);
+
+  /* Decorative avatar/placeholder fills — customer & staff initials chips */
+  --color-tn-avatar-peach: oklch(90% 0.03 20);
+  --color-tn-avatar-tan: oklch(85% 0.04 40);
+  --color-tn-avatar-cream: oklch(88% 0.02 90);
+  --color-tn-avatar-brown: oklch(55% 0.09 40);
+  --color-tn-avatar-blue: oklch(55% 0.1 250);
+
+  /* Secondary accent — used sparingly (e.g. connected-integration blue) */
+  --color-tn-blue: oklch(45% 0.13 255);
+  --color-tn-blue-bg: oklch(88% 0.05 250 / 0.18);
+
+  /* Modal backdrop */
+  --color-tn-backdrop: oklch(20% 0.01 50 / 0.45);
+}
+
+body {
+  background-color: var(--color-tn-page);
+  color: var(--color-tn-ink);
+  font-family: var(--font-sans);
+}
+
+@keyframes tn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
