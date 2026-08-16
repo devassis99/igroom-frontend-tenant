@@ -86,7 +86,7 @@ export function ChoosePlanPage() {
     queryFn: getCatalog,
   });
 
-  const products = data?.products ?? EMPTY_PRODUCTS;
+  const products = useMemo(() => data?.products ?? EMPTY_PRODUCTS, [data]);
   const annualDiscount = computeAnnualDiscountPercent(products);
   const cycles = useMemo(() => availableCycles(products), [products]);
   const visibleProducts = useMemo(

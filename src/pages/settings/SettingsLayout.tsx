@@ -2,7 +2,7 @@ import { NavLink, Outlet, useNavigate } from "react-router";
 import { useAuthStore } from "@/auth/auth-store";
 
 const GENERAL_ITEMS = [
-  { to: "/settings", label: "Profile", icon: "👤", end: true },
+  { to: "/settings", label: "Business Profile", icon: "👤", end: true },
   { to: "/settings/hours", label: "Hours & Availability", icon: "🕐" },
   { to: "/settings/security", label: "Security", icon: "🔒" },
 ];
@@ -20,7 +20,18 @@ function navClass(isActive: boolean) {
   }`;
 }
 
-/** Matches the mockup's T12 Settings frame's left nav — shared by every T12* sub-page. */
+/**
+ * Matches the mockup's T12 Settings frame's left nav — shared by every
+ * T12* sub-page. The mockup draws this as a second, full-height sidebar
+ * flush against AppShell's main nav (same background, no card/border),
+ * not a card floating inside the page's normal content padding. AppShell
+ * applies that padding uniformly to every route's content
+ * (px-10 py-8 on the Outlet wrapper), so the only way for this one route
+ * to visually escape it is to cancel it back out here with matching
+ * negative margins, then let the two inner columns re-apply their own
+ * padding independently — the nav's for its own inset content, the
+ * content column's to keep every T12* sub-page visually unchanged.
+ */
 export function SettingsLayout() {
   const navigate = useNavigate();
   const logOut = useAuthStore((s) => s.logOut);
@@ -31,8 +42,9 @@ export function SettingsLayout() {
   }
 
   return (
-    <div className="flex gap-10">
-      <nav className="flex w-[200px] flex-none flex-col gap-6 rounded-2xl bg-tn-table-head p-5">
+    <div className="-my-8 flex min-h-screen">
+      <nav className="-ml-10 flex w-[240px] flex-none flex-col gap-6 bg-tn-page py-8">
+        <p className="m-0 px-4 font-serif text-[22px] font-semibold text-tn-ink">Settings</p>
         <div>
           <p className="m-0 mb-2 px-4 font-sans text-[11px] font-semibold tracking-[0.04em] text-tn-faint">
             GENERAL
@@ -80,7 +92,7 @@ export function SettingsLayout() {
         </button>
       </nav>
 
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 py-8 pl-10">
         <Outlet />
       </div>
     </div>
