@@ -31,22 +31,24 @@ export function ProfileSettingsPage() {
             className={formInputClass}
           />
         </Field>
-        <Field label="CURRENCY">
-          <select className={formSelectClass}>
-            <option>USD — US Dollar</option>
-            <option>PKR — Pakistani Rupee</option>
-            <option>GBP — British Pound</option>
-            <option>AED — UAE Dirham</option>
-          </select>
-        </Field>
-        <Field label="TIME ZONE">
-          <select className={formSelectClass}>
-            <option>Central Time (Austin)</option>
-            <option>Pakistan Standard Time</option>
-            <option>Eastern Time</option>
-            <option>Pacific Time</option>
-          </select>
-        </Field>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="CURRENCY">
+            <select className={formSelectClass}>
+              <option>USD — US Dollar</option>
+              <option>PKR — Pakistani Rupee</option>
+              <option>GBP — British Pound</option>
+              <option>AED — UAE Dirham</option>
+            </select>
+          </Field>
+          <Field label="TIME ZONE">
+            <select className={formSelectClass}>
+              <option>Central Time (Austin)</option>
+              <option>Pakistan Standard Time</option>
+              <option>Eastern Time</option>
+              <option>Pacific Time</option>
+            </select>
+          </Field>
+        </div>
         <Button className="w-fit">Save Changes</Button>
       </section>
 

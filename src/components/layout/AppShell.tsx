@@ -42,8 +42,8 @@ export function AppShell() {
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-tn-page">
-      <aside className="relative flex w-[220px] shrink-0 flex-col py-6">
+    <div className="flex h-screen overflow-hidden bg-tn-page">
+      <aside className="relative flex w-[220px] shrink-0 flex-col overflow-y-auto py-6">
         <p className="m-0 mb-3.5 px-6 font-serif text-lg font-semibold text-tn-ink">iGroom</p>
 
         <nav className="flex flex-col gap-0.5">
@@ -54,7 +54,9 @@ export function AppShell() {
               end
               className={({ isActive }) =>
                 `flex items-center gap-3 px-6 py-[11px] font-sans text-[13px] ${
-                  isActive ? "bg-tn-dark font-semibold text-tn-on-dark" : "font-medium text-tn-nav-inactive"
+                  isActive
+                    ? "bg-tn-dark font-semibold text-tn-on-dark"
+                    : "font-medium text-tn-nav-inactive"
                 }`
               }
             >
@@ -71,7 +73,9 @@ export function AppShell() {
             to="/integrations"
             className={({ isActive }) =>
               `flex items-center justify-between px-6 py-[11px] font-sans text-[13px] ${
-                isActive ? "bg-tn-dark font-semibold text-tn-on-dark" : "font-medium text-tn-nav-inactive"
+                isActive
+                  ? "bg-tn-dark font-semibold text-tn-on-dark"
+                  : "font-medium text-tn-nav-inactive"
               }`
             }
           >
@@ -92,7 +96,9 @@ export function AppShell() {
             to="/settings"
             className={({ isActive }) =>
               `flex items-center gap-3 px-6 py-[11px] font-sans text-[13px] ${
-                isActive ? "bg-tn-dark font-semibold text-tn-on-dark" : "font-medium text-tn-nav-inactive"
+                isActive
+                  ? "bg-tn-dark font-semibold text-tn-on-dark"
+                  : "font-medium text-tn-nav-inactive"
               }`
             }
           >
@@ -135,7 +141,7 @@ export function AppShell() {
         <WhatsNewDrawer open={whatsNewOpen} onClose={() => setWhatsNewOpen(false)} />
       </aside>
 
-      <div className="flex-1 overflow-y-auto px-10 py-8">
+      <div className="flex-1 overflow-y-auto bg-tn-surface px-10 py-8">
         <Outlet />
       </div>
     </div>

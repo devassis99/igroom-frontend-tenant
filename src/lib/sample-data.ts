@@ -528,28 +528,16 @@ export const INTEGRATIONS: Integration[] = [
   },
 ];
 
-export interface PlanTier {
-  id: string;
-  name: string;
-  blurb: string;
-  monthly: number;
-}
-
-export const PLAN_TIERS: PlanTier[] = [
-  { id: "solo", name: "Solo Chair", blurb: "1 chair · 1 location\nOnline booking & waitlist", monthly: 30 },
-  { id: "studio", name: "Studio", blurb: "Up to 4 chairs\nStaff roles & payouts", monthly: 50 },
-  { id: "team", name: "Team", blurb: "Up to 3 locations\nMulti-location dashboard", monthly: 150 },
-  { id: "empire", name: "Empire", blurb: "Unlimited locations\nPriority support", monthly: 250 },
-];
-
+/**
+ * Plan/price data itself no longer lives here — ChoosePlanPage renders
+ * from igroom-backend's real GET /billing/products catalog (see
+ * src/lib/billing-api.ts) instead, the same one the back office's Plans
+ * page manages. This type + label map are the only plan-adjacent pieces
+ * still purely illustrative/UI-only: the cadence names themselves are a
+ * frontend concept (mapped onto the backend's billingInterval enum in
+ * billing-api.ts), not something a back-office admin configures.
+ */
 export type BillingCycle = "monthly" | "quarterly" | "biannual" | "annual";
-
-export const BILLING_CYCLE_DISCOUNT: Record<BillingCycle, number> = {
-  monthly: 0,
-  quarterly: 0.1,
-  biannual: 0.14,
-  annual: 0.2,
-};
 
 export const BILLING_CYCLE_LABEL: Record<BillingCycle, string> = {
   monthly: "Monthly",
@@ -557,11 +545,6 @@ export const BILLING_CYCLE_LABEL: Record<BillingCycle, string> = {
   biannual: "Bi-Annual",
   annual: "Annual",
 };
-
-export function planPriceForCycle(monthly: number, cycle: BillingCycle): number {
-  const discount = BILLING_CYCLE_DISCOUNT[cycle];
-  return Math.round(monthly * (1 - discount));
-}
 
 export const WHATS_NEW = [
   {

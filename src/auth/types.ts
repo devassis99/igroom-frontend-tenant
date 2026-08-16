@@ -8,8 +8,12 @@ export interface OwnerAccount {
   category: string;
   address: string;
   phone: string;
-  planId: string;
+  /** billingProducts.key from igroom-backend's catalog, e.g. "solo_chair" — see billing-api.ts. */
+  planKey: string;
   planName: string;
+  /** The real amount charged per billing occurrence at billingCycle's cadence — from the selected CatalogPrice, not a locally recomputed discount. */
+  priceCents: number;
+  currency: string;
   billingCycle: BillingCycle;
   seats: number;
 }

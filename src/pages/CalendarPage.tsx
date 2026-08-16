@@ -1,66 +1,152 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { AppointmentModal } from "@/components/calendar/AppointmentModal";
+import { AddBookingModal } from "@/components/calendar/AddBookingModal";
+import { useAuthStore } from "@/auth/auth-store";
+import {
+  listBookings,
+  listStaff,
+  type Booking,
+  type BookingsStaffMember,
+} from "@/lib/bookings-api";
+import {
+  addDays,
+  addMonths,
+  endOfWeekExclusive,
+  formatDayNavLabel,
+  formatMonthNavLabel,
+  formatTimeLabel,
+  formatWeekColumnLabel,
+  formatWeekNavLabel,
+  getDaySlots,
+  getMonthGrid,
+  isSameDay,
+  isSameMonth,
+  startOfDay,
+  startOfWeek,
+} from "@/lib/calendar-dates";
 
 type View = "day" | "week" | "month";
 
-const BARBERS = ["Marcus", "Devon", "Ray"];
-const DAY_SLOTS = ["1:00 PM", "1:45 PM", "2:30 PM"];
+// Stable empty-array fallbacks — a fresh `[]` literal on every render would make
+// the useMemo hooks below think `staff`/`bookings` changed even when they didn't.
+const EMPTY_STAFF: BookingsStaffMember[] = [];
+const EMPTY_BOOKINGS: Booking[] = [];
 
-/** [barberIndex]: appointment label, or null for an empty cell. */
-const DAY_APPOINTMENTS: Record<number, Array<{ barber: number; label: string; tone: "gold" | "success" | "neutral" } | null>> = {
-  0: [{ barber: 0, label: "Jordan Rivera\nHaircut & Trim", tone: "gold" }],
-  1: [{ barber: 1, label: "Alex R.\nSkin Fade", tone: "success" }],
-  2: [{ barber: 2, label: "Sam K. (walk-in)\nClassic Haircut", tone: "neutral" }],
+/** Loosely-semantic coloring for booking blocks — confirmed reads as the "good" state, walk-ins stand out, completed fades back. */
+const STATUS_TONE_CLASS: Record<Booking["status"], string> = {
+  confirmed: "bg-tn-gold-bg border-l-[3px] border-tn-gold",
+  walk_in: "bg-tn-success-bg border-l-[3px] border-tn-success",
+  completed: "bg-tn-page border-l-[3px] border-tn-faint",
+  cancelled: "bg-tn-page border-l-[3px] border-tn-faint",
 };
 
-const TONE_CLASS: Record<"gold" | "success" | "neutral", string> = {
-  gold: "bg-tn-gold-bg border-l-[3px] border-tn-gold",
-  success: "bg-tn-success-bg border-l-[3px] border-tn-success",
-  neutral: "bg-tn-page border-l-[3px] border-tn-faint",
-};
+interface AddBookingRequest {
+  defaultDate: Date;
+  defaultStaffId?: string;
+  defaultTime?: string;
+}
 
-const WEEK_DAYS = [
-  { label: "MON 10", entries: [{ time: "9:30", name: "Priya N.", service: "Haircut", tone: "neutral" as const }, { time: "2:00", name: "Alex R.", service: "Skin Fade", tone: "success" as const }] },
-  { label: "TUE 11", entries: [{ time: "11:00", name: "Omar F.", service: "Fade", tone: "gold" as const }] },
-  { label: "WED 12", entries: [{ time: "1:00", name: "Jordan R.", service: "Haircut & Trim", tone: "gold" as const }, { time: "1:45", name: "Alex R.", service: "Skin Fade", tone: "success" as const }, { time: "2:30", name: "Sam K. (walk-in)", service: "Classic Haircut", tone: "neutral" as const }], today: true },
-  { label: "THU 13", entries: [{ time: "10:15", name: "Nadia S.", service: "Balayage", tone: "success" as const }] },
-  { label: "FRI 14", entries: [{ time: "4:00", name: "Devon P.", service: "Beard Trim", tone: "gold" as const }] },
-  { label: "SAT 15", entries: [{ time: "12:00", name: "Walk-ins only", service: "", tone: "neutral" as const }] },
-  { label: "SUN 16", entries: [], closed: true },
-];
-
-const MONTH_WEEKS = [
-  [27, 28, 29, 30, 31, 1, 2],
-  [3, 4, 5, 6, 7, 8, 9],
-  [10, 11, 12, 13, 14, 15, 16],
-  [17, 18, 19, 20, 21, 22, 23],
-  [24, 25, 26, 27, 28, 29, 30],
-];
-const MONTH_BOOKINGS: Record<number, number> = {
-  4: 3,
-  6: 5,
-  8: 2,
-  10: 4,
-  11: 3,
-  12: 6,
-  13: 2,
-  14: 5,
-  15: 3,
-  17: 2,
-  18: 4,
-  20: 3,
-  21: 5,
-  22: 2,
-};
-const CURRENT_DAY = 12;
-const OUT_OF_MONTH = new Set([27, 28, 29, 30, 31]);
-
-/** Matches the mockup's T7 / T7-week / T7-month Calendar frames, plus the T7c/d/e appointment modal. */
+/** Matches the mockup's T7 / T7-week / T7-month Calendar frames, plus the T7c/d/e appointment modal — now backed by real igroom-backend data instead of hardcoded arrays. */
 export function CalendarPage() {
+  const owner = useAuthStore((s) => s.owner);
+  const accessToken = useAuthStore((s) => s.accessToken);
+
   const [view, setView] = useState<View>("day");
-  const [modalOpen, setModalOpen] = useState(false);
+  const [cursorDate, setCursorDate] = useState(() => new Date());
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [addRequest, setAddRequest] = useState<AddBookingRequest | null>(null);
+
+  const range = useMemo(() => {
+    if (view === "day") {
+      const start = startOfDay(cursorDate);
+      return { start, end: addDays(start, 1) };
+    }
+    if (view === "week") {
+      return { start: startOfWeek(cursorDate), end: endOfWeekExclusive(cursorDate) };
+    }
+    const weeks = getMonthGrid(cursorDate);
+    // getMonthGrid always returns full 7-day weeks, so these indices are never actually out of bounds.
+    const first = weeks[0]![0]!;
+    const last = weeks[weeks.length - 1]![6]!;
+    return { start: first, end: addDays(last, 1) };
+  }, [view, cursorDate]);
+
+  const staffQuery = useQuery({
+    queryKey: ["bookings-staff"],
+    queryFn: () => listStaff(accessToken ?? ""),
+    enabled: !!accessToken,
+  });
+  const staff = staffQuery.data?.staff ?? EMPTY_STAFF;
+
+  const bookingsQuery = useQuery({
+    queryKey: ["bookings", range.start.toISOString(), range.end.toISOString()],
+    queryFn: () =>
+      listBookings(accessToken ?? "", {
+        start: range.start.toISOString(),
+        end: range.end.toISOString(),
+      }),
+    enabled: !!accessToken,
+  });
+  const bookings = bookingsQuery.data?.bookings ?? EMPTY_BOOKINGS;
+
+  function goPrev() {
+    setCursorDate((d) =>
+      view === "day" ? addDays(d, -1) : view === "week" ? addDays(d, -7) : addMonths(d, -1),
+    );
+  }
+  function goNext() {
+    setCursorDate((d) =>
+      view === "day" ? addDays(d, 1) : view === "week" ? addDays(d, 7) : addMonths(d, 1),
+    );
+  }
+
+  const navLabel =
+    view === "day"
+      ? formatDayNavLabel(cursorDate)
+      : view === "week"
+        ? formatWeekNavLabel(cursorDate)
+        : formatMonthNavLabel(cursorDate);
+
+  const daySlots = useMemo(() => getDaySlots(cursorDate), [cursorDate]);
+
+  /** [staffId__slotHHmm] -> booking, floored to the slot it starts in — lets a booking at 1:05 still land in the 1:00 row. */
+  const dayBookingsBySlot = useMemo(() => {
+    const map = new Map<string, Booking>();
+    if (view !== "day") return map;
+    for (const booking of bookings) {
+      const start = new Date(booking.startAt);
+      const minutesSinceMidnight = start.getHours() * 60 + start.getMinutes();
+      const flooredMinutes = Math.floor(minutesSinceMidnight / 30) * 30;
+      const hh = String(Math.floor(flooredMinutes / 60)).padStart(2, "0");
+      const mm = String(flooredMinutes % 60).padStart(2, "0");
+      map.set(`${booking.staffUserId}__${hh}:${mm}`, booking);
+    }
+    return map;
+  }, [bookings, view]);
+
+  const weekDays = useMemo(() => {
+    const start = startOfWeek(cursorDate);
+    return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+  }, [cursorDate]);
+
+  const bookingsByDay = useMemo(() => {
+    const map = new Map<string, Booking[]>();
+    for (const booking of bookings) {
+      const key = startOfDay(new Date(booking.startAt)).toDateString();
+      const list = map.get(key) ?? [];
+      list.push(booking);
+      map.set(key, list);
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => a.startAt.localeCompare(b.startAt));
+    }
+    return map;
+  }, [bookings]);
+
+  const monthWeeks = useMemo(() => getMonthGrid(cursorDate), [cursorDate]);
 
   return (
     <div className="flex flex-col gap-7">
@@ -68,20 +154,37 @@ export function CalendarPage() {
         <div className="flex items-center gap-3.5">
           <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">Calendar</h1>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-tn-input-border bg-tn-page px-3 py-1.5 font-sans text-xs font-semibold text-tn-ink-soft">
-            The Gentry · Downtown <span className="text-[9px] text-tn-muted-6">▾</span>
+            {owner?.businessName ?? "My Shop"}
           </span>
         </div>
         <div className="flex items-center gap-3.5">
+          <button
+            type="button"
+            onClick={() => setCursorDate(new Date())}
+            className="cursor-pointer rounded-lg border border-tn-input-border px-2.5 py-1.5 font-sans text-xs font-semibold text-tn-ink-soft hover:bg-tn-page"
+          >
+            Today
+          </button>
           <div className="flex items-center gap-1.5">
-            <span className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-lg border border-tn-input-border text-tn-muted-4">
+            <button
+              type="button"
+              onClick={goPrev}
+              aria-label="Previous"
+              className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-lg border border-tn-input-border text-tn-muted-4 hover:bg-tn-page"
+            >
               ‹
-            </span>
+            </button>
             <span className="min-w-[110px] text-center font-sans text-[13px] font-semibold text-tn-ink-soft">
-              {view === "day" ? "Wed, Aug 12" : view === "week" ? "Aug 10 – Aug 16" : "August 2026"}
+              {navLabel}
             </span>
-            <span className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-lg border border-tn-input-border text-tn-muted-4">
+            <button
+              type="button"
+              onClick={goNext}
+              aria-label="Next"
+              className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-lg border border-tn-input-border text-tn-muted-4 hover:bg-tn-page"
+            >
               ›
-            </span>
+            </button>
           </div>
           <SegmentedControl
             value={view}
@@ -92,82 +195,152 @@ export function CalendarPage() {
               { value: "month", label: "Month" },
             ]}
           />
-          <Button>+ Add Booking</Button>
+          <Button onClick={() => setAddRequest({ defaultDate: cursorDate })}>+ Add Booking</Button>
         </div>
       </div>
 
+      {staffQuery.isError && (
+        <p className="m-0 font-sans text-sm text-tn-danger">
+          Couldn&rsquo;t load staff right now (
+          {staffQuery.error instanceof Error ? staffQuery.error.message : "unknown error"}) —
+          refresh to try again.
+        </p>
+      )}
+
+      {bookingsQuery.isError && (
+        <p className="m-0 font-sans text-sm text-tn-danger">
+          Couldn&rsquo;t load bookings right now (
+          {bookingsQuery.error instanceof Error ? bookingsQuery.error.message : "unknown error"}) —
+          refresh to try again.
+        </p>
+      )}
+
       {view === "day" && (
         <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
-          <div className="grid grid-cols-[70px_repeat(3,1fr)] border-b border-tn-border-softer">
+          <div
+            className="grid border-b border-tn-border-softer"
+            style={{ gridTemplateColumns: `70px repeat(${Math.max(staff.length, 1)}, 1fr)` }}
+          >
             <div />
-            {BARBERS.map((b) => (
+            {staffQuery.isPending && (
+              <div className="border-l border-tn-border-soft p-3 font-sans text-[13px] text-tn-muted-5">
+                Loading staff…
+              </div>
+            )}
+            {!staffQuery.isPending && staff.length === 0 && (
+              <div className="border-l border-tn-border-soft p-3 font-sans text-[13px] text-tn-muted-5">
+                No active staff at this location yet — add staff in Settings.
+              </div>
+            )}
+            {staff.map((member) => (
               <div
-                key={b}
+                key={member.id}
                 className="border-l border-tn-border-soft p-3 font-sans text-[13px] font-semibold text-tn-ink"
               >
-                {b}
+                {member.name}
               </div>
             ))}
           </div>
-          {DAY_SLOTS.map((slot, rowIndex) => (
-            <div
-              key={slot}
-              className={`grid min-h-16 grid-cols-[70px_repeat(3,1fr)] ${
-                rowIndex < DAY_SLOTS.length - 1 ? "border-b border-tn-border-soft" : ""
-              }`}
-            >
-              <div className="p-2.5 font-sans text-xs font-medium text-tn-muted-5">{slot}</div>
-              {BARBERS.map((_, barberIndex) => {
-                const apt = DAY_APPOINTMENTS[rowIndex]?.find((a) => a?.barber === barberIndex);
-                return (
-                  <div key={barberIndex} className="border-l border-tn-border-soft p-2">
-                    {apt && (
-                      <button
-                        type="button"
-                        onClick={() => setModalOpen(true)}
-                        className={`w-full whitespace-pre-line rounded-md p-2 text-left font-sans text-xs font-medium text-tn-ink-soft ${TONE_CLASS[apt.tone]}`}
-                      >
-                        {apt.label}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
+          {daySlots.map((slot, rowIndex) => {
+            const hh = String(slot.getHours()).padStart(2, "0");
+            const mm = String(slot.getMinutes()).padStart(2, "0");
+            return (
+              <div
+                key={slot.toISOString()}
+                className="grid min-h-16"
+                style={{ gridTemplateColumns: `70px repeat(${Math.max(staff.length, 1)}, 1fr)` }}
+              >
+                <div
+                  className={`p-2.5 font-sans text-xs font-medium text-tn-muted-5 ${rowIndex < daySlots.length - 1 ? "border-b border-tn-border-soft" : ""}`}
+                >
+                  {formatTimeLabel(slot)}
+                </div>
+                {staff.map((member) => {
+                  const booking = dayBookingsBySlot.get(`${member.id}__${hh}:${mm}`);
+                  return (
+                    <div
+                      key={member.id}
+                      className={`border-l border-tn-border-soft p-2 ${rowIndex < daySlots.length - 1 ? "border-b border-tn-border-soft" : ""}`}
+                    >
+                      {booking ? (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedBooking(booking)}
+                          className={`w-full rounded-md p-2 text-left font-sans text-xs font-medium text-tn-ink-soft ${STATUS_TONE_CLASS[booking.status]}`}
+                        >
+                          {booking.customerName}
+                          <br />
+                          {booking.serviceName}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setAddRequest({
+                              defaultDate: cursorDate,
+                              defaultStaffId: member.id,
+                              defaultTime: `${hh}:${mm}`,
+                            })
+                          }
+                          className="h-full w-full cursor-pointer rounded-md border border-dashed border-transparent text-transparent hover:border-tn-input-border hover:text-tn-faint-2"
+                          aria-label={`Add booking for ${member.name} at ${formatTimeLabel(slot)}`}
+                        >
+                          +
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
         </div>
       )}
 
       {view === "week" && (
         <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
           <div className="grid grid-cols-7 border-b border-tn-border-softer">
-            {WEEK_DAYS.map((day) => (
+            {weekDays.map((day) => (
               <div
-                key={day.label}
+                key={day.toDateString()}
                 className={`border-l border-tn-border-soft px-3 py-2.5 font-sans text-[11px] font-medium ${
-                  day.today ? "bg-tn-gold-bg-soft text-tn-gold font-semibold" : "text-tn-muted-5"
+                  isSameDay(day, new Date())
+                    ? "bg-tn-gold-bg-soft text-tn-gold font-semibold"
+                    : "text-tn-muted-5"
                 }`}
               >
-                {day.label}
+                {formatWeekColumnLabel(day)}
               </div>
             ))}
           </div>
           <div className="grid min-h-[360px] grid-cols-7">
-            {WEEK_DAYS.map((day) => (
-              <div key={day.label} className="flex flex-col gap-1.5 border-l border-tn-border-soft p-2">
-                {day.closed && <span className="text-center font-sans text-[11px] text-tn-faint">Closed</span>}
-                {day.entries.map((entry, i) => (
-                  <div
-                    key={i}
-                    className={`rounded-md p-1.5 font-sans text-[11px] font-medium text-tn-ink-soft ${TONE_CLASS[entry.tone]}`}
-                  >
-                    {entry.time} {entry.name}
-                    {entry.service && <br />}
-                    {entry.service}
-                  </div>
-                ))}
-              </div>
-            ))}
+            {weekDays.map((day) => {
+              const dayBookings = bookingsByDay.get(day.toDateString()) ?? [];
+              return (
+                <div
+                  key={day.toDateString()}
+                  className="flex flex-col gap-1.5 border-l border-tn-border-soft p-2"
+                >
+                  {dayBookings.length === 0 && (
+                    <span className="text-center font-sans text-[11px] text-tn-faint">
+                      No bookings
+                    </span>
+                  )}
+                  {dayBookings.map((booking) => (
+                    <button
+                      key={booking.id}
+                      type="button"
+                      onClick={() => setSelectedBooking(booking)}
+                      className={`rounded-md p-1.5 text-left font-sans text-[11px] font-medium text-tn-ink-soft ${STATUS_TONE_CLASS[booking.status]}`}
+                    >
+                      {formatTimeLabel(new Date(booking.startAt))} {booking.customerName}
+                      <br />
+                      {booking.serviceName}
+                    </button>
+                  ))}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -176,22 +349,35 @@ export function CalendarPage() {
         <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
           <div className="grid grid-cols-7 border-b border-tn-border-softer bg-tn-table-head">
             {["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map((d) => (
-              <div key={d} className="px-2.5 py-2 font-sans text-[11px] font-semibold text-tn-muted-5">
+              <div
+                key={d}
+                className="px-2.5 py-2 font-sans text-[11px] font-semibold text-tn-muted-5"
+              >
                 {d}
               </div>
             ))}
           </div>
-          <div className="grid grid-cols-7 grid-rows-5">
-            {MONTH_WEEKS.map((week, wi) =>
-              week.map((day, di) => {
-                const isOut = wi === 0 && OUT_OF_MONTH.has(day);
-                const isToday = day === CURRENT_DAY && !isOut;
-                const bookings = !isOut ? MONTH_BOOKINGS[day] : undefined;
+          <div
+            className="grid grid-cols-7"
+            style={{ gridTemplateRows: `repeat(${monthWeeks.length}, 1fr)` }}
+          >
+            {monthWeeks.map((week) =>
+              week.map((day) => {
+                const isOut = !isSameMonth(day, cursorDate);
+                const isToday = isSameDay(day, new Date());
+                const count = bookingsByDay.get(day.toDateString())?.length ?? 0;
                 return (
-                  <div
-                    key={`${wi}-${di}`}
-                    className={`flex flex-col gap-1 border-l border-t border-tn-border-soft p-2 ${
-                      isToday ? "border-t-2 border-t-tn-gold bg-tn-gold-bg-soft" : ""
+                  <button
+                    key={day.toDateString()}
+                    type="button"
+                    onClick={() => {
+                      setCursorDate(day);
+                      setView("day");
+                    }}
+                    className={`flex cursor-pointer flex-col gap-1 border-l border-t border-tn-border-soft p-2 text-left ${
+                      isToday
+                        ? "border-t-2 border-t-tn-gold bg-tn-gold-bg-soft"
+                        : "hover:bg-tn-page"
                     }`}
                   >
                     <span
@@ -203,18 +389,18 @@ export function CalendarPage() {
                             : "font-semibold text-tn-ink"
                       }`}
                     >
-                      {day}
+                      {day.getDate()}
                     </span>
-                    {bookings && (
+                    {count > 0 && (
                       <span
                         className={`w-fit rounded px-1.5 py-0.5 font-sans text-[10px] font-medium ${
-                          bookings >= 4 ? "bg-tn-gold-bg text-tn-gold" : "bg-tn-page text-tn-muted-3"
+                          count >= 4 ? "bg-tn-gold-bg text-tn-gold" : "bg-tn-page text-tn-muted-3"
                         }`}
                       >
-                        {bookings} bookings
+                        {count} booking{count === 1 ? "" : "s"}
                       </span>
                     )}
-                  </div>
+                  </button>
                 );
               }),
             )}
@@ -222,7 +408,23 @@ export function CalendarPage() {
         </div>
       )}
 
-      <AppointmentModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      <AppointmentModal
+        open={!!selectedBooking}
+        onClose={() => setSelectedBooking(null)}
+        booking={selectedBooking}
+        staff={staff}
+        accessToken={accessToken ?? ""}
+      />
+
+      <AddBookingModal
+        open={!!addRequest}
+        onClose={() => setAddRequest(null)}
+        staff={staff}
+        accessToken={accessToken ?? ""}
+        defaultDate={addRequest?.defaultDate ?? cursorDate}
+        defaultStaffId={addRequest?.defaultStaffId}
+        defaultTime={addRequest?.defaultTime}
+      />
     </div>
   );
 }

@@ -2,7 +2,8 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useAuthStore } from "@/auth/auth-store";
 import { Button } from "@/components/ui/Button";
-import { BILLING_CYCLE_LABEL, PLAN_TIERS, planPriceForCycle } from "@/lib/sample-data";
+import { BILLING_CYCLE_LABEL } from "@/lib/sample-data";
+import { centsToDollars } from "@/lib/billing-api";
 
 /** Matches the mockup's T5 "Application Submitted" frame — receipt + hand-off into the app. */
 export function ApplicationSubmittedPage() {
@@ -15,8 +16,7 @@ export function ApplicationSubmittedPage() {
 
   if (!owner) return null;
 
-  const plan = PLAN_TIERS.find((p) => p.id === owner.planId);
-  const price = plan ? planPriceForCycle(plan.monthly, owner.billingCycle) : 0;
+  const price = centsToDollars(owner.priceCents);
   const firstName = owner.fullName.split(" ")[0];
 
   return (
@@ -28,8 +28,8 @@ export function ApplicationSubmittedPage() {
         You&rsquo;re all set, {firstName}
       </h1>
       <p className="m-0 max-w-md font-sans text-[15px] leading-relaxed text-tn-muted-4">
-        We&rsquo;re reviewing {owner.businessName}&rsquo;s application. This usually takes less
-        than 24 hours — we&rsquo;ll email you once you&rsquo;re live.
+        We&rsquo;re reviewing {owner.businessName}&rsquo;s application. This usually takes less than
+        24 hours — we&rsquo;ll email you once you&rsquo;re live.
       </p>
 
       <div className="mt-2 flex w-[380px] flex-col gap-3 rounded-2xl border border-tn-border p-5 text-left">
@@ -53,7 +53,7 @@ export function ApplicationSubmittedPage() {
         </div>
         <div className="flex justify-between font-sans text-sm font-semibold text-tn-ink">
           <span>Total paid</span>
-          <span>${price.toFixed(2)}</span>
+          <span>${price}</span>
         </div>
       </div>
 

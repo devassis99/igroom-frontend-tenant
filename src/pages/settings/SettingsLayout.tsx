@@ -16,7 +16,7 @@ const WORKSPACE_ITEMS = [
 
 function navClass(isActive: boolean) {
   return `flex items-center gap-2.5 rounded-lg px-4 py-2.5 font-sans text-[13px] ${
-    isActive ? "bg-tn-dark font-semibold text-tn-on-dark" : "font-medium text-tn-nav-inactive"
+    isActive ? "bg-tn-blue-bg font-semibold text-tn-blue" : "font-medium text-tn-nav-inactive"
   }`;
 }
 
@@ -32,14 +32,19 @@ export function SettingsLayout() {
 
   return (
     <div className="flex gap-10">
-      <nav className="flex w-[200px] flex-none flex-col gap-6">
+      <nav className="flex w-[200px] flex-none flex-col gap-6 rounded-2xl bg-tn-table-head p-5">
         <div>
           <p className="m-0 mb-2 px-4 font-sans text-[11px] font-semibold tracking-[0.04em] text-tn-faint">
             GENERAL
           </p>
           <div className="flex flex-col gap-0.5">
             {GENERAL_ITEMS.map((item) => (
-              <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => navClass(isActive)}>
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) => navClass(isActive)}
+              >
                 <span aria-hidden>{item.icon}</span>
                 <span>{item.label}</span>
               </NavLink>

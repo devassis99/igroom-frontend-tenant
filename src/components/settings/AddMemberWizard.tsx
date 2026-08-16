@@ -25,9 +25,17 @@ const WEEK = [
 
 const ROLES = [
   { id: "owner", name: "Owner", body: "Full access to every location, billing, and settings." },
-  { id: "manager", name: "Branch Manager", body: "Manages one location: staff, schedule, services, and reports." },
+  {
+    id: "manager",
+    name: "Branch Manager",
+    body: "Manages one location: staff, schedule, services, and reports.",
+  },
   { id: "barber", name: "Barber", body: "Manages own schedule, appointments, and clients." },
-  { id: "receptionist", name: "Receptionist", body: "Books appointments and manages the front desk. No financial access." },
+  {
+    id: "receptionist",
+    name: "Receptionist",
+    body: "Books appointments and manages the front desk. No financial access.",
+  },
 ];
 
 /** Matches the mockup's T12h–T12l "Add New Member" 5-step wizard. */
@@ -125,9 +133,7 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
                 }`}
               >
                 <span className="font-sans text-[13px] text-tn-ink">{s.name}</span>
-                <span className="font-sans text-[13px] text-tn-muted-3">
-                  ${s.price.toFixed(2)}
-                </span>
+                <span className="font-sans text-[13px] text-tn-muted-3">${s.price.toFixed(2)}</span>
                 <span className="font-sans text-[13px] text-tn-muted-3">{s.duration}</span>
                 <input
                   type="checkbox"
@@ -155,7 +161,9 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
                 <div key={w.day} className="flex items-center gap-3">
                   <span
                     className={`flex h-[18px] w-[18px] items-center justify-center rounded border text-[11px] ${
-                      w.enabled ? "border-tn-gold bg-tn-gold text-tn-on-dark" : "border-tn-input-border"
+                      w.enabled
+                        ? "border-tn-gold bg-tn-gold text-tn-on-dark"
+                        : "border-tn-input-border"
                     }`}
                   >
                     {w.enabled && "✓"}
@@ -189,6 +197,7 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
                   <input
                     type="radio"
                     name="role"
+                    aria-label={r.name}
                     checked={role === r.id}
                     onChange={() => setRole(r.id)}
                     className="mt-1 accent-tn-gold"
@@ -219,7 +228,11 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
                 onChange={setAllowMultiService}
                 label="Allow multiple services per booking"
               />
-              <Toggle checked={trackHours} onChange={setTrackHours} label="Track hours for payroll" />
+              <Toggle
+                checked={trackHours}
+                onChange={setTrackHours}
+                label="Track hours for payroll"
+              />
             </div>
             <div className="grid grid-cols-2 gap-3.5">
               <Field label="BOOKING INTERVAL (CLIENT)">
@@ -232,8 +245,8 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
             <div className="flex items-start gap-2 rounded-xl bg-tn-page p-3.5">
               <span aria-hidden>ℹ</span>
               <p className="m-0 font-sans text-xs text-tn-muted-4">
-                Adding this member will use your last available seat, or add a prorated seat to
-                your Business plan.
+                Adding this member will use your last available seat, or add a prorated seat to your
+                Business plan.
               </p>
             </div>
           </>

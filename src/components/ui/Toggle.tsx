@@ -13,6 +13,7 @@ export function Toggle({ checked, onChange, label }: ToggleProps) {
         type="button"
         role="switch"
         aria-checked={checked}
+        aria-label={label}
         onClick={() => onChange(!checked)}
         className={`relative h-[22px] w-9 flex-none rounded-full transition-colors ${
           checked ? "bg-tn-gold" : "bg-tn-border-softer"

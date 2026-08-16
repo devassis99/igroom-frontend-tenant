@@ -32,7 +32,9 @@ export function Modal({ open, onClose, children, width = 440 }: ModalProps) {
       onClick={onClose}
       role="presentation"
     >
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- onClick here only stops the backdrop's onClose from firing when the modal content is clicked, not a real interactive control. */}
       <div
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- swapping to native <dialog> needs a showModal/close + focus-trap rework of every call site, deferred.
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}

@@ -5,15 +5,17 @@ import { z } from "zod";
  * igroom-frontend-bo's src/lib/env.ts — fail loudly at startup instead of a
  * confusing runtime error the first time something reads an unset value.
  *
- * Nothing in this app calls VITE_API_BASE_URL yet: igroom-backend has no
- * tenant/shop-owner endpoints (auth, bookings, staff, ...) as of this
- * scaffold (see README's "Still to do"), so every page runs on sample data
- * and src/auth's client-only mock session. Validating it here anyway keeps
- * src/lib/http.ts ready to point at a real API the moment those endpoints
- * exist, instead of every page needing an env-var migration later.
+ * igroom-backend now has real tenant/shop-owner endpoints under
+ * /accounts (see src/lib/accounts-api.ts) — VITE_API_BASE_URL and
+ * VITE_GOOGLE_CLIENT_ID back the signup funnel's real API calls and its
+ * "Sign up with Google" button (src/lib/google-identity.ts).
+ * VITE_GOOGLE_CLIENT_ID must be the exact same OAuth client as
+ * igroom-backend's GOOGLE_CLIENT_ID — the backend verifies the ID token's
+ * audience against it.
  */
 const envSchema = z.object({
   VITE_API_BASE_URL: z.string().url({ message: "VITE_API_BASE_URL must be a valid URL" }),
+  VITE_GOOGLE_CLIENT_ID: z.string().min(1, "VITE_GOOGLE_CLIENT_ID is required for Google sign-up"),
 });
 
 const parsed = envSchema.safeParse(import.meta.env);
