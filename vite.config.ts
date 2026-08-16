@@ -17,13 +17,20 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     tailwindcss(),
-    compression({ algorithms: ["brotliCompress", "gzip"] }),
+    // vite-plugin-compression2's compression() takes one `algorithm` per
+    // call (not an `algorithms` array — that option doesn't exist on
+    // this plugin) — call it once per output format instead.
+    compression({ algorithm: "brotliCompress" }),
+    compression({ algorithm: "gzip" }),
     mode === "analyze" &&
       visualizer({ filename: "stats.html", gzipSize: true, brotliSize: true, open: false }),
   ].filter(Boolean),
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      // import.meta.dirname (stable since Node 21.2/20.11, and this repo
+      // requires >=22 — see package.json's engines) instead of
+      // __dirname, which doesn't exist in an ESM module like this one.
+      "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
   build: {

@@ -23,6 +23,24 @@ export function loginWithGoogle(idToken: string): Promise<GoogleLoginOutcome> {
   });
 }
 
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+/**
+ * Email/password sign-in for a returning owner — POST /accounts/login on
+ * igroom-backend (accounts.service.ts's login()). Throws ApiError(401,
+ * "Invalid email or password") on a bad credential pair, same shape LoginPage
+ * surfaces directly under the form.
+ */
+export function login(payload: LoginPayload): Promise<TokenPair> {
+  return request<TokenPair>("/accounts/login", {
+    method: "POST",
+    body: payload,
+  });
+}
+
 export interface CreateCheckoutSessionPayload {
   planKey: string;
   billingCycle: BillingCycle;
@@ -58,7 +76,8 @@ export interface SignupPayload {
   googleIdToken?: string;
   businessName: string;
   category?: string;
-  address: string;
+  /** No longer collected during onboarding (see BusinessDetailsPage) — optional, add later via Settings' Locations page. */
+  address?: string;
   phone?: string;
   planKey: string;
   billingCycle: BillingCycle;

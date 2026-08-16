@@ -45,10 +45,22 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   const payload = isJson ? await response.json().catch(() => undefined) : undefined;
 
   if (!response.ok) {
+    // igroom-backend's errorHandler (see error-handler.ts) always shapes
+    // failures as `{ error: string }`, not `{ message: string }` — reading
+    // the wrong key here meant every thrown ApiError fell back to the
+    // generic "Request to ... failed" text below, silently swallowing
+    // real backend messages like "An account already exists for this
+    // email" or "Invalid email or password". `message` is still checked
+    // as a fallback in case some endpoint ever shapes its body that way.
+    const payloadMessage =
+      payload && typeof payload === "object"
+        ? ((payload as { error?: unknown; message?: unknown }).error ??
+          (payload as { error?: unknown; message?: unknown }).message)
+        : undefined;
     const message =
-      (payload && typeof payload === "object" && "message" in payload
-        ? String((payload as { message?: unknown }).message)
-        : undefined) ?? `Request to ${path} failed with status ${response.status}`;
+      typeof payloadMessage === "string" && payloadMessage.length > 0
+        ? payloadMessage
+        : `Request to ${path} failed with status ${response.status}`;
     throw new ApiError(response.status, message, payload);
   }
 

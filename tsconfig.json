@@ -26,7 +26,12 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "types": ["vite/client", "vitest/globals"]
+    // "node" added so vite.config.ts's `node:path` import and
+    // `import.meta.dirname` resolve — TypeScript only auto-includes
+    // @types/* packages when this array is absent; listing it
+    // explicitly (as vite/client and vitest/globals already were) means
+    // every entry the project actually needs has to be named here.
+    "types": ["vite/client", "vitest/globals", "node"]
   },
   "include": ["src", "vite.config.ts"]
 }

@@ -56,16 +56,18 @@ function availableCycles(products: CatalogProduct[]): BillingCycle[] {
 
 /**
  * Matches the mockup's T3b–T3e "Choose your plan" frames — one page,
- * billing cycle as a tab. Step 2 of 3 (Account → Plan → Business
- * details — Stripe's real hosted Checkout happens in between, but it's
- * an external redirect, not an in-app wizard step). Plans and prices
- * come from igroom-backend's public GET /billing/products (see
- * billing-api.ts) — the same catalog managed from the back office's
- * Plans page, not a hardcoded list. Only products the admin has marked
- * showOnSignup reach this endpoint at all; on top of that, a plan with
- * no price for the selected cycle is hidden here (not shown disabled),
- * and a cycle with no priced plans at all is hidden from the tab row
- * entirely.
+ * billing cycle as a tab. Step 4 of 4 (Account → Business details →
+ * Availability → Plan — Stripe's real hosted Checkout, then the new
+ * Receipt page, follow this step but are outside the numbered wizard,
+ * the former being an external redirect and the latter a
+ * checkout-completion confirmation rather than a data-entry step — see
+ * ReceiptPage's comment). Plans and prices come from igroom-backend's
+ * public GET /billing/products (see billing-api.ts) — the same catalog
+ * managed from the back office's Plans page, not a hardcoded list. Only
+ * products the admin has marked showOnSignup reach this endpoint at
+ * all; on top of that, a plan with no price for the selected cycle is
+ * hidden here (not shown disabled), and a cycle with no priced plans at
+ * all is hidden from the tab row entirely.
  *
  * Picking a plan goes straight to Stripe — no in-app "review your
  * order" screen in between. POST /accounts/checkout-session
@@ -75,11 +77,25 @@ function availableCycles(products: CatalogProduct[]): BillingCycle[] {
  */
 export function ChoosePlanPage() {
   const [searchParams] = useSearchParams();
-  const { billingCycle, setBillingCycle, workEmail, selectPlan } = useOnboardingStore();
+  const {
+    billingCycle,
+    setBillingCycle,
+    workEmail,
+    selectPlan,
+    setLastRoute,
+    setStripeCheckoutSessionId,
+  } = useOnboardingStore();
   const [redirectingProductId, setRedirectingProductId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const canceled = searchParams.get("canceled") === "1";
+
+  // Records "this is the step the visitor is currently on" so a later
+  // "Get Started" click from LandingPage resumes here instead of
+  // restarting the wizard — see onboarding-store.ts's lastRoute comment.
+  useEffect(() => {
+    setLastRoute("/signup/plan");
+  }, [setLastRoute]);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["billing", "catalog"],
@@ -110,9 +126,14 @@ export function ChoosePlanPage() {
 
     setError(null);
     setRedirectingProductId(product.id);
-    // Stashed before the redirect (in sessionStorage — see
-    // onboarding-store.ts) so BusinessDetailsPage still has the chosen
-    // plan once Stripe sends the browser back from checkout.stripe.com.
+    // A fresh checkout attempt — clear any stale session id left over
+    // from a previous abandoned attempt (see onboarding-store.ts's
+    // stripeCheckoutSessionId comment) so ReceiptPage never mixes up an
+    // old completed session with this new one.
+    setStripeCheckoutSessionId(null);
+    // Stashed before the redirect (in localStorage — see
+    // onboarding-store.ts) so ReceiptPage still has the chosen plan once
+    // Stripe sends the browser back from checkout.stripe.com.
     selectPlan({
       productId: product.id,
       key: product.key,
@@ -145,7 +166,7 @@ export function ChoosePlanPage() {
           Choose your plan
         </h1>
         <p className="m-0 font-sans text-sm text-tn-page/80">
-          Step 2 of 3 · billed per chair, cancel anytime{CYCLE_SUBTITLE[billingCycle]}
+          Step 4 of 4 · billed per chair, cancel anytime{CYCLE_SUBTITLE[billingCycle]}
         </p>
       </div>
 

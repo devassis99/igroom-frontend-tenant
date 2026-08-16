@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router";
 import { useAuthStore } from "@/auth/auth-store";
+import { useOnboardingStore } from "@/auth/onboarding-store";
 import { Button } from "@/components/ui/Button";
 
 const FEATURES = [
@@ -21,6 +22,21 @@ const FEATURES = [
 export function LandingPage() {
   const navigate = useNavigate();
   const hasSession = useAuthStore((s) => s.owner !== null);
+  // A visitor who abandoned signup partway through CAN resume at whichever
+  // step they were last on (see onboarding-store.ts's lastRoute) — but
+  // "Get Started" always opens the actual signup form (step 1) so it never
+  // silently skips it. Resuming further in is an explicit choice via the
+  // banner below, shown only once there's real progress to resume.
+  const lastSignupRoute = useOnboardingStore((s) => s.lastRoute);
+  const hasSignupInProgress = lastSignupRoute !== "/signup";
+
+  function startSignup() {
+    navigate("/signup");
+  }
+
+  function resumeSignup() {
+    navigate(lastSignupRoute);
+  }
 
   return (
     <div className="min-h-screen bg-tn-surface">
@@ -32,14 +48,29 @@ export function LandingPage() {
           <span className="hidden sm:inline">Support</span>
           <button
             type="button"
-            onClick={() => navigate(hasSession ? "/dashboard" : "/signup")}
+            onClick={() => navigate(hasSession ? "/dashboard" : "/login")}
             className="cursor-pointer border-none bg-transparent p-0 font-sans text-sm font-medium text-tn-gold"
           >
             Log in
           </button>
-          <Button onClick={() => navigate("/signup")}>Get Started</Button>
+          <Button onClick={startSignup}>Get Started</Button>
         </nav>
       </header>
+
+      {hasSignupInProgress && (
+        <div className="flex items-center justify-center gap-2 bg-tn-gold-bg-soft px-4 py-2.5 text-center">
+          <p className="m-0 font-sans text-xs text-tn-ink">
+            Looks like you started setting up your shop.
+          </p>
+          <button
+            type="button"
+            onClick={resumeSignup}
+            className="cursor-pointer border-none bg-transparent p-0 font-sans text-xs font-semibold text-tn-gold underline"
+          >
+            Continue where you left off →
+          </button>
+        </div>
+      )}
 
       <section className="flex items-center gap-16 px-16 pb-14 pt-10">
         <div className="flex flex-1 flex-col gap-5">
@@ -50,7 +81,7 @@ export function LandingPage() {
             Reach new clients, manage bookings and walk-ins, and get paid — all in one place.
           </p>
           <div className="mt-2 flex gap-3.5">
-            <Button size="lg" onClick={() => navigate("/signup")}>
+            <Button size="lg" onClick={startSignup}>
               Get Started
             </Button>
             <Button size="lg" variant="secondary">

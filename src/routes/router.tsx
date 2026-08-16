@@ -12,25 +12,47 @@ export const router = createBrowserRouter([
     path: "/",
     lazy: () => import("@/pages/LandingPage").then((m) => ({ Component: m.default })),
   },
-  // Signup funnel, in wizard order: Account -> Plan -> Business details ->
-  // Dashboard. Stripe's real hosted Checkout happens between Plan and
-  // Business details, but as an external redirect (see ChoosePlanPage's
-  // comment), not an in-app route. Business details is last (see
-  // BusinessDetailsPage's comment) — it's what actually calls
-  // POST /accounts/signup, which creates an active/trialing account
-  // outright (no manual-approval step), so Continue there logs the owner
-  // straight into /dashboard rather than an in-between "submitted" page.
+  // Returning-owner sign-in — separate from the signup funnel below.
+  {
+    path: "/login",
+    lazy: () => import("@/pages/LoginPage").then((m) => ({ Component: m.default })),
+  },
+  // Brief branded loading transition shown after a successful login or at
+  // the end of the signup/onboarding funnel, before landing on the real
+  // destination — see RedirectPage.tsx.
+  {
+    path: "/redirecting",
+    lazy: () => import("@/pages/RedirectPage").then((m) => ({ Component: m.default })),
+  },
+  // Signup funnel, in wizard order: Account -> Business details ->
+  // Availability -> Plan -> Checkout -> Receipt -> Dashboard. Business
+  // details and availability now come before payment (see
+  // BusinessDetailsPage's and StaffAvailabilityPage's comments) so the
+  // account can be created — by ReceiptPage, right after Stripe's real
+  // hosted Checkout completes (an external redirect, not an in-app
+  // route) — with the real business name and schedule already known.
   {
     path: "/signup",
     lazy: () => import("@/pages/CreateAccountPage").then((m) => ({ Component: m.default })),
   },
   {
+    path: "/signup/business",
+    lazy: () => import("@/pages/BusinessDetailsPage").then((m) => ({ Component: m.default })),
+  },
+  {
+    path: "/signup/availability",
+    lazy: () => import("@/pages/StaffAvailabilityPage").then((m) => ({ Component: m.default })),
+  },
+  {
     path: "/signup/plan",
     lazy: () => import("@/pages/ChoosePlanPage").then((m) => ({ Component: m.default })),
   },
+  // Stripe redirects here (success_url — see accounts.service.ts's
+  // createCheckoutSession) once the visitor finishes paying. This is
+  // what actually calls POST /accounts/signup — see ReceiptPage.tsx.
   {
-    path: "/signup/business",
-    lazy: () => import("@/pages/BusinessDetailsPage").then((m) => ({ Component: m.default })),
+    path: "/signup/receipt",
+    lazy: () => import("@/pages/ReceiptPage").then((m) => ({ Component: m.default })),
   },
   {
     element: <ProtectedRoute />,
