@@ -31,12 +31,8 @@ export function SeatUpgradeModal({ open, onClose, onUpgrade }: SeatUpgradeModalP
         </p>
 
         <div className="flex items-center justify-between rounded-xl bg-tn-page px-4 py-3">
-          <span className="font-sans text-[13px] font-semibold text-tn-ink">
-            4 of 4 seats used
-          </span>
-          <span className="font-sans text-xs text-tn-muted-5">
-            · Business Plan · $12/seat/mo
-          </span>
+          <span className="font-sans text-[13px] font-semibold text-tn-ink">4 of 4 seats used</span>
+          <span className="font-sans text-xs text-tn-muted-5">· Business Plan · $12/seat/mo</span>
         </div>
 
         <div className="flex items-start gap-2 rounded-xl border border-tn-gold bg-tn-gold-bg-soft p-3.5">

@@ -110,7 +110,51 @@ export function CalendarPage() {
         ? formatWeekNavLabel(cursorDate)
         : formatMonthNavLabel(cursorDate);
 
-  const daySlots = useMemo(() => getDaySlots(cursorDate), [cursorDate]);
+  /**
+   * The grid defaults to business hours (9am–7pm), but a booking outside
+   * that window must still be visible — otherwise it silently vanishes
+   * from Day view while still showing up fine in Week/Month (which have
+   * no hour restriction at all). So the bounds expand to cover whatever
+   * bookings actually exist on the visible day.
+   */
+  const daySlots = useMemo(() => {
+    let minHour = 9;
+    let maxHour = 19;
+    for (const booking of bookings) {
+      const start = new Date(booking.startAt);
+      if (!isSameDay(start, cursorDate)) continue; // overlaps in from the prior day — not this day's row range
+      const end = new Date(booking.endAt);
+      minHour = Math.min(minHour, start.getHours());
+      const endHourCeil =
+        end.getMinutes() > 0 || end.getSeconds() > 0 ? end.getHours() + 1 : end.getHours();
+      maxHour = Math.max(maxHour, Math.min(endHourCeil, 24));
+    }
+    return getDaySlots(cursorDate, minHour, Math.max(maxHour, minHour + 1));
+  }, [cursorDate, bookings]);
+
+  /**
+   * Columns for the Day view. Bookings only ever come back from the API
+   * for staff who exist (bookings.service inner-joins staff_users), but
+   * the *active* roster (`staff`, from /bookings/staff) can still exclude
+   * a staff member who was deactivated after the booking was made — the
+   * booking would then have no column to render into and disappear from
+   * Day view while Week/Month (which don't key off the roster at all)
+   * kept showing it fine. So any staffUserId seen on today's bookings
+   * gets a column too, even if it's fallen out of the active roster.
+   */
+  const dayColumns = useMemo(() => {
+    const known = new Map(staff.map((member) => [member.id, member]));
+    for (const booking of bookings) {
+      if (!known.has(booking.staffUserId)) {
+        known.set(booking.staffUserId, {
+          id: booking.staffUserId,
+          name: booking.staffName,
+          role: "",
+        });
+      }
+    }
+    return Array.from(known.values());
+  }, [staff, bookings]);
 
   /** [staffId__slotHHmm] -> booking, floored to the slot it starts in — lets a booking at 1:05 still land in the 1:00 row. */
   const dayBookingsBySlot = useMemo(() => {
@@ -219,7 +263,7 @@ export function CalendarPage() {
         <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
           <div
             className="grid border-b border-tn-border-softer"
-            style={{ gridTemplateColumns: `70px repeat(${Math.max(staff.length, 1)}, 1fr)` }}
+            style={{ gridTemplateColumns: `70px repeat(${Math.max(dayColumns.length, 1)}, 1fr)` }}
           >
             <div />
             {staffQuery.isPending && (
@@ -227,12 +271,12 @@ export function CalendarPage() {
                 Loading staff…
               </div>
             )}
-            {!staffQuery.isPending && staff.length === 0 && (
+            {!staffQuery.isPending && dayColumns.length === 0 && (
               <div className="border-l border-tn-border-soft p-3 font-sans text-[13px] text-tn-muted-5">
                 No active staff at this location yet — add staff in Settings.
               </div>
             )}
-            {staff.map((member) => (
+            {dayColumns.map((member) => (
               <div
                 key={member.id}
                 className="border-l border-tn-border-soft p-3 font-sans text-[13px] font-semibold text-tn-ink"
@@ -248,15 +292,22 @@ export function CalendarPage() {
               <div
                 key={slot.toISOString()}
                 className="grid min-h-16"
-                style={{ gridTemplateColumns: `70px repeat(${Math.max(staff.length, 1)}, 1fr)` }}
+                style={{
+                  gridTemplateColumns: `70px repeat(${Math.max(dayColumns.length, 1)}, 1fr)`,
+                }}
               >
                 <div
                   className={`p-2.5 font-sans text-xs font-medium text-tn-muted-5 ${rowIndex < daySlots.length - 1 ? "border-b border-tn-border-soft" : ""}`}
                 >
                   {formatTimeLabel(slot)}
                 </div>
-                {staff.map((member) => {
+                {dayColumns.map((member) => {
                   const booking = dayBookingsBySlot.get(`${member.id}__${hh}:${mm}`);
+                  // Ghost columns (a staffUserId seen on a booking but no
+                  // longer in the active roster) can't be picked as an
+                  // "assign to" target for a *new* booking — only real,
+                  // currently-active staff can.
+                  const isActiveStaff = staff.some((s) => s.id === member.id);
                   return (
                     <div
                       key={member.id}
@@ -272,7 +323,7 @@ export function CalendarPage() {
                           <br />
                           {booking.serviceName}
                         </button>
-                      ) : (
+                      ) : isActiveStaff ? (
                         <button
                           type="button"
                           onClick={() =>
@@ -287,7 +338,7 @@ export function CalendarPage() {
                         >
                           +
                         </button>
-                      )}
+                      ) : null}
                     </div>
                   );
                 })}
@@ -351,7 +402,7 @@ export function CalendarPage() {
             {["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map((d) => (
               <div
                 key={d}
-                className="px-2.5 py-2 font-sans text-[11px] font-semibold text-tn-muted-5"
+                className="px-5 py-4 font-sans text-[13px] font-semibold tracking-wide text-tn-muted-5"
               >
                 {d}
               </div>
@@ -366,6 +417,10 @@ export function CalendarPage() {
                 const isOut = !isSameMonth(day, cursorDate);
                 const isToday = isSameDay(day, new Date());
                 const count = bookingsByDay.get(day.toDateString())?.length ?? 0;
+                // Loosely-full days read as busier at a glance — matches the
+                // mockup's month grid, where 1-2 bookings sit in a muted
+                // gray chip and 3+ get the gold treatment.
+                const isBusy = count >= 3;
                 return (
                   <button
                     key={day.toDateString()}
@@ -374,14 +429,14 @@ export function CalendarPage() {
                       setCursorDate(day);
                       setView("day");
                     }}
-                    className={`flex cursor-pointer flex-col gap-1 border-l border-t border-tn-border-soft p-2 text-left ${
+                    className={`flex min-h-[132px] cursor-pointer flex-col items-start gap-2 border-l border-t border-tn-border-soft p-4 text-left ${
                       isToday
                         ? "border-t-2 border-t-tn-gold bg-tn-gold-bg-soft"
                         : "hover:bg-tn-page"
                     }`}
                   >
                     <span
-                      className={`font-sans text-[11px] ${
+                      className={`font-sans text-[15px] ${
                         isOut
                           ? "font-medium text-tn-faint-2"
                           : isToday
@@ -393,8 +448,8 @@ export function CalendarPage() {
                     </span>
                     {count > 0 && (
                       <span
-                        className={`w-fit rounded px-1.5 py-0.5 font-sans text-[10px] font-medium ${
-                          count >= 4 ? "bg-tn-gold-bg text-tn-gold" : "bg-tn-page text-tn-muted-3"
+                        className={`w-fit rounded-md px-3 py-1.5 font-sans text-xs font-medium ${
+                          isBusy ? "bg-tn-gold-bg text-tn-gold" : "bg-tn-page text-tn-muted-3"
                         }`}
                       >
                         {count} booking{count === 1 ? "" : "s"}

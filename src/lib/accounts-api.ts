@@ -41,6 +41,22 @@ export function login(payload: LoginPayload): Promise<TokenPair> {
   });
 }
 
+/**
+ * Exchanges a still-valid refresh token for a brand-new access/refresh
+ * pair — POST /accounts/refresh (accounts.service.ts's refreshSession).
+ * Not called from here directly: http.ts's `request()` calls this same
+ * endpoint itself so it can transparently recover from an expired 15-minute
+ * access token and retry whatever call just failed (see that file's
+ * comment). Exported here too so it stays a normal, discoverable part of
+ * this module's /accounts surface, alongside login/signup/logout.
+ */
+export function refresh(refreshToken: string): Promise<TokenPair> {
+  return request<TokenPair>("/accounts/refresh", {
+    method: "POST",
+    body: { refreshToken },
+  });
+}
+
 export interface CreateCheckoutSessionPayload {
   planKey: string;
   billingCycle: BillingCycle;

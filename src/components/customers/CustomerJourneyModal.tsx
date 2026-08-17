@@ -9,11 +9,27 @@ interface CustomerJourneyModalProps {
 }
 
 const JOURNEY = [
-  { date: "Today", title: "Haircut & Beard Trim", detail: "With Marcus Webb · $65 · Booked via app" },
-  { date: "Jun 28", title: "Left a 5-star review", detail: "“Marcus always nails the fade. In and out fast.”" },
+  {
+    date: "Today",
+    title: "Haircut & Beard Trim",
+    detail: "With Marcus Webb · $65 · Booked via app",
+  },
+  {
+    date: "Jun 28",
+    title: "Left a 5-star review",
+    detail: "“Marcus always nails the fade. In and out fast.”",
+  },
   { date: "Jun 28", title: "Classic Haircut", detail: "With Marcus Webb · $45 · Booked via app" },
-  { date: "May 3", title: "Classic Haircut", detail: "With Marcus Webb · $45 · Walk-in, joined via QR" },
-  { date: "Jan 14, 2025", title: "First visit", detail: "Signed up on iGroom · booked via promo “New Client 20% Off”" },
+  {
+    date: "May 3",
+    title: "Classic Haircut",
+    detail: "With Marcus Webb · $45 · Walk-in, joined via QR",
+  },
+  {
+    date: "Jan 14, 2025",
+    title: "First visit",
+    detail: "Signed up on iGroom · booked via promo “New Client 20% Off”",
+  },
 ];
 
 /** Matches the mockup's T10d Customer Journey panel. */
@@ -83,7 +99,9 @@ export function CustomerJourneyModal({ customer, onClose }: CustomerJourneyModal
                   <div key={i} className="flex gap-3">
                     <div className="flex flex-col items-center">
                       <span className="mt-1 h-2 w-2 flex-none rounded-full bg-tn-gold" />
-                      {i < JOURNEY.length - 1 && <span className="mt-1 w-px flex-1 bg-tn-border-softer" />}
+                      {i < JOURNEY.length - 1 && (
+                        <span className="mt-1 w-px flex-1 bg-tn-border-softer" />
+                      )}
                     </div>
                     <div className="pb-1">
                       <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">

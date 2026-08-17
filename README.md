@@ -10,17 +10,17 @@ is iGroom managing shops, `tenant` is a shop managing itself.
 Same stack as `igroom-frontend-bo`, for the same reasons (see that repo's README for the
 long-form rationale on each choice) — one mental model across every igroom frontend:
 
-| Concern | Choice |
-|---|---|
-| Package manager | **pnpm** — matches `igroom-backend` and `igroom-frontend-bo`. |
-| Build tool | **Vite** — native-ESM dev server, Rollup production build. |
-| Linting/formatting | **oxlint + oxfmt** — same configs as the other two repos. |
-| Language | **TypeScript, strict** — `strict: true` + `noUncheckedIndexedAccess`. |
-| Routing | **react-router v7** (data router) with route-level code splitting via `lazy`. |
-| Server state | **TanStack Query** — wired up and tuned (`src/lib/query-client.ts`), not yet consuming any real endpoint (see below). |
-| Client state | **Zustand** — `src/auth/auth-store.ts` (mock session) and `src/auth/onboarding-store.ts` (in-flight signup wizard). |
-| Styling | **Tailwind CSS v4** — design tokens in `src/styles/index.css`. |
-| Tests | **Vitest + Testing Library**. |
+| Concern            | Choice                                                                                                                |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| Package manager    | **pnpm** — matches `igroom-backend` and `igroom-frontend-bo`.                                                         |
+| Build tool         | **Vite** — native-ESM dev server, Rollup production build.                                                            |
+| Linting/formatting | **oxlint + oxfmt** — same configs as the other two repos.                                                             |
+| Language           | **TypeScript, strict** — `strict: true` + `noUncheckedIndexedAccess`.                                                 |
+| Routing            | **react-router v7** (data router) with route-level code splitting via `lazy`.                                         |
+| Server state       | **TanStack Query** — wired up and tuned (`src/lib/query-client.ts`), not yet consuming any real endpoint (see below). |
+| Client state       | **Zustand** — `src/auth/auth-store.ts` (mock session) and `src/auth/onboarding-store.ts` (in-flight signup wizard).   |
+| Styling            | **Tailwind CSS v4** — design tokens in `src/styles/index.css`.                                                        |
+| Tests              | **Vitest + Testing Library**.                                                                                         |
 
 One deliberate difference from `bo`: no `@react-oauth/google`. `igroom-backend`'s only auth system
 (`src/modules/auth`) is Google OAuth + mandatory TOTP for pre-provisioned `bo_users` rows — it has
@@ -31,7 +31,7 @@ present (matches the mockup) but disabled, with a tooltip explaining why.
 ## What's real vs. mocked
 
 **There is no tenant backend yet.** `igroom-backend` currently only has `auth` (for `bo_users`),
-`billing` (Stripe *platform* products/prices), `roles`, and `users` — nothing for shops, bookings,
+`billing` (Stripe _platform_ products/prices), `roles`, and `users` — nothing for shops, bookings,
 staff, customers, services, or payments. So, same spirit as `bo`'s own "every number is
 illustrative" approach, but one step further back: there's no session to bootstrap on load either.
 
@@ -71,8 +71,8 @@ meant to be replaced by a TanStack Query hook the moment `igroom-backend` has an
   (and reused inside Settings) matches T12f's layout and is better UX than a modal that hides the
   rest of the app.
 - **Checkout totals the flat plan price, not a per-seat one.** T3b–e's plan cards are flat
-  monthly fees per tier ($30/$50/$150/$250). T4's own checkout example prices a *different,
-  per-seat* "Business Plan" ($12/seat × 4 chairs) that doesn't correspond to any of those four
+  monthly fees per tier ($30/$50/$150/$250). T4's own checkout example prices a _different,
+  per-seat_ "Business Plan" ($12/seat × 4 chairs) that doesn't correspond to any of those four
   tiers. Carrying the per-seat number through would silently swap out the plan the owner just
   picked, so checkout totals the selected tier's own price instead.
 - **Staff Management's seat count doesn't literally match `STAFF.length`.** T12g2's "4 of 4 seats
@@ -119,5 +119,5 @@ and seat-upgrade flow (T12, T12-preview, T12b–T12l).
 - Real Stripe Elements/Checkout integration once there's a backend to create PaymentIntents
   against.
 - Role-aware navigation — the Add Member wizard's Role step is fully interactive, but nothing
-  reads the chosen role back to gate what the *current* signed-in user can see, the way `bo`'s
+  reads the chosen role back to gate what the _current_ signed-in user can see, the way `bo`'s
   `AppShell` does with `bo_permissions`.

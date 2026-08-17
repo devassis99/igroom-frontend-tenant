@@ -1,3 +1,4 @@
+import { useAuthStore } from "@/auth/auth-store";
 import { env } from "./env";
 
 export class ApiError extends Error {
@@ -16,17 +17,23 @@ export interface RequestOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
   /** Skip JSON-encoding `body` (e.g. FormData). Off by default. */
   raw?: boolean;
+  /**
+   * Internal — set only on the one automatic retry `request()` makes after
+   * a token refresh (see below), so a 401 on the retry itself fails for
+   * good instead of refreshing forever.
+   */
+  isRetryAttempt?: boolean;
 }
 
-/**
- * Bare fetch wrapper: base URL + JSON in/out + typed errors — identical
- * shape to igroom-frontend-bo's src/lib/http.ts. Not called from anywhere
- * yet (see env.ts), kept ready for when igroom-backend grows tenant
- * endpoints so pages swap a SAMPLE_* constant for a real call without
- * needing a different fetch layer.
- */
-export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { body, raw, headers, ...rest } = options;
+/** The actual fetch — no 401/refresh handling, so the retry in `request()` below can call this directly without recursing into itself. */
+async function rawRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  // Renamed to `_isRetryAttempt` on the way in — this binding only exists
+  // to keep `isRetryAttempt` out of `...rest` (fetch's RequestInit has no
+  // such field); it's never read from here. The leading underscore satisfies
+  // this repo's "unused vars must start with _" convention without ever
+  // reading a leading-underscore *property* (that's what no-underscore-dangle
+  // objects to — see `request()` below, which reads the un-prefixed field).
+  const { body, raw, headers, isRetryAttempt: _isRetryAttempt, ...rest } = options;
 
   const response = await fetch(`${env.VITE_API_BASE_URL}${path}`, {
     ...rest,
@@ -65,4 +72,88 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   }
 
   return payload as T;
+}
+
+interface TokenPair {
+  accessToken: string;
+  refreshToken: string;
+}
+
+/**
+ * De-duped in-flight refresh — igroom-backend's POST /accounts/refresh
+ * (see accounts.service.ts's refreshSession) revokes the refresh token it's
+ * handed the moment it's used, so two 401s landing at once (e.g.
+ * ServicesPage's services + categories queries firing together) must share
+ * one refresh call, not race two independent ones — the second would hand
+ * back an already-revoked token and fail. Cleared once the call settles
+ * (success or failure) so the *next* 401, whenever it happens, can start a
+ * fresh one.
+ */
+let refreshPromise: Promise<TokenPair> | null = null;
+
+function refreshTokens(): Promise<TokenPair> {
+  if (!refreshPromise) {
+    const currentRefreshToken = useAuthStore.getState().refreshToken;
+    refreshPromise = currentRefreshToken
+      ? rawRequest<TokenPair>("/accounts/refresh", {
+          method: "POST",
+          body: { refreshToken: currentRefreshToken },
+        })
+      : Promise.reject(new ApiError(401, "No refresh token available"));
+    refreshPromise.finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
+/**
+ * Bare fetch wrapper: base URL + JSON in/out + typed errors — identical
+ * shape to igroom-frontend-bo's src/lib/http.ts, plus one thing bo doesn't
+ * need: igroom-backend signs tenant access tokens with a 15-minute TTL
+ * (see jwt.ts's ACCESS_TOKEN_TTL), so any session left open past that mark
+ * used to have every account-authenticated call (services, availability,
+ * ...) start failing with "Invalid or expired access token" until the
+ * owner logged out and back in. A call is "account-authenticated" here
+ * simply if it went out with an Authorization header — callers still build
+ * that header themselves (see services-api.ts/availability-api.ts's
+ * authHeaders helpers), this just watches for a 401 coming back on one.
+ *
+ * On that 401, this refreshes the token pair via POST /accounts/refresh,
+ * updates auth-store so every other already-mounted page's `accessToken`
+ * picks up the new one too, and retries the original call exactly once
+ * with the new token. If the refresh itself fails (refresh token expired,
+ * revoked, or missing — e.g. the owner is truly logged out elsewhere),
+ * this clears the session so ProtectedRoute (routes/ProtectedRoute.tsx)
+ * redirects to the login screen on the next render, and surfaces the
+ * *original* 401 to the caller rather than the internal refresh failure —
+ * that's the error the page's own error state was already built to show.
+ */
+export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  try {
+    return await rawRequest<T>(path, options);
+  } catch (err) {
+    const authHeader = (options.headers as Record<string, string> | undefined)?.Authorization;
+    const canRetryWithRefresh =
+      err instanceof ApiError &&
+      err.status === 401 &&
+      !options.isRetryAttempt &&
+      typeof authHeader === "string" &&
+      path !== "/accounts/refresh";
+
+    if (!canRetryWithRefresh) throw err;
+
+    try {
+      const tokens = await refreshTokens();
+      useAuthStore.getState().setTokens(tokens);
+      return await rawRequest<T>(path, {
+        ...options,
+        isRetryAttempt: true,
+        headers: { ...options.headers, Authorization: `Bearer ${tokens.accessToken}` },
+      });
+    } catch {
+      useAuthStore.getState().logOut();
+      throw err;
+    }
+  }
 }

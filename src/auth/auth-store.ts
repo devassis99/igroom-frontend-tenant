@@ -26,6 +26,15 @@ interface AuthState {
     accessToken: string;
     refreshToken: string;
   }) => void;
+  /**
+   * Swaps in a freshly-rotated token pair without touching `owner` — called
+   * by http.ts's `request()` after it silently recovers from an expired
+   * accessToken via POST /accounts/refresh (see that file's comment on the
+   * retry-once flow). Keeps every already-mounted page's `accessToken`
+   * selector in sync so their *next* call goes out with the new token
+   * instead of the one that just got rejected.
+   */
+  setTokens: (params: { accessToken: string; refreshToken: string }) => void;
   logOut: () => void;
 }
 
@@ -39,6 +48,7 @@ export const useAuthStore = create<AuthState>()(
       hydrate: () => set((state) => ({ status: state.owner ? "authenticated" : "anonymous" })),
       loginWithSession: ({ owner, accessToken, refreshToken }) =>
         set({ owner, accessToken, refreshToken, status: "authenticated" }),
+      setTokens: ({ accessToken, refreshToken }) => set({ accessToken, refreshToken }),
       logOut: () =>
         set({ owner: null, accessToken: null, refreshToken: null, status: "anonymous" }),
     }),

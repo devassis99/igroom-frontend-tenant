@@ -31,6 +31,11 @@ function navClass(isActive: boolean) {
  * negative margins, then let the two inner columns re-apply their own
  * padding independently — the nav's for its own inset content, the
  * content column's to keep every T12* sub-page visually unchanged.
+ *
+ * The mockup gives this nav its own shade (oklch(96% .012 75), same
+ * tone as a table header) rather than reusing AppShell's sidebar
+ * background — with a border to match, the two otherwise blend into one
+ * long sidebar with no visible seam between "app nav" and "settings nav".
  */
 export function SettingsLayout() {
   const navigate = useNavigate();
@@ -43,7 +48,7 @@ export function SettingsLayout() {
 
   return (
     <div className="-my-8 flex min-h-screen">
-      <nav className="-ml-10 flex w-[240px] flex-none flex-col gap-6 bg-tn-page py-8">
+      <nav className="-ml-10 flex w-[240px] flex-none flex-col gap-6 border-r border-tn-border bg-tn-table-head py-8">
         <p className="m-0 px-4 font-serif text-[22px] font-semibold text-tn-ink">Settings</p>
         <div>
           <p className="m-0 mb-2 px-4 font-sans text-[11px] font-semibold tracking-[0.04em] text-tn-faint">

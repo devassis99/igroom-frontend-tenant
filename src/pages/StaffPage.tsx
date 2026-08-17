@@ -74,7 +74,8 @@ export function StaffPage() {
             <span className="font-sans text-[13px] text-tn-muted-2">${b.sales.toFixed(2)}</span>
             <span className="font-sans text-[13px] text-tn-muted-2">${b.avgTicket.toFixed(2)}</span>
             <span className="font-sans text-[13px] text-tn-muted-2">
-              ${b.commission.toFixed(2)} <span className="text-tn-faint-2">({b.commissionRate}%)</span>
+              ${b.commission.toFixed(2)}{" "}
+              <span className="text-tn-faint-2">({b.commissionRate}%)</span>
             </span>
             <span className="font-sans text-[13px] text-tn-muted-2">{b.rating.toFixed(1)} ★</span>
           </div>

@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 interface ModalProps {
@@ -9,12 +9,36 @@ interface ModalProps {
   width?: number;
 }
 
+/** Matches the backdrop-fade + panel-rise duration below — keep these two in sync. */
+const TRANSITION_MS = 180;
+
 /**
  * Same portal-to-body pattern as igroom-frontend-bo's Modal.tsx — rendering
  * in place would center "fixed inset-0" relative to AppShell's scrollable
  * content div instead of the actual viewport.
+ *
+ * Stays mounted for one extra tick on both ends of `open` so the
+ * backdrop-fade/panel-rise transition actually gets to run: mounting
+ * `open`+"entering" in the same paint would let the browser coalesce the
+ * two states and skip straight to the end value, and unmounting the
+ * instant `open` goes false would cut the close animation off before it's
+ * visible.
  */
 export function Modal({ open, onClose, children, width = 440 }: ModalProps) {
+  const [rendered, setRendered] = useState(open);
+  const [entered, setEntered] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setRendered(true);
+      const raf = requestAnimationFrame(() => setEntered(true));
+      return () => cancelAnimationFrame(raf);
+    }
+    setEntered(false);
+    const timeout = setTimeout(() => setRendered(false), TRANSITION_MS);
+    return () => clearTimeout(timeout);
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     function onKeyDown(e: KeyboardEvent) {
@@ -24,11 +48,12 @@ export function Modal({ open, onClose, children, width = 440 }: ModalProps) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!rendered) return null;
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-tn-backdrop p-8 backdrop-blur-[6px]"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-tn-backdrop p-8 backdrop-blur-[6px] transition-opacity ease-out"
+      style={{ transitionDuration: `${TRANSITION_MS}ms`, opacity: entered ? 1 : 0 }}
       onClick={onClose}
       role="presentation"
     >
@@ -38,8 +63,14 @@ export function Modal({ open, onClose, children, width = 440 }: ModalProps) {
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        style={{ width, boxShadow: "0 30px 70px -20px rgba(20,15,5,0.5)" }}
-        className="flex max-h-full flex-col overflow-y-auto rounded-2xl bg-tn-surface"
+        style={{
+          width,
+          boxShadow: "0 30px 70px -20px rgba(20,15,5,0.5)",
+          transitionDuration: `${TRANSITION_MS}ms`,
+          opacity: entered ? 1 : 0,
+          transform: entered ? "translateY(0) scale(1)" : "translateY(10px) scale(0.97)",
+        }}
+        className="flex max-h-full flex-col overflow-y-auto rounded-2xl bg-tn-surface transition-[opacity,transform] ease-out"
       >
         {children}
       </div>

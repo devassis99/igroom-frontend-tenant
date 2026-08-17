@@ -3,6 +3,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { StatCard } from "@/components/ui/StatCard";
 import { StatusPill } from "@/components/ui/StatusPill";
+import { LaunchChecklistCard } from "@/components/dashboard/LaunchChecklistCard";
 import { useAuthStore } from "@/auth/auth-store";
 import { LOCATIONS, TODAY_SCHEDULE, type Appointment } from "@/lib/sample-data";
 
@@ -12,7 +13,7 @@ const STATUS_TONE: Record<Appointment["status"], "success" | "neutral"> = {
   Waiting: "neutral",
 };
 
-/** Matches the mockup's T6 Owner Dashboard frame. */
+/** Matches the mockup's T6 Owner Dashboard frame, plus a "Getting Started" onboarding checklist (see LaunchChecklistCard). */
 export function DashboardPage() {
   const owner = useAuthStore((s) => s.owner);
   const firstName = owner?.fullName?.split(" ")[0] ?? "there";
@@ -26,6 +27,8 @@ export function DashboardPage() {
         <Button>+ Add Booking</Button>
       </div>
 
+      <LaunchChecklistCard />
+
       <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
         <StatCard label="Today's bookings" value="14" />
         <StatCard label="In waitlist now" value="3" />
@@ -35,7 +38,9 @@ export function DashboardPage() {
 
       <div className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between">
-          <p className="m-0 font-sans text-base font-semibold text-tn-ink">Today&rsquo;s schedule</p>
+          <p className="m-0 font-sans text-base font-semibold text-tn-ink">
+            Today&rsquo;s schedule
+          </p>
           <Link to="/calendar" className="font-sans text-[13px] font-medium text-tn-gold">
             View calendar
           </Link>

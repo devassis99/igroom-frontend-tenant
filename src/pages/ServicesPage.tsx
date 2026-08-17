@@ -1,18 +1,155 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type DragEvent } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { StatusPill } from "@/components/ui/StatusPill";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { ServiceModal } from "@/components/services/ServiceModal";
-import { SERVICES, type Service } from "@/lib/sample-data";
+import { CategoriesModal } from "@/components/services/CategoriesModal";
+import { useAuthStore } from "@/auth/auth-store";
+import {
+  deleteService,
+  listCategories,
+  listServices,
+  reorderServices,
+  updateService,
+  SALES_TAX_LABEL,
+  type Service,
+  type ServiceCategory,
+} from "@/lib/services-api";
 
-/** Matches the mockup's T9 Services table + T9b Add/Edit Service modal. */
+// Stable empty-array fallbacks — see CalendarPage.tsx's identical comment
+// on why a fresh `[]` literal per render would defeat useMemo below.
+const EMPTY_SERVICES: Service[] = [];
+const EMPTY_CATEGORIES: ServiceCategory[] = [];
+
+function formatDuration(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m} min`;
+  if (m === 0) return `${h} hr`;
+  return `${h} hr ${m} min`;
+}
+
+function formatPrice(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
+/** RFC 4180-ish — good enough for names/categories that might contain commas or quotes. */
+function csvCell(value: string): string {
+  if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
+  return value;
+}
+
+function downloadServicesCsv(rows: Service[]) {
+  const header = ["Service Name", "Duration", "Price", "Tax", "Category", "Status"];
+  const lines = [
+    header.join(","),
+    ...rows.map((s) =>
+      [
+        csvCell(s.name),
+        csvCell(formatDuration(s.durationMinutes)),
+        csvCell(formatPrice(s.priceCents)),
+        csvCell(s.taxable ? SALES_TAX_LABEL : "—"),
+        csvCell(s.categoryName ?? "—"),
+        csvCell(s.isEnabled ? "Enabled" : "Disabled"),
+      ].join(","),
+    ),
+  ];
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "services.csv";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+const GRID_COLUMNS = "40px 1.8fr 1fr 1fr 1.3fr 1fr 1fr 40px";
+
+/** Matches the mockup's T9 Services table + T9b Add/Edit Service modal, now backed by real igroom-backend data (see services-api.ts) instead of a static list. */
 export function ServicesPage() {
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const queryClient = useQueryClient();
+
   const [search, setSearch] = useState("");
   const [modalService, setModalService] = useState<Service | null | undefined>(undefined);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<Service | null>(null);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+
+  const servicesQuery = useQuery({
+    queryKey: ["services"],
+    queryFn: () => listServices(accessToken ?? ""),
+    enabled: !!accessToken,
+  });
+  const services = servicesQuery.data?.services ?? EMPTY_SERVICES;
+
+  const categoriesQuery = useQuery({
+    queryKey: ["service-categories"],
+    queryFn: () => listCategories(accessToken ?? ""),
+    enabled: !!accessToken,
+  });
+  const categories = categoriesQuery.data?.categories ?? EMPTY_CATEGORIES;
 
   const filtered = useMemo(
-    () => SERVICES.filter((s) => s.name.toLowerCase().includes(search.toLowerCase())),
-    [search],
+    () => services.filter((s) => s.name.toLowerCase().includes(search.toLowerCase())),
+    [services, search],
   );
+  // Dragging while a search is active would reorder a list that isn't
+  // the real underlying order, so reordering is search-only when the
+  // full list is showing — matches T9's SORT column always being
+  // *visible*, just not always *interactive*.
+  const canReorder = search.trim() === "";
+
+  const reorderMutation = useMutation({
+    mutationFn: (orderedIds: string[]) => reorderServices(accessToken ?? "", orderedIds),
+    onSuccess: (data) => queryClient.setQueryData(["services"], data),
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, isEnabled }: { id: string; isEnabled: boolean }) =>
+      updateService(accessToken ?? "", id, { isEnabled }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["services"] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteService(accessToken ?? "", id),
+    onSuccess: () => {
+      setPendingDelete(null);
+      queryClient.invalidateQueries({ queryKey: ["services"] });
+    },
+  });
+
+  function moveService(fromId: string, toId: string) {
+    if (fromId === toId) return;
+    const ids = services.map((s) => s.id);
+    const from = ids.indexOf(fromId);
+    const to = ids.indexOf(toId);
+    if (from === -1 || to === -1) return;
+    ids.splice(to, 0, ids.splice(from, 1)[0]!);
+    reorderMutation.mutate(ids);
+  }
+
+  function resetServiceOrder() {
+    const alphabetical = [...services]
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((s) => s.id);
+    reorderMutation.mutate(alphabetical);
+  }
+
+  function handleDragOver(e: DragEvent<HTMLDivElement>) {
+    if (!canReorder) return;
+    e.preventDefault();
+  }
+
+  function handleDrop(e: DragEvent<HTMLDivElement>, targetId: string) {
+    if (!canReorder) return;
+    e.preventDefault();
+    if (draggedId) moveService(draggedId, targetId);
+    setDraggedId(null);
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -31,20 +168,41 @@ export function ServicesPage() {
       </div>
 
       <div className="flex items-center gap-3">
-        <Button variant="secondary" size="sm">
+        <Button variant="secondary" size="sm" onClick={() => setCategoriesOpen(true)}>
           Categories
         </Button>
-        <Button variant="secondary" size="sm">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={resetServiceOrder}
+          disabled={reorderMutation.isPending || services.length === 0}
+        >
           Reset service order
         </Button>
         <div className="flex-1" />
-        <Button variant="secondary" size="sm">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => downloadServicesCsv(filtered)}
+          disabled={filtered.length === 0}
+        >
           Export to CSV
         </Button>
       </div>
 
+      {servicesQuery.isError && (
+        <p className="m-0 font-sans text-sm text-tn-danger">
+          Couldn&rsquo;t load services right now (
+          {servicesQuery.error instanceof Error ? servicesQuery.error.message : "unknown error"}) —
+          refresh to try again.
+        </p>
+      )}
+
       <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
-        <div className="grid grid-cols-[40px_2fr_1fr_1fr_1.3fr_1fr_1fr] bg-tn-table-head px-[18px] py-3 font-sans text-xs font-semibold text-tn-muted-5">
+        <div
+          className="grid bg-tn-table-head px-[18px] py-3 font-sans text-xs font-semibold text-tn-muted-5"
+          style={{ gridTemplateColumns: GRID_COLUMNS }}
+        >
           <span>SORT</span>
           <span>SERVICE NAME</span>
           <span>DURATION</span>
@@ -52,26 +210,84 @@ export function ServicesPage() {
           <span>TAX</span>
           <span>CATEGORY</span>
           <span>STATUS</span>
+          <span />
         </div>
+
+        {servicesQuery.isPending && (
+          <p className="m-0 p-[18px] font-sans text-sm text-tn-muted-5">Loading services…</p>
+        )}
+        {!servicesQuery.isPending && filtered.length === 0 && (
+          <p className="m-0 p-[18px] font-sans text-sm text-tn-muted-5">
+            {search ? `No services match "${search}".` : "No services yet — add your first one."}
+          </p>
+        )}
+
         {filtered.map((service, i) => (
-          <button
+          <div
             key={service.id}
-            type="button"
+            draggable={canReorder}
+            onDragStart={() => setDraggedId(service.id)}
+            onDragOver={handleDragOver}
+            onDrop={(e) => handleDrop(e, service.id)}
+            onDragEnd={() => setDraggedId(null)}
             onClick={() => setModalService(service)}
-            className={`grid grid-cols-[40px_2fr_1fr_1fr_1.3fr_1fr_1fr] items-center px-[18px] py-3.5 text-left ${
+            // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- a real <button> can't contain the status-toggle/delete <button>s further down this row (nested buttons are invalid HTML and get silently broken apart by the browser) — same reasoning as Modal.tsx's identical disable.
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") setModalService(service);
+            }}
+            className={`grid cursor-pointer items-center px-[18px] py-3.5 text-left ${
               i < filtered.length - 1 ? "border-b border-tn-border-soft" : ""
-            }`}
+            } ${draggedId === service.id ? "opacity-40" : ""}`}
+            style={{ gridTemplateColumns: GRID_COLUMNS }}
           >
-            <span className="text-tn-faint-2">⇅</span>
+            <span
+              className={canReorder ? "cursor-grab text-tn-faint-2" : "text-tn-faint-2 opacity-40"}
+              title={canReorder ? "Drag to reorder" : "Clear search to reorder"}
+            >
+              &#8645;
+            </span>
             <span className="font-sans text-[13px] font-semibold text-tn-ink">{service.name}</span>
-            <span className="font-sans text-[13px] text-tn-muted-2">{service.duration}</span>
-            <span className="font-sans text-[13px] text-tn-muted-2">${service.price.toFixed(2)}</span>
-            <span className="font-sans text-[13px] text-tn-muted-2">{service.tax || "—"}</span>
-            <span className="font-sans text-[13px] text-tn-muted-2">{service.category || "—"}</span>
-            <StatusPill tone={service.status === "Enabled" ? "success" : "neutral"}>
-              {service.status}
-            </StatusPill>
-          </button>
+            <span className="font-sans text-[13px] text-tn-muted-2">
+              {formatDuration(service.durationMinutes)}
+            </span>
+            <span className="font-sans text-[13px] text-tn-muted-2">
+              {formatPrice(service.priceCents)}
+            </span>
+            <span className="font-sans text-[13px] text-tn-muted-2">
+              {service.taxable ? SALES_TAX_LABEL : "—"}
+            </span>
+            <span className="font-sans text-[13px] text-tn-muted-2">
+              {service.categoryName ?? "—"}
+            </span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleMutation.mutate({ id: service.id, isEnabled: !service.isEnabled });
+              }}
+              disabled={toggleMutation.isPending}
+              className="w-fit"
+              title="Toggle enabled/disabled"
+            >
+              <StatusPill tone={service.isEnabled ? "success" : "neutral"}>
+                {service.isEnabled ? "Enabled" : "Disabled"}
+              </StatusPill>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setPendingDelete(service);
+              }}
+              aria-label={`Delete ${service.name}`}
+              title="Delete service"
+              className="cursor-pointer justify-self-end border-none bg-transparent font-sans text-base text-tn-muted-6 hover:text-tn-danger"
+            >
+              &times;
+            </button>
+          </div>
         ))}
       </div>
 
@@ -79,6 +295,24 @@ export function ServicesPage() {
         open={modalService !== undefined}
         onClose={() => setModalService(undefined)}
         service={modalService ?? null}
+        categories={categories}
+        accessToken={accessToken ?? ""}
+      />
+
+      <CategoriesModal
+        open={categoriesOpen}
+        onClose={() => setCategoriesOpen(false)}
+        accessToken={accessToken ?? ""}
+      />
+
+      <ConfirmModal
+        open={pendingDelete !== null}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={() => pendingDelete && deleteMutation.mutate(pendingDelete.id)}
+        title={`Delete “${pendingDelete?.name}”?`}
+        body="This removes it from the Services list. Past bookings that used this service keep their own record of what was done, unaffected."
+        confirmLabel="Delete service"
+        confirming={deleteMutation.isPending}
       />
     </div>
   );

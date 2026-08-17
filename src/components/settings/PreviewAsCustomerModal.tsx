@@ -50,7 +50,8 @@ export function PreviewAsCustomerModal({ open, onClose }: PreviewAsCustomerModal
               {owner?.businessName ?? "The Gentry Barbershop"}
             </p>
             <p className="m-0 mt-1 font-sans text-xs text-tn-muted-4">
-              ★ 4.9 <span className="text-tn-faint">(312 reviews)</span> · {owner?.category ?? "Barbershop"}
+              ★ 4.9 <span className="text-tn-faint">(312 reviews)</span> ·{" "}
+              {owner?.category ?? "Barbershop"}
             </p>
             <p className="m-0 mt-1 font-sans text-xs font-medium text-tn-success">
               Open now · closes 8:00 PM
@@ -89,10 +90,7 @@ export function PreviewAsCustomerModal({ open, onClose }: PreviewAsCustomerModal
             <div className="flex gap-3">
               {STAFF.filter((s) => s.role.includes("Barber")).map((b) => (
                 <div key={b.id} className="flex flex-col items-center gap-1.5">
-                  <div
-                    className="h-11 w-11 rounded-full"
-                    style={{ background: b.avatarColor }}
-                  />
+                  <div className="h-11 w-11 rounded-full" style={{ background: b.avatarColor }} />
                   <span className="font-sans text-[11px] text-tn-muted-4">
                     {b.name.split(" ")[0]}
                   </span>
