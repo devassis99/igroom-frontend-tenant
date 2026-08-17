@@ -115,8 +115,11 @@ export interface MeResponse {
     locationId: string;
     name: string;
     email: string;
-    role: string;
+    roleId: string | null;
+    roleName: string;
   };
+  /** Permission keys granted to staffUser.roleId — see use-permissions.ts. */
+  permissions: string[];
   account: Record<string, unknown> | null;
   location: Record<string, unknown> | null;
 }

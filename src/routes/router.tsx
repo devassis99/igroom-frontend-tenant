@@ -133,6 +133,13 @@ export const router = createBrowserRouter([
                   })),
               },
               {
+                path: "staff/roles",
+                lazy: () =>
+                  import("@/pages/settings/RolesManagementPage").then((m) => ({
+                    Component: m.default,
+                  })),
+              },
+              {
                 path: "integrations",
                 lazy: () =>
                   import("@/pages/IntegrationsPage").then((m) => ({ Component: m.default })),

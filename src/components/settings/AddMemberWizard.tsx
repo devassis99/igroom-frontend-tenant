@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { Field, formInputClass } from "@/components/ui/FormField";
+import { Field, formInputClass, formSelectClass } from "@/components/ui/FormField";
 import { WizardTabs } from "@/components/ui/WizardTabs";
 import { Toggle } from "@/components/ui/Toggle";
+import { useAuthStore } from "@/auth/auth-store";
+import { listLocations } from "@/lib/locations-api";
+import { listRoles } from "@/lib/roles-api";
+import { inviteStaff } from "@/lib/staff-api";
 import { SERVICES } from "@/lib/sample-data";
 
 interface AddMemberWizardProps {
@@ -23,35 +28,94 @@ const WEEK = [
   { day: "Saturday", enabled: true },
 ];
 
-const ROLES = [
-  { id: "owner", name: "Owner", body: "Full access to every location, billing, and settings." },
-  {
-    id: "manager",
-    name: "Branch Manager",
-    body: "Manages one location: staff, schedule, services, and reports.",
-  },
-  { id: "barber", name: "Barber", body: "Manages own schedule, appointments, and clients." },
-  {
-    id: "receptionist",
-    name: "Receptionist",
-    body: "Books appointments and manages the front desk. No financial access.",
-  },
-];
-
-/** Matches the mockup's T12h–T12l "Add New Member" 5-step wizard. */
+/**
+ * Matches the mockup's T12h–T12l "Add New Member" 5-step wizard. Only
+ * Profile's name/email/location and Role are real — those are the fields
+ * staff.service.ts's inviteStaff actually persists. Services/Schedule/
+ * Options stay exactly as visual as they were before (no staff↔services
+ * assignment table or per-member schedule exists on the backend yet); they
+ * still render and respond to input, just aren't sent anywhere on submit.
+ *
+ * Roles are the account's own custom staff_roles (see roles-api.ts) —
+ * fetched live rather than a fixed 4-item list, so a role a shop owner
+ * created or renamed on the Roles & Permissions screen shows up here
+ * immediately.
+ */
 export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const queryClient = useQueryClient();
+
   const [step, setStep] = useState(0);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [locationId, setLocationId] = useState("");
   const [assignedServices, setAssignedServices] = useState<Set<string>>(
     () => new Set(SERVICES.slice(0, 3).map((s) => s.id)),
   );
-  const [role, setRole] = useState("barber");
+  const [roleId, setRoleId] = useState("");
   const [allowNoPayment, setAllowNoPayment] = useState(true);
   const [allowMultiService, setAllowMultiService] = useState(true);
   const [trackHours, setTrackHours] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const locationsQuery = useQuery({
+    queryKey: ["locations"],
+    queryFn: () => listLocations(accessToken ?? ""),
+    enabled: !!accessToken && open,
+  });
+  const locations = locationsQuery.data?.locations ?? [];
+
+  const rolesQuery = useQuery({
+    queryKey: ["roles"],
+    queryFn: () => listRoles(accessToken ?? ""),
+    enabled: !!accessToken && open,
+  });
+  const roles = rolesQuery.data?.roles ?? [];
+
+  // Default to the account's primary location the moment the list loads,
+  // so a shop with just one location never has to touch this field.
+  useEffect(() => {
+    if (locationId || locations.length === 0) return;
+    setLocationId(locations.find((l) => l.isPrimary)?.id ?? locations[0]!.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when the list itself changes, not when locationId is cleared by handleClose below
+  }, [locations]);
+
+  // Default to the first non-Owner role (a brand-new member is almost
+  // never the account's Owner) once roles load — mirrors the old fixed
+  // list's "stylist" default, just picked dynamically now.
+  useEffect(() => {
+    if (roleId || roles.length === 0) return;
+    setRoleId((roles.find((r) => !r.isSystem) ?? roles[0])!.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when the list itself changes, not when roleId is cleared by handleClose below
+  }, [roles]);
+
+  const inviteMutation = useMutation({
+    mutationFn: () =>
+      inviteStaff(accessToken ?? "", {
+        name: `${firstName} ${lastName}`.trim(),
+        email,
+        roleId,
+        locationId,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["staff"] });
+      handleClose();
+    },
+    onError: (err) => {
+      setFormError(err instanceof Error ? err.message : "Couldn't send the invite — try again.");
+    },
+  });
 
   function handleClose() {
     onClose();
     setStep(0);
+    setFirstName("");
+    setLastName("");
+    setEmail("");
+    setLocationId("");
+    setRoleId("");
+    setFormError(null);
   }
 
   function toggleService(id: string) {
@@ -61,6 +125,29 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
       else next.add(id);
       return next;
     });
+  }
+
+  function goNext() {
+    if (step < STEPS.length - 1) {
+      setStep(step + 1);
+      return;
+    }
+    if (!firstName.trim() || !email.trim()) {
+      setStep(0);
+      setFormError("Add at least a first name and email before sending the invite.");
+      return;
+    }
+    if (!locationId) {
+      setFormError("Pick a location for this member.");
+      return;
+    }
+    if (!roleId) {
+      setStep(3);
+      setFormError("Pick a role for this member.");
+      return;
+    }
+    setFormError(null);
+    inviteMutation.mutate();
   }
 
   return (
@@ -96,18 +183,54 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
             </label>
             <div className="grid grid-cols-2 gap-3.5">
               <Field label="FIRST NAME">
-                <input type="text" placeholder="Jordan" className={formInputClass} />
+                <input
+                  type="text"
+                  placeholder="Jordan"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className={formInputClass}
+                />
               </Field>
               <Field label="LAST NAME">
-                <input type="text" placeholder="Rivera" className={formInputClass} />
+                <input
+                  type="text"
+                  placeholder="Rivera"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className={formInputClass}
+                />
               </Field>
             </div>
             <Field label="PHONE">
               <input type="text" placeholder="(555) 555-0100" className={formInputClass} />
             </Field>
             <Field label="EMAIL">
-              <input type="text" placeholder="jordan@thegentry.com" className={formInputClass} />
+              <input
+                type="email"
+                placeholder="jordan@thegentry.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={formInputClass}
+              />
             </Field>
+            <Field label="LOCATION">
+              <select
+                value={locationId}
+                onChange={(e) => setLocationId(e.target.value)}
+                className={formSelectClass}
+              >
+                {locations.length === 0 && <option value="">Loading locations…</option>}
+                {locations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <p className="m-0 font-sans text-xs text-tn-muted-5">
+              No email gets sent — tell {firstName || "them"} out-of-band to sign in with Google
+              using this exact address once you&rsquo;ve sent the invite.
+            </p>
             <Field label="APPOINTMENT COLOR">
               <div className="flex items-center gap-2.5">
                 <span className="h-6 w-6 rounded-full bg-[#e8b23d]" />
@@ -183,35 +306,38 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
         {step === 3 && (
           <>
             <p className="m-0 font-sans text-[13px] text-tn-muted-4">
-              Pick a role to set what this member can access. Roles are shared across your team —
-              edit a role once and it updates everyone assigned to it.
+              Pick a role to set what this member can access.
             </p>
+            {rolesQuery.isPending && (
+              <p className="m-0 font-sans text-[13px] text-tn-muted-5">Loading roles…</p>
+            )}
             <div className="flex flex-col gap-2.5">
-              {ROLES.map((r) => (
+              {roles.map((r) => (
                 <label
                   key={r.id}
                   className={`flex items-start gap-3 rounded-xl border px-4 py-3 ${
-                    role === r.id ? "border-tn-gold bg-tn-gold-bg-soft" : "border-tn-border"
+                    roleId === r.id ? "border-tn-gold bg-tn-gold-bg-soft" : "border-tn-border"
                   }`}
                 >
                   <input
                     type="radio"
                     name="role"
                     aria-label={r.name}
-                    checked={role === r.id}
-                    onChange={() => setRole(r.id)}
+                    checked={roleId === r.id}
+                    onChange={() => setRoleId(r.id)}
                     className="mt-1 accent-tn-gold"
                   />
                   <span>
                     <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">{r.name}</p>
-                    <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">{r.body}</p>
+                    {r.description && (
+                      <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
+                        {r.description}
+                      </p>
+                    )}
                   </span>
                 </label>
               ))}
             </div>
-            <a href="#" className="font-sans text-xs font-medium text-tn-gold">
-              Manage roles &amp; permissions →
-            </a>
           </>
         )}
 
@@ -252,19 +378,23 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
           </>
         )}
 
+        {formError && <p className="m-0 font-sans text-sm text-tn-danger">{formError}</p>}
+
         <div className="flex gap-2.5 border-t border-tn-border-soft pt-4">
           <Button
             variant="secondary"
             className="flex-1"
             onClick={() => (step === 0 ? handleClose() : setStep(step - 1))}
+            disabled={inviteMutation.isPending}
           >
             {step === 0 ? "Cancel" : "← Back"}
           </Button>
-          <Button
-            className="flex-1"
-            onClick={() => (step === STEPS.length - 1 ? handleClose() : setStep(step + 1))}
-          >
-            {step === STEPS.length - 1 ? "Send Invite" : `Next: ${STEPS[step + 1]} →`}
+          <Button className="flex-1" onClick={goNext} disabled={inviteMutation.isPending}>
+            {step === STEPS.length - 1
+              ? inviteMutation.isPending
+                ? "Sending…"
+                : "Send Invite"
+              : `Next: ${STEPS[step + 1]} →`}
           </Button>
         </div>
       </div>
