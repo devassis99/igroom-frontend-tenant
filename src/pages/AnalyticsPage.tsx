@@ -1,10 +1,7 @@
 import { Link } from "react-router";
 import { Avatar } from "@/components/ui/Avatar";
-import { Button } from "@/components/ui/Button";
 import { StatCard } from "@/components/ui/StatCard";
 import { StatusPill } from "@/components/ui/StatusPill";
-import { LaunchChecklistCard } from "@/components/dashboard/LaunchChecklistCard";
-import { useAuthStore } from "@/auth/auth-store";
 import { LOCATIONS, TODAY_SCHEDULE, type Appointment } from "@/lib/sample-data";
 
 const STATUS_TONE: Record<Appointment["status"], "success" | "neutral"> = {
@@ -13,21 +10,17 @@ const STATUS_TONE: Record<Appointment["status"], "success" | "neutral"> = {
   Waiting: "neutral",
 };
 
-/** Matches the mockup's T6 Owner Dashboard frame, plus a "Getting Started" onboarding checklist (see LaunchChecklistCard). */
-export function DashboardPage() {
-  const owner = useAuthStore((s) => s.owner);
-  const firstName = owner?.fullName?.split(" ")[0] ?? "there";
-
+/**
+ * Reporting/overview page — split off from the mockup's single T6 Owner
+ * Dashboard frame (see HomePage.tsx's comment): today's stat tiles,
+ * today's schedule, and the by-location breakdown, none of which are
+ * onboarding content, now live on their own page instead of sharing one
+ * with the "Getting Started" checklist.
+ */
+export function AnalyticsPage() {
   return (
     <div className="flex flex-col gap-7">
-      <div className="flex items-center justify-between">
-        <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">
-          Good morning, {firstName}
-        </h1>
-        <Button>+ Add Booking</Button>
-      </div>
-
-      <LaunchChecklistCard />
+      <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">Analytics</h1>
 
       <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
         <StatCard label="Today's bookings" value="14" />
@@ -104,4 +97,4 @@ export function DashboardPage() {
   );
 }
 
-export default DashboardPage;
+export default AnalyticsPage;

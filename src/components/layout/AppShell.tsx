@@ -5,7 +5,12 @@ import { IntegrationsModal } from "@/components/integrations/IntegrationsModal";
 import { WhatsNewDrawer } from "./WhatsNewDrawer";
 
 const NAV_ITEMS: Array<{ to: string; label: string; shape: "square" | "circle" }> = [
-  { to: "/dashboard", label: "Dashboard", shape: "square" },
+  // Label is "Home" even though the URL stays "/dashboard" — see
+  // HomePage.tsx's comment on why the mockup's single T6 Owner Dashboard
+  // frame is now split into this (onboarding/welcome) and Analytics
+  // (reporting) below.
+  { to: "/dashboard", label: "Home", shape: "square" },
+  { to: "/analytics", label: "Analytics", shape: "square" },
   { to: "/calendar", label: "Calendar", shape: "circle" },
   { to: "/waitlist", label: "Waitlist", shape: "square" },
   { to: "/services", label: "Services", shape: "square" },
@@ -27,10 +32,12 @@ function NavIcon({ shape, active }: { shape: "square" | "circle"; active: boolea
 
 /**
  * Layout for every authenticated route — matches the mockup's sidebar
- * (T6–T12): iGroom wordmark, then the 7 primary nav rows, then (pinned
- * to the bottom) What's New, Integrations (BUSINESS-plan badge) and the
- * gear-icon Settings row grouped together as secondary/utility items,
- * and finally the owner/shop identity block with its Log out button.
+ * (T6–T12): iGroom wordmark, then the primary nav rows (8, after
+ * splitting the mockup's single T6 Owner Dashboard frame into Home +
+ * Analytics — see HomePage.tsx's comment), then (pinned to the bottom)
+ * What's New, Integrations (BUSINESS-plan badge) and the gear-icon
+ * Settings row grouped together as secondary/utility items, and finally
+ * the owner/shop identity block with its Log out button.
  *
  * The sidebar's Integrations row matches T13b: it opens IntegrationsModal
  * as an overlay on whatever page you're on, rather than navigating away.

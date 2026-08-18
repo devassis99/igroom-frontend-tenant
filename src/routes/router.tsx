@@ -61,8 +61,17 @@ export const router = createBrowserRouter([
         lazy: () => import("@/components/layout/AppShell").then((m) => ({ Component: m.default })),
         children: [
           {
+            // URL kept as "/dashboard" (rather than renamed to "/home")
+            // so RedirectPage's default post-login/post-signup
+            // destination and LandingPage's authenticated redirect don't
+            // need to change alongside this split — see HomePage.tsx's
+            // comment for what moved off this page.
             path: "dashboard",
-            lazy: () => import("@/pages/DashboardPage").then((m) => ({ Component: m.default })),
+            lazy: () => import("@/pages/HomePage").then((m) => ({ Component: m.default })),
+          },
+          {
+            path: "analytics",
+            lazy: () => import("@/pages/AnalyticsPage").then((m) => ({ Component: m.default })),
           },
           {
             path: "calendar",
