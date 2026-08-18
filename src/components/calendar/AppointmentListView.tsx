@@ -222,46 +222,54 @@ export function AppointmentListView({
                                 with {booking.staffName} · {booking.durationMinutes} min
                               </p>
                             </div>
-                            {booking.priceCents != null && (
-                              <div>
-                                <p className="m-0 font-sans text-[11px] font-semibold tracking-wide text-tn-muted-5">
-                                  PRICE
-                                </p>
-                                <p className="m-0 mt-1 font-sans text-[13px] font-semibold text-tn-ink">
-                                  ${(booking.priceCents / 100).toFixed(2)}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-
-                          {booking.notes && (
                             <div>
                               <p className="m-0 font-sans text-[11px] font-semibold tracking-wide text-tn-muted-5">
-                                NOTES
+                                PRICE
                               </p>
-                              <p className="m-0 mt-1 font-sans text-[13px] text-tn-ink-soft">
-                                {booking.notes}
+                              <p
+                                className={`m-0 mt-1 font-sans text-[13px] font-semibold ${
+                                  booking.priceCents != null ? "text-tn-ink" : "text-tn-faint-2"
+                                }`}
+                              >
+                                {booking.priceCents != null
+                                  ? `$${(booking.priceCents / 100).toFixed(2)}`
+                                  : "Not set"}
                               </p>
                             </div>
-                          )}
+                          </div>
+
+                          <div>
+                            <p className="m-0 font-sans text-[11px] font-semibold tracking-wide text-tn-muted-5">
+                              NOTES
+                            </p>
+                            <p
+                              className={`m-0 mt-1 font-sans text-[13px] ${
+                                booking.notes ? "text-tn-ink-soft" : "text-tn-faint-2"
+                              }`}
+                            >
+                              {booking.notes || "No notes"}
+                            </p>
+                          </div>
 
                           {canManage && (
                             <div className="flex gap-2.5 border-t border-tn-border-soft pt-3">
-                              {/* !bg-* pins each button to its own solid background —
-                                "secondary"/"danger-outline" are bg-transparent/translucent
-                                by default so they'd otherwise pick up whatever backdrop
-                                sits behind them (now bg-tn-detail-bg instead of the page's
-                                default), which visibly shifted their color. */}
+                              {/* !bg-* pins each button to its own solid background (both
+                                rest and hover states) — "secondary"/"danger-outline" are
+                                bg-transparent/translucent by default, so they'd otherwise
+                                pick up whatever backdrop sits behind them (now
+                                bg-tn-detail-bg instead of the page's default). Sized to
+                                content (no flex-1) and left-aligned, not stretched across
+                                the row. */}
                               <Button
                                 variant="secondary"
-                                className="flex-1 !bg-tn-surface"
+                                className="!bg-tn-surface hover:!bg-tn-page"
                                 onClick={() => onOpenBooking(booking, "reschedule")}
                               >
                                 Reschedule
                               </Button>
                               <Button
                                 variant="secondary"
-                                className="flex-1 !bg-tn-surface"
+                                className="!bg-tn-surface hover:!bg-tn-page"
                                 disabled={!booking.customerEmail}
                                 onClick={() => {
                                   if (booking.customerEmail) {
@@ -273,7 +281,7 @@ export function AppointmentListView({
                               </Button>
                               <Button
                                 variant="danger-outline"
-                                className="flex-1 !bg-tn-danger-bg"
+                                className="!bg-tn-danger-bg hover:!opacity-80"
                                 onClick={() => onOpenBooking(booking, "cancel")}
                               >
                                 Cancel appointment
