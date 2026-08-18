@@ -4,29 +4,143 @@ import { useAuthStore } from "@/auth/auth-store";
 import { IntegrationsModal } from "@/components/integrations/IntegrationsModal";
 import { WhatsNewDrawer } from "./WhatsNewDrawer";
 
-const NAV_ITEMS: Array<{ to: string; label: string; shape: "square" | "circle" }> = [
+type NavIconComponent = (props: { className?: string }) => ReactNode;
+
+const NAV_ITEMS: Array<{ to: string; label: string; icon: NavIconComponent }> = [
   // Label is "Home" even though the URL stays "/dashboard" — see
   // HomePage.tsx's comment on why the mockup's single T6 Owner Dashboard
   // frame is now split into this (onboarding/welcome) and Analytics
   // (reporting) below.
-  { to: "/dashboard", label: "Home", shape: "square" },
-  { to: "/analytics", label: "Analytics", shape: "square" },
-  { to: "/calendar", label: "Calendar", shape: "circle" },
-  { to: "/waitlist", label: "Waitlist", shape: "square" },
-  { to: "/services", label: "Services", shape: "square" },
-  { to: "/staff", label: "Staff", shape: "circle" },
-  { to: "/customers", label: "Customers", shape: "square" },
-  { to: "/payments", label: "Payments", shape: "square" },
+  { to: "/dashboard", label: "Home", icon: HomeIcon },
+  { to: "/calendar", label: "Calendar", icon: CalendarIcon },
+  { to: "/waitlist", label: "Waitlist", icon: WaitlistIcon },
+  { to: "/analytics", label: "Analytics", icon: AnalyticsIcon },
+  { to: "/services", label: "Services", icon: ServicesIcon },
+  { to: "/staff", label: "Staff", icon: StaffIcon },
+  { to: "/customers", label: "Customers", icon: CustomersIcon },
+  { to: "/payments", label: "Payments", icon: PaymentsIcon },
 ];
 
-function NavIcon({ shape, active }: { shape: "square" | "circle"; active: boolean }) {
+/**
+ * Shared stroke props for the sidebar's glyph set below — same
+ * outline-icon family as SidebarToggleIcon/the log-out icon further down,
+ * kept in one place so every nav icon reads at the same weight. Every
+ * icon inherits its color from the parent NavLink's text color (active =
+ * tn-on-dark, inactive = tn-nav-inactive) via `currentColor` instead of
+ * taking an `active` prop — no per-icon active/inactive variant needed.
+ */
+const ICON_PROPS = {
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.75,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+  "aria-hidden": true as const,
+};
+
+function HomeIcon({ className = "" }: { className?: string }) {
   return (
-    <span
-      className={`block h-4 w-4 shrink-0 ${shape === "circle" ? "rounded-full" : "rounded"} ${
-        active ? "bg-current" : "border-2 border-current"
-      }`}
-      aria-hidden
-    />
+    <svg {...ICON_PROPS} className={className}>
+      <path d="M3.5 10.5 12 3l8.5 7.5" />
+      <path d="M5.5 9.5V19a1 1 0 0 0 1 1h3.5v-5.5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1V20H17.5a1 1 0 0 0 1-1V9.5" />
+    </svg>
+  );
+}
+
+/** Bar-chart glyph for Analytics — three ascending bars drawn as thick round-capped lines. */
+function AnalyticsIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg {...ICON_PROPS} strokeWidth={2.5} className={className}>
+      <line x1="6" y1="20" x2="6" y2="14" />
+      <line x1="12" y1="20" x2="12" y2="4" />
+      <line x1="18" y1="20" x2="18" y2="10" />
+    </svg>
+  );
+}
+
+function CalendarIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
+
+/** Clock glyph for Waitlist — waiting is a function of time, not a list icon, which would read too close to Services/Customers. */
+function WaitlistIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <polyline points="12 7 12 12 15.5 14.5" />
+    </svg>
+  );
+}
+
+/** Scissors glyph for Services — the actual thing a chair appointment is. */
+function ServicesIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <circle cx="6" cy="6" r="3" />
+      <circle cx="6" cy="18" r="3" />
+      <line x1="20" y1="4" x2="8.12" y2="15.88" />
+      <line x1="14.47" y1="14.48" x2="20" y2="20" />
+      <line x1="8.12" y1="8.12" x2="12" y2="12" />
+    </svg>
+  );
+}
+
+/** Two-person glyph for Staff, vs. CustomersIcon's single person below — keeps the two people-shaped nav rows visually distinct at a glance. */
+function StaffIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
+function CustomersIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function PaymentsIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <line x1="2" y1="10" x2="22" y2="10" />
+    </svg>
+  );
+}
+
+/** 2x2 app-grid glyph for Integrations — reads as "connected apps" better than a literal puzzle piece at 18px. */
+function IntegrationsIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="14" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+    </svg>
+  );
+}
+
+function SettingsGearIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
   );
 }
 
@@ -153,9 +267,9 @@ export function AppShell() {
                 }`
               }
             >
-              {({ isActive }) => (
+              {() => (
                 <>
-                  <NavIcon shape={item.shape} active={isActive} />
+                  <item.icon className="h-[18px] w-[18px] shrink-0" />
                   <CollapsibleLabel collapsed={collapsed}>{item.label}</CollapsibleLabel>
                 </>
               )}
@@ -194,7 +308,7 @@ export function AppShell() {
             }`}
           >
             <span className="flex items-center gap-3">
-              <NavIcon shape="square" active={integrationsOpen} />
+              <IntegrationsIcon className="h-[18px] w-[18px] shrink-0" />
               <CollapsibleLabel collapsed={collapsed}>Integrations</CollapsibleLabel>
             </span>
             <CollapsibleLabel collapsed={collapsed}>
@@ -215,9 +329,7 @@ export function AppShell() {
               }`
             }
           >
-            <span className="font-sans text-[15px] leading-4" aria-hidden>
-              ⚙
-            </span>
+            <SettingsGearIcon className="h-[18px] w-[18px] shrink-0" />
             <CollapsibleLabel collapsed={collapsed}>Settings</CollapsibleLabel>
           </NavLink>
         </div>
