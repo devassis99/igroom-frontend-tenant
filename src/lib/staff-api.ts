@@ -3,9 +3,11 @@ import { request } from "./http";
 /**
  * Talks to igroom-backend's /staff module (see staff.service.ts) — the
  * T12g Staff Management table plus the T12h–l "Add New Member" flow's
- * Profile/Role steps. Every route requires a bearer token — requireAccountAuth
- * derives accountId from it server-side, same pattern as services-api.ts,
- * except staff spans every location on the account, not just the caller's own.
+ * Profile/Role steps, and now the T10 Staff performance page too (see
+ * getStaffPerformance below). Every route requires a bearer token —
+ * requireAccountAuth derives accountId from it server-side, same pattern
+ * as services-api.ts, except staff spans every location on the account,
+ * not just the caller's own.
  *
  * Roles are no longer a fixed 4-value enum — see roles-api.ts. A member's
  * role is just roleId (a staff_roles.id), with roleName denormalized onto
@@ -28,6 +30,34 @@ export interface StaffMember {
   claimed: boolean;
   lastLoginAt: string | null;
   createdAt: string;
+  /** Percent, 0-100, or null if an owner hasn't set one yet — owner-entered via EditMemberModal, not computed. Feeds T10's Commission column. */
+  commissionRate: number | null;
+  /** 0.0-5.0, or null if an owner hasn't set one yet — there's no customer-review module to compute this from. Feeds T10's roster cards and Rating column. */
+  rating: number | null;
+}
+
+/** One StaffMember plus this-calendar-month performance, computed from real bookings/availability — see staff.service.ts's getStaffPerformance. Null fields mean "not enough data yet" (no saved schedule, no bookings, no commissionRate set), rendered as "—" rather than a misleading 0. */
+export interface StaffPerformanceMember extends StaffMember {
+  bookingsCount: number;
+  hoursBooked: number;
+  hoursAvailable: number | null;
+  utilizationPct: number | null;
+  salesCents: number;
+  avgTicketCents: number | null;
+  commissionCents: number | null;
+}
+
+export interface StaffPerformanceTeam {
+  teamSalesCents: number;
+  teamBookingsCount: number;
+  avgTicketCents: number | null;
+  avgUtilizationPct: number | null;
+  commissionPayoutCents: number;
+}
+
+export interface StaffPerformanceResponse {
+  staff: StaffPerformanceMember[];
+  team: StaffPerformanceTeam;
 }
 
 function authHeaders(accessToken: string): HeadersInit {
@@ -37,6 +67,11 @@ function authHeaders(accessToken: string): HeadersInit {
 /** T12g's full roster, every location on the account. */
 export function listStaff(accessToken: string): Promise<{ staff: StaffMember[] }> {
   return request("/staff", { headers: authHeaders(accessToken) });
+}
+
+/** T10's Staff page — active staff members only, each with this month's real bookings/sales/utilization/commission. */
+export function getStaffPerformance(accessToken: string): Promise<StaffPerformanceResponse> {
+  return request("/staff/performance", { headers: authHeaders(accessToken) });
 }
 
 export interface InviteStaffInput {
@@ -64,9 +99,13 @@ export interface StaffUpdateInput {
   name?: string;
   roleId?: string;
   locationId?: string;
+  /** Percent, 0-100, or null to clear a previously-set rate. */
+  commissionRate?: number | null;
+  /** 0.0-5.0, or null to clear a previously-set rating. */
+  rating?: number | null;
 }
 
-/** The T12g ✎ "opens the profile edit" affordance — name, role, and which location this member is scoped to. */
+/** The T12g ✎ "opens the profile edit" affordance — name, role, location, plus (also used from T10's Staff page) commission rate and rating. */
 export function updateStaff(
   accessToken: string,
   staffId: string,

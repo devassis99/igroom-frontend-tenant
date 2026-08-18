@@ -100,6 +100,7 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["staff"] });
+      queryClient.invalidateQueries({ queryKey: ["staff-performance"] });
       handleClose();
     },
     onError: (err) => {

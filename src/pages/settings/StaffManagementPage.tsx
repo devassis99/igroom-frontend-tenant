@@ -72,6 +72,7 @@ export function StaffManagementPage() {
       setStaffActive(accessToken ?? "", id, isActive),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["staff"] });
+      queryClient.invalidateQueries({ queryKey: ["staff-performance"] });
       setTogglingMember(null);
     },
   });
