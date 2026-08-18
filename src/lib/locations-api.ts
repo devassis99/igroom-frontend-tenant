@@ -86,3 +86,15 @@ export function geocodeLocation(
   const params = new URLSearchParams({ q: query });
   return request(`/locations/geocode?${params.toString()}`, { headers: authHeaders(accessToken) });
 }
+
+/** The other direction of geocodeLocation above — dropping/dragging the map pin calls this to fill the ADDRESS field back in, so the two stay in sync no matter which one the owner touches first. */
+export function reverseGeocodeLocation(
+  accessToken: string,
+  latitude: number,
+  longitude: number,
+): Promise<{ displayName: string }> {
+  const params = new URLSearchParams({ lat: String(latitude), lng: String(longitude) });
+  return request(`/locations/reverse-geocode?${params.toString()}`, {
+    headers: authHeaders(accessToken),
+  });
+}

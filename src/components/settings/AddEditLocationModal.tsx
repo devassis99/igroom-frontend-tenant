@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
@@ -10,6 +10,7 @@ import {
   createLocation,
   updateLocation,
   geocodeLocation,
+  reverseGeocodeLocation,
   type AccountLocation,
   type LocationInput,
 } from "@/lib/locations-api";
@@ -43,6 +44,7 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
   const [longitude, setLongitude] = useState<number | null>(null);
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);
+  const [reversing, setReversing] = useState(false);
 
   const isEditing = location !== null;
 
@@ -71,11 +73,41 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
     setLocateError(null);
   }, [open, location]);
 
+  // Bumped on every pin move so a slow reverse-geocode response from a
+  // stale drag can't clobber the address field after a newer one already
+  // landed — only the latest request's result gets applied.
+  const reverseGeocodeSeq = useRef(0);
+
+  /** The map's own onChange — vice versa of handleLocateFromAddress: moving the pin (click or drag) reverse-geocodes it back into the ADDRESS field. */
+  async function handleMapChange(lat: number, lng: number) {
+    setLatitude(lat);
+    setLongitude(lng);
+    setLocateError(null);
+
+    const seq = ++reverseGeocodeSeq.current;
+    setReversing(true);
+    try {
+      const { displayName } = await reverseGeocodeLocation(accessToken ?? "", lat, lng);
+      if (seq === reverseGeocodeSeq.current) {
+        setForm((f) => ({ ...f, address: displayName }));
+      }
+    } catch {
+      // Reverse lookup failing shouldn't block placing the pin — the owner
+      // can still type/adjust the address by hand.
+    } finally {
+      if (seq === reverseGeocodeSeq.current) setReversing(false);
+    }
+  }
+
   async function handleLocateFromAddress() {
     if (!form.address.trim()) {
       setLocateError("Enter an address first.");
       return;
     }
+    // Invalidate any in-flight reverse-geocode from a prior pin move — the
+    // address the owner just typed is now the source of truth, a late
+    // reverse-lookup response shouldn't overwrite it a moment later.
+    reverseGeocodeSeq.current++;
     setLocating(true);
     setLocateError(null);
     try {
@@ -184,17 +216,15 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
               <LocationMapPicker
                 latitude={latitude}
                 longitude={longitude}
-                onChange={(lat, lng) => {
-                  setLatitude(lat);
-                  setLongitude(lng);
-                  setLocateError(null);
-                }}
+                onChange={handleMapChange}
               />
               <div className="flex items-center justify-between gap-2">
                 <p className="m-0 font-sans text-xs text-tn-muted-5">
-                  {latitude != null && longitude != null
-                    ? "Click the map or drag the pin to fine-tune."
-                    : "Click anywhere on the map to drop a pin."}
+                  {reversing
+                    ? "Updating address…"
+                    : latitude != null && longitude != null
+                      ? "Click the map or drag the pin to fine-tune — the address updates to match."
+                      : "Click anywhere on the map to drop a pin."}
                 </p>
                 <Button
                   type="button"
