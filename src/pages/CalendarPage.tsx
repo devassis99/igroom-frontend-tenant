@@ -3,6 +3,7 @@ import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { AppointmentModal } from "@/components/calendar/AppointmentModal";
+import { AppointmentListView } from "@/components/calendar/AppointmentListView";
 import { AddBookingModal } from "@/components/calendar/AddBookingModal";
 import { useAuthStore } from "@/auth/auth-store";
 import {
@@ -12,6 +13,7 @@ import {
   type BookingsStaffMember,
 } from "@/lib/bookings-api";
 import { listLocations, type AccountLocation } from "@/lib/locations-api";
+import { BOOKING_STATUS_BLOCK } from "@/lib/booking-status";
 import {
   addDays,
   addMonths,
@@ -29,21 +31,14 @@ import {
   startOfWeek,
 } from "@/lib/calendar-dates";
 
-type View = "day" | "week" | "month";
+type View = "day" | "week" | "month" | "list";
+type BookingModalMode = "detail" | "reschedule" | "cancel";
 
 // Stable empty-array fallbacks — a fresh `[]` literal on every render would make
 // the useMemo hooks below think `staff`/`bookings` changed even when they didn't.
 const EMPTY_STAFF: BookingsStaffMember[] = [];
 const EMPTY_BOOKINGS: Booking[] = [];
 const EMPTY_LOCATIONS: AccountLocation[] = [];
-
-/** Loosely-semantic coloring for booking blocks — confirmed reads as the "good" state, walk-ins stand out, completed fades back. */
-const STATUS_TONE_CLASS: Record<Booking["status"], string> = {
-  confirmed: "bg-tn-gold-bg border-l-[3px] border-tn-gold",
-  walk_in: "bg-tn-success-bg border-l-[3px] border-tn-success",
-  completed: "bg-tn-page border-l-[3px] border-tn-faint",
-  cancelled: "bg-tn-page border-l-[3px] border-tn-faint",
-};
 
 interface AddBookingRequest {
   defaultDate: Date;
@@ -73,7 +68,14 @@ export function CalendarPage() {
   // `locations` has loaded.
   const [selectedLocationId, setSelectedLocationId] = useState("");
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [selectedBookingMode, setSelectedBookingMode] = useState<BookingModalMode>("detail");
   const [addRequest, setAddRequest] = useState<AddBookingRequest | null>(null);
+
+  /** Opens the appointment modal straight into a given mode — the List view's inline Reschedule/Cancel row actions skip the extra click through the detail screen that the Day/Week/Month grid's plain click still goes through. */
+  function openBooking(booking: Booking, mode: BookingModalMode = "detail") {
+    setSelectedBooking(booking);
+    setSelectedBookingMode(mode);
+  }
 
   const range = useMemo(() => {
     if (view === "day") {
@@ -122,7 +124,9 @@ export function CalendarPage() {
         { start: range.start.toISOString(), end: range.end.toISOString() },
         selectedLocationId || undefined,
       ),
-    enabled: !!accessToken,
+    // The List view has its own paged query (AppointmentListView) instead
+    // of this date-range one — no need to fetch both while it's active.
+    enabled: !!accessToken && view !== "list",
     // The previous range's bookings stay on screen (fading/sliding out
     // under the transition below) while the new range loads, instead of
     // the grid flashing empty for a beat on every date/view/location
@@ -273,34 +277,38 @@ export function CalendarPage() {
           )}
         </div>
         <div className="flex items-center gap-3.5">
-          <button
-            type="button"
-            onClick={goToday}
-            className="cursor-pointer rounded-lg border border-tn-input-border px-2.5 py-1.5 font-sans text-xs font-semibold text-tn-ink-soft hover:bg-tn-page"
-          >
-            Today
-          </button>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={goPrev}
-              aria-label="Previous"
-              className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-lg border border-tn-input-border text-tn-muted-4 hover:bg-tn-page"
-            >
-              ‹
-            </button>
-            <span className="min-w-[110px] text-center font-sans text-[13px] font-semibold text-tn-ink-soft">
-              {navLabel}
-            </span>
-            <button
-              type="button"
-              onClick={goNext}
-              aria-label="Next"
-              className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-lg border border-tn-input-border text-tn-muted-4 hover:bg-tn-page"
-            >
-              ›
-            </button>
-          </div>
+          {view !== "list" && (
+            <>
+              <button
+                type="button"
+                onClick={goToday}
+                className="cursor-pointer rounded-lg border border-tn-input-border px-2.5 py-1.5 font-sans text-xs font-semibold text-tn-ink-soft hover:bg-tn-page"
+              >
+                Today
+              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={goPrev}
+                  aria-label="Previous"
+                  className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-lg border border-tn-input-border text-tn-muted-4 hover:bg-tn-page"
+                >
+                  ‹
+                </button>
+                <span className="min-w-[110px] text-center font-sans text-[13px] font-semibold text-tn-ink-soft">
+                  {navLabel}
+                </span>
+                <button
+                  type="button"
+                  onClick={goNext}
+                  aria-label="Next"
+                  className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-lg border border-tn-input-border text-tn-muted-4 hover:bg-tn-page"
+                >
+                  ›
+                </button>
+              </div>
+            </>
+          )}
           <SegmentedControl
             value={view}
             onChange={handleViewChange}
@@ -308,6 +316,7 @@ export function CalendarPage() {
               { value: "day", label: "Day" },
               { value: "week", label: "Week" },
               { value: "month", label: "Month" },
+              { value: "list", label: "List" },
             ]}
           />
           <Button onClick={() => setAddRequest({ defaultDate: cursorDate })}>+ Add Booking</Button>
@@ -322,7 +331,7 @@ export function CalendarPage() {
         </p>
       )}
 
-      {bookingsQuery.isError && (
+      {view !== "list" && bookingsQuery.isError && (
         <p className="m-0 font-sans text-sm text-tn-danger">
           Couldn&rsquo;t load bookings right now (
           {bookingsQuery.error instanceof Error ? bookingsQuery.error.message : "unknown error"}) —
@@ -391,8 +400,8 @@ export function CalendarPage() {
                         {booking ? (
                           <button
                             type="button"
-                            onClick={() => setSelectedBooking(booking)}
-                            className={`w-full rounded-md p-2 text-left font-sans text-xs font-medium text-tn-ink-soft ${STATUS_TONE_CLASS[booking.status]}`}
+                            onClick={() => openBooking(booking)}
+                            className={`w-full rounded-md p-2 text-left font-sans text-xs font-medium text-tn-ink-soft ${BOOKING_STATUS_BLOCK[booking.status]}`}
                           >
                             {booking.customerName}
                             <br />
@@ -457,7 +466,7 @@ export function CalendarPage() {
                         key={booking.id}
                         type="button"
                         onClick={() => setSelectedBooking(booking)}
-                        className={`rounded-md p-1.5 text-left font-sans text-[11px] font-medium text-tn-ink-soft ${STATUS_TONE_CLASS[booking.status]}`}
+                        className={`rounded-md p-1.5 text-left font-sans text-[11px] font-medium text-tn-ink-soft ${BOOKING_STATUS_BLOCK[booking.status]}`}
                       >
                         {formatTimeLabel(new Date(booking.startAt))} {booking.customerName}
                         <br />
@@ -538,6 +547,14 @@ export function CalendarPage() {
             </div>
           </div>
         )}
+
+        {view === "list" && (
+          <AppointmentListView
+            accessToken={accessToken ?? ""}
+            locationId={selectedLocationId}
+            onOpenBooking={openBooking}
+          />
+        )}
       </div>
 
       <AppointmentModal
@@ -546,6 +563,7 @@ export function CalendarPage() {
         booking={selectedBooking}
         staff={staff}
         accessToken={accessToken ?? ""}
+        initialMode={selectedBookingMode}
       />
 
       <AddBookingModal

@@ -10,7 +10,7 @@ import { request } from "./http";
  * — see CalendarPage.tsx's location dropdown.
  */
 
-export type BookingStatus = "confirmed" | "walk_in" | "cancelled" | "completed";
+export type BookingStatus = "confirmed" | "walk_in" | "cancelled" | "completed" | "no_show";
 
 export interface Booking {
   id: string;
@@ -19,6 +19,8 @@ export interface Booking {
   staffName: string;
   customerName: string;
   customerPhone: string | null;
+  /** Purely so the List view's "Message client" action has a real mailto: target — no in-app messaging exists. */
+  customerEmail: string | null;
   serviceName: string;
   durationMinutes: number;
   priceCents: number | null;
@@ -69,10 +71,41 @@ export function listBookings(
   return request(`/bookings?${params.toString()}`, { headers: authHeaders(accessToken) });
 }
 
+export interface PagedBookingsResponse {
+  bookings: Booking[];
+  totalCount: number;
+  upcomingCount: number;
+  pastCount: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface ListBookingsPagedParams {
+  tab: "upcoming" | "past";
+  /** 1-indexed, defaults to 1 server-side. */
+  page?: number;
+  /** Defaults to 20 server-side, max 100. */
+  pageSize?: number;
+  locationId?: string;
+}
+
+/** Backs the T-List Upcoming/Past view — a paged, unbounded-range feed (every status, including cancelled/no_show) split by whether the appointment is still to come. Unlike listBookings above, this isn't tied to a visible Day/Week/Month date range. */
+export function listBookingsPaged(
+  accessToken: string,
+  params: ListBookingsPagedParams,
+): Promise<PagedBookingsResponse> {
+  const query = new URLSearchParams({ tab: params.tab });
+  if (params.page) query.set("page", String(params.page));
+  if (params.pageSize) query.set("pageSize", String(params.pageSize));
+  if (params.locationId) query.set("locationId", params.locationId);
+  return request(`/bookings/list?${query.toString()}`, { headers: authHeaders(accessToken) });
+}
+
 export interface CreateBookingPayload {
   staffUserId: string;
   customerName: string;
   customerPhone?: string;
+  customerEmail?: string;
   serviceName: string;
   durationMinutes: number;
   priceCents?: number;
@@ -93,12 +126,13 @@ export interface UpdateBookingPayload {
   staffUserId?: string;
   customerName?: string;
   customerPhone?: string;
+  customerEmail?: string;
   serviceName?: string;
   durationMinutes?: number;
   priceCents?: number;
   /** ISO 8601 */
   startAt?: string;
-  status?: "confirmed" | "walk_in" | "completed";
+  status?: "confirmed" | "walk_in" | "completed" | "no_show";
   notes?: string;
 }
 

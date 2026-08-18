@@ -10,7 +10,10 @@ import {
   type Booking,
   type BookingsStaffMember,
 } from "@/lib/bookings-api";
+import { BOOKING_STATUS_TONE } from "@/lib/booking-status";
 import { formatDateTimeLabel } from "@/lib/calendar-dates";
+
+type Mode = "detail" | "reschedule" | "cancel";
 
 interface AppointmentModalProps {
   open: boolean;
@@ -18,19 +21,9 @@ interface AppointmentModalProps {
   booking: Booking | null;
   staff: BookingsStaffMember[];
   accessToken: string;
+  /** Which of the three states to open into — defaults to "detail". The List view's inline Reschedule/Cancel row actions open straight into those modes instead of an extra click through the detail screen. */
+  initialMode?: Mode;
 }
-
-type Mode = "detail" | "reschedule" | "cancel";
-
-const STATUS_TONE: Record<
-  Booking["status"],
-  { tone: "success" | "gold" | "blue" | "neutral"; label: string }
-> = {
-  confirmed: { tone: "success", label: "Confirmed" },
-  walk_in: { tone: "gold", label: "Walk-in" },
-  completed: { tone: "blue", label: "Completed" },
-  cancelled: { tone: "neutral", label: "Cancelled" },
-};
 
 function toDateInputValue(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -55,6 +48,7 @@ export function AppointmentModal({
   booking,
   staff,
   accessToken,
+  initialMode,
 }: AppointmentModalProps) {
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<Mode>("detail");
@@ -69,8 +63,9 @@ export function AppointmentModal({
     setNewDate(toDateInputValue(start));
     setNewTime(toTimeInputValue(start));
     setNewStaffId(booking.staffUserId);
-    setMode("detail");
+    setMode(initialMode ?? "detail");
     setError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- initialMode is read once per open, not tracked live
   }, [open, booking]);
 
   function handleClose() {
@@ -111,7 +106,7 @@ export function AppointmentModal({
   if (!booking) return null;
 
   const start = new Date(booking.startAt);
-  const status = STATUS_TONE[booking.status];
+  const status = BOOKING_STATUS_TONE[booking.status];
 
   const titles: Record<Mode, string> = {
     detail: "Appointment",
@@ -179,32 +174,42 @@ export function AppointmentModal({
               ))}
             </div>
 
-            {booking.status !== "cancelled" && booking.status !== "completed" && (
-              <>
-                <div className="flex gap-2.5">
-                  <Button
-                    variant="secondary"
-                    className="flex-1"
-                    onClick={() => setMode("reschedule")}
+            {booking.status !== "cancelled" &&
+              booking.status !== "completed" &&
+              booking.status !== "no_show" && (
+                <>
+                  <div className="flex gap-2.5">
+                    <Button
+                      variant="secondary"
+                      className="flex-1"
+                      onClick={() => setMode("reschedule")}
+                    >
+                      Reschedule
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      className="flex-1"
+                      disabled={!booking.customerEmail}
+                      onClick={() => {
+                        if (booking.customerEmail)
+                          window.location.href = `mailto:${booking.customerEmail}`;
+                      }}
+                    >
+                      Message
+                    </Button>
+                    <Button className="flex-1" disabled>
+                      Check In
+                    </Button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMode("cancel")}
+                    className="cursor-pointer border-none bg-transparent text-center font-sans text-xs font-medium text-tn-danger"
                   >
-                    Reschedule
-                  </Button>
-                  <Button variant="secondary" className="flex-1" disabled>
-                    Message
-                  </Button>
-                  <Button className="flex-1" disabled>
-                    Check In
-                  </Button>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setMode("cancel")}
-                  className="cursor-pointer border-none bg-transparent text-center font-sans text-xs font-medium text-tn-danger"
-                >
-                  Cancel appointment
-                </button>
-              </>
-            )}
+                    Cancel appointment
+                  </button>
+                </>
+              )}
           </>
         )}
 

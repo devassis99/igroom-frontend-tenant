@@ -43,6 +43,7 @@ export function AddBookingModal({
   const queryClient = useQueryClient();
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
   const [serviceName, setServiceName] = useState("");
   const [durationMinutes, setDurationMinutes] = useState(30);
   const [staffUserId, setStaffUserId] = useState(defaultStaffId ?? staff[0]?.id ?? "");
@@ -57,6 +58,7 @@ export function AddBookingModal({
     if (!open) return;
     setCustomerName("");
     setCustomerPhone("");
+    setCustomerEmail("");
     setServiceName("");
     setDurationMinutes(30);
     setStaffUserId(defaultStaffId ?? staff[0]?.id ?? "");
@@ -75,6 +77,7 @@ export function AddBookingModal({
         staffUserId,
         customerName: customerName.trim(),
         customerPhone: customerPhone.trim() || undefined,
+        customerEmail: customerEmail.trim() || undefined,
         serviceName: serviceName.trim(),
         durationMinutes,
         startAt: startAt.toISOString(),
@@ -132,6 +135,16 @@ export function AddBookingModal({
               value={customerPhone}
               onChange={(e) => setCustomerPhone(e.target.value)}
               placeholder="(555) 555-0182"
+            />
+          </Field>
+
+          <Field label="EMAIL (OPTIONAL)">
+            <input
+              type="email"
+              className={formInputClass}
+              value={customerEmail}
+              onChange={(e) => setCustomerEmail(e.target.value)}
+              placeholder="jordan@example.com"
             />
           </Field>
 

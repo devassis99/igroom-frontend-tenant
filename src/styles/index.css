@@ -18,6 +18,8 @@
   --color-tn-page: oklch(93% 0.015 65);
   --color-tn-surface: oklch(99% 0.005 80);
   --color-tn-table-head: oklch(96% 0.012 75);
+  /** Expanded row detail panel (e.g. the List view's appointment detail) — a touch warmer/darker than tn-surface so the expanded section reads as its own layer without going as dark as tn-page. */
+  --color-tn-detail-bg: oklch(97% 0.006 70);
 
   /* Borders */
   --color-tn-border: oklch(88% 0.015 60);
@@ -83,47 +85,5 @@ body {
 @keyframes tn-spin {
   to {
     transform: rotate(360deg);
-  }
-}
-
-/*
- * Calendar date/view-switch transitions (CalendarPage.tsx) — same "define
- * the keyframes here, apply via inline `animation` style in the component"
- * pattern as tn-spin above. Direction-aware: paging forward slides the new
- * range in from the right, paging back slides in from the left, and
- * anything non-directional (Today, switching Day/Week/Month, clicking a
- * month cell) just fades/lifts in — mirrors Google Calendar's own feel
- * without pulling in an animation library for three keyframes.
- */
-@keyframes tn-cal-slide-in-right {
-  from {
-    opacity: 0;
-    transform: translateX(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes tn-cal-slide-in-left {
-  from {
-    opacity: 0;
-    transform: translateX(-24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes tn-cal-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }

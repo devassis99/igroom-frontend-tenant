@@ -96,6 +96,13 @@ export function formatDateTimeLabel(date: Date): string {
   return `${formatDayNavLabel(date)} · ${formatTimeLabel(date)}`;
 }
 
+/** e.g. "WEDNESDAY, AUG 12" — the List view's date-group headers. */
+export function formatListDateHeader(date: Date): string {
+  return date
+    .toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })
+    .toUpperCase();
+}
+
 /**
  * Monday-start weeks covering the full month plus leading/trailing days
  * so every row is a full 7 days — 5 rows most months, 6 for months that
