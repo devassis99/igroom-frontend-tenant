@@ -87,3 +87,43 @@ body {
     transform: rotate(360deg);
   }
 }
+
+/*
+ * CalendarPage's Google Calendar-style Day/Week/Month transitions —
+ * referenced by name via the gridAnimation inline style there. Paging
+ * backward slides the new range in from the left, paging forward from the
+ * right, and anything without a before/after relationship (Today, a
+ * Day/Week/Month switch, a location change, clicking a month cell) just
+ * fades — same "keyframes in index.css, applied inline" pattern as
+ * tn-spin above and LoadingScreen.tsx's spinner.
+ */
+@keyframes tn-cal-slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes tn-cal-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes tn-cal-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
