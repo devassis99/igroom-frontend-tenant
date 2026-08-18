@@ -3,8 +3,11 @@ import { request } from "./http";
 /**
  * Talks to igroom-backend's /bookings module (see bookings.service.ts).
  * Every route requires a bearer token — requireAccountAuth derives
- * accountId/locationId from the token server-side, so nothing here ever
- * sends a locationId explicitly (mirrors accounts-api.ts's getMe pattern).
+ * accountId/locationId from the token server-side. locationId is
+ * optional on both GET calls below: omit it to get the caller's own
+ * location (unchanged default), or pass one of locations-api.ts's
+ * AccountLocation ids to view a different one of the account's locations
+ * — see CalendarPage.tsx's location dropdown.
  */
 
 export type BookingStatus = "confirmed" | "walk_in" | "cancelled" | "completed";
@@ -39,9 +42,13 @@ function authHeaders(accessToken: string): HeadersInit {
   return { Authorization: `Bearer ${accessToken}` };
 }
 
-/** Active staff at the caller's location — backs the Day view's columns and the Add Booking "assign to" picker. */
-export function listStaff(accessToken: string): Promise<{ staff: BookingsStaffMember[] }> {
-  return request("/bookings/staff", { headers: authHeaders(accessToken) });
+/** Active staff at a location (defaults to the caller's own) — backs the Day view's columns and the Add Booking "assign to" picker. */
+export function listStaff(
+  accessToken: string,
+  locationId?: string,
+): Promise<{ staff: BookingsStaffMember[] }> {
+  const params = locationId ? `?${new URLSearchParams({ locationId }).toString()}` : "";
+  return request(`/bookings/staff${params}`, { headers: authHeaders(accessToken) });
 }
 
 export interface ListBookingsRange {
@@ -51,12 +58,14 @@ export interface ListBookingsRange {
   end: string;
 }
 
-/** Every non-cancelled booking overlapping [start, end) — pass whatever range the visible Day/Week/Month grid needs. */
+/** Every non-cancelled booking overlapping [start, end) at a location (defaults to the caller's own) — pass whatever range the visible Day/Week/Month grid needs. */
 export function listBookings(
   accessToken: string,
   range: ListBookingsRange,
+  locationId?: string,
 ): Promise<{ bookings: Booking[] }> {
   const params = new URLSearchParams({ start: range.start, end: range.end });
+  if (locationId) params.set("locationId", locationId);
   return request(`/bookings?${params.toString()}`, { headers: authHeaders(accessToken) });
 }
 

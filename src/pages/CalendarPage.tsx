@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
@@ -11,6 +11,7 @@ import {
   type Booking,
   type BookingsStaffMember,
 } from "@/lib/bookings-api";
+import { listLocations, type AccountLocation } from "@/lib/locations-api";
 import {
   addDays,
   addMonths,
@@ -34,6 +35,7 @@ type View = "day" | "week" | "month";
 // the useMemo hooks below think `staff`/`bookings` changed even when they didn't.
 const EMPTY_STAFF: BookingsStaffMember[] = [];
 const EMPTY_BOOKINGS: Booking[] = [];
+const EMPTY_LOCATIONS: AccountLocation[] = [];
 
 /** Loosely-semantic coloring for booking blocks — confirmed reads as the "good" state, walk-ins stand out, completed fades back. */
 const STATUS_TONE_CLASS: Record<Booking["status"], string> = {
@@ -51,7 +53,6 @@ interface AddBookingRequest {
 
 /** Matches the mockup's T7 / T7-week / T7-month Calendar frames, plus the T7c/d/e appointment modal — now backed by real igroom-backend data instead of hardcoded arrays. */
 export function CalendarPage() {
-  const owner = useAuthStore((s) => s.owner);
   const accessToken = useAuthStore((s) => s.accessToken);
 
   const [view, setView] = useState<View>("day");
@@ -63,6 +64,14 @@ export function CalendarPage() {
   // "before/after" relationship). Set alongside whatever state change
   // triggers the render, then read once at render time below.
   const [navDirection, setNavDirection] = useState<"prev" | "next" | "fade">("fade");
+  // Which of the account's locations the grid below is showing — lets an
+  // owner with multiple locations (see locations-api.ts) switch between
+  // them via the dropdown next to the business-name badge, instead of
+  // always seeing only their own home location. Starts empty (falls back
+  // to the caller's own location server-side, see bookings.service.ts's
+  // resolveLocationId) until the effect below picks a default once
+  // `locations` has loaded.
+  const [selectedLocationId, setSelectedLocationId] = useState("");
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [addRequest, setAddRequest] = useState<AddBookingRequest | null>(null);
 
@@ -81,24 +90,43 @@ export function CalendarPage() {
     return { start: first, end: addDays(last, 1) };
   }, [view, cursorDate]);
 
-  const staffQuery = useQuery({
-    queryKey: ["bookings-staff"],
-    queryFn: () => listStaff(accessToken ?? ""),
+  const locationsQuery = useQuery({
+    queryKey: ["locations"],
+    queryFn: () => listLocations(accessToken ?? ""),
     enabled: !!accessToken,
+  });
+  const locations = locationsQuery.data?.locations ?? EMPTY_LOCATIONS;
+
+  // Default to the account's primary location the moment the list loads —
+  // same "default to primary, let them change it" pattern as
+  // AddMemberWizard's own location field.
+  useEffect(() => {
+    if (selectedLocationId || locations.length === 0) return;
+    setSelectedLocationId(locations.find((l) => l.isPrimary)?.id ?? locations[0]!.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when the list itself changes
+  }, [locations]);
+
+  const staffQuery = useQuery({
+    queryKey: ["bookings-staff", selectedLocationId],
+    queryFn: () => listStaff(accessToken ?? "", selectedLocationId || undefined),
+    enabled: !!accessToken,
+    placeholderData: keepPreviousData,
   });
   const staff = staffQuery.data?.staff ?? EMPTY_STAFF;
 
   const bookingsQuery = useQuery({
-    queryKey: ["bookings", range.start.toISOString(), range.end.toISOString()],
+    queryKey: ["bookings", selectedLocationId, range.start.toISOString(), range.end.toISOString()],
     queryFn: () =>
-      listBookings(accessToken ?? "", {
-        start: range.start.toISOString(),
-        end: range.end.toISOString(),
-      }),
+      listBookings(
+        accessToken ?? "",
+        { start: range.start.toISOString(), end: range.end.toISOString() },
+        selectedLocationId || undefined,
+      ),
     enabled: !!accessToken,
     // The previous range's bookings stay on screen (fading/sliding out
     // under the transition below) while the new range loads, instead of
-    // the grid flashing empty for a beat on every date/view change.
+    // the grid flashing empty for a beat on every date/view/location
+    // change.
     placeholderData: keepPreviousData,
   });
   const bookings = bookingsQuery.data?.bookings ?? EMPTY_BOOKINGS;
@@ -122,6 +150,10 @@ export function CalendarPage() {
   function handleViewChange(next: View) {
     setNavDirection("fade");
     setView(next);
+  }
+  function handleLocationChange(next: string) {
+    setNavDirection("fade");
+    setSelectedLocationId(next);
   }
   /** Animation string for the {animation: ...} inline style below — same "keyframes in index.css, applied inline" pattern as LoadingScreen.tsx's spinner. */
   const gridAnimation =
@@ -225,9 +257,20 @@ export function CalendarPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">Calendar</h1>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-tn-input-border bg-tn-page px-3 py-1.5 font-sans text-xs font-semibold text-tn-ink-soft">
-            {owner?.businessName ?? "My Shop"}
-          </span>
+          {locations.length > 1 && (
+            <select
+              value={selectedLocationId}
+              onChange={(e) => handleLocationChange(e.target.value)}
+              aria-label="Location"
+              className="cursor-pointer rounded-full border border-tn-input-border bg-tn-page px-3 py-1.5 font-sans text-xs font-semibold text-tn-ink-soft"
+            >
+              {locations.map((loc) => (
+                <option key={loc.id} value={loc.id}>
+                  {loc.name}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
         <div className="flex items-center gap-3.5">
           <button
@@ -287,7 +330,10 @@ export function CalendarPage() {
         </p>
       )}
 
-      <div key={`${view}-${cursorDate.toDateString()}`} style={{ animation: gridAnimation }}>
+      <div
+        key={`${view}-${selectedLocationId}-${cursorDate.toDateString()}`}
+        style={{ animation: gridAnimation }}
+      >
         {view === "day" && (
           <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
             <div
