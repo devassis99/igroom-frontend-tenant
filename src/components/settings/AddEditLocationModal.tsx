@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/Button";
 import { Toggle } from "@/components/ui/Toggle";
 import { Field, formInputClass } from "@/components/ui/FormField";
 import { useAuthStore } from "@/auth/auth-store";
+import { LocationMapPicker } from "@/components/settings/LocationMapPicker";
 import {
   createLocation,
   updateLocation,
+  geocodeLocation,
   type AccountLocation,
   type LocationInput,
 } from "@/lib/locations-api";
@@ -37,6 +39,10 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
   const [form, setForm] = useState<LocationInput>(EMPTY_FORM);
   const [active, setActive] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [locateError, setLocateError] = useState<string | null>(null);
 
   const isEditing = location !== null;
 
@@ -53,12 +59,44 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
         timezone: location.timezone ?? "",
       });
       setActive(location.status === "active");
+      setLatitude(location.latitude);
+      setLongitude(location.longitude);
     } else {
       setForm(EMPTY_FORM);
       setActive(true);
+      setLatitude(null);
+      setLongitude(null);
     }
     setFormError(null);
+    setLocateError(null);
   }, [open, location]);
+
+  async function handleLocateFromAddress() {
+    if (!form.address.trim()) {
+      setLocateError("Enter an address first.");
+      return;
+    }
+    setLocating(true);
+    setLocateError(null);
+    try {
+      const { results } = await geocodeLocation(accessToken ?? "", form.address.trim());
+      const [best] = results;
+      if (!best) {
+        setLocateError(
+          "Couldn't find that address — try adding a city and state, or drop the pin by hand.",
+        );
+        return;
+      }
+      setLatitude(best.latitude);
+      setLongitude(best.longitude);
+    } catch (err) {
+      setLocateError(
+        err instanceof Error ? err.message : "Couldn't look up that address — try again.",
+      );
+    } finally {
+      setLocating(false);
+    }
+  }
 
   function invalidate() {
     // Staff Management's Add/Edit Member location picker (EditMemberModal,
@@ -73,6 +111,8 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
         address: form.address.trim(),
         phone: form.phone?.trim() ? form.phone.trim() : null,
         timezone: form.timezone?.trim() ? form.timezone.trim() : null,
+        latitude,
+        longitude,
       };
       if (location) {
         return updateLocation(accessToken ?? "", location.id, {
@@ -137,6 +177,38 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
               placeholder="88 Burnet Rd, Austin, TX"
               className={formInputClass}
             />
+          </Field>
+
+          <Field label="LOCATION ON MAP (OPTIONAL)">
+            <div className="flex flex-col gap-2">
+              <LocationMapPicker
+                latitude={latitude}
+                longitude={longitude}
+                onChange={(lat, lng) => {
+                  setLatitude(lat);
+                  setLongitude(lng);
+                  setLocateError(null);
+                }}
+              />
+              <div className="flex items-center justify-between gap-2">
+                <p className="m-0 font-sans text-xs text-tn-muted-5">
+                  {latitude != null && longitude != null
+                    ? "Click the map or drag the pin to fine-tune."
+                    : "Click anywhere on the map to drop a pin."}
+                </p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={handleLocateFromAddress}
+                  disabled={locating}
+                >
+                  {locating ? "Locating…" : "Locate from address"}
+                </Button>
+              </div>
+              {locateError && <p className="m-0 font-sans text-xs text-tn-danger">{locateError}</p>}
+            </div>
           </Field>
 
           <Field label="PHONE (OPTIONAL)">

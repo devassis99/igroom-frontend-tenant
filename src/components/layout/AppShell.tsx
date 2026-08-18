@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router";
 import { useAuthStore } from "@/auth/auth-store";
 import { IntegrationsModal } from "@/components/integrations/IntegrationsModal";
@@ -31,6 +31,50 @@ function NavIcon({ shape, active }: { shape: "square" | "circle"; active: boolea
 }
 
 /**
+ * Sidebar-collapse "panel-left" icon (rounded rect + a divider near the
+ * left edge) — same family as a typical collapse/expand toggle, e.g. the
+ * one next to iClosed's wordmark that this feature is modeled on.
+ */
+function SidebarToggleIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="16" rx="3" stroke="currentColor" strokeWidth="2" />
+      <line x1="9.5" y1="4" x2="9.5" y2="20" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  );
+}
+
+/**
+ * A nav row's text (label, badge, ...) — collapses via opacity + max-width
+ * rather than being unmounted, so it fades/slides away in step with the
+ * `<aside>`'s own width transition instead of just popping out of
+ * existence. `shrink-0` on the icons next to this is what keeps them from
+ * drifting once this collapses to nothing.
+ */
+function CollapsibleLabel({
+  collapsed,
+  className = "",
+  children,
+}: {
+  collapsed: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    // A <div> (not <span>) since one caller's children are block-level <p>
+    // tags — every usage here already sits inside a flex row, so the
+    // display type doesn't change how it lays out.
+    <div
+      className={`overflow-hidden whitespace-nowrap transition-[opacity,max-width] duration-200 ease-in-out ${
+        collapsed ? "max-w-0 opacity-0" : "max-w-[160px] opacity-100"
+      } ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
  * Layout for every authenticated route — matches the mockup's sidebar
  * (T6–T12): iGroom wordmark, then the primary nav rows (8, after
  * splitting the mockup's single T6 Owner Dashboard frame into Home +
@@ -45,12 +89,22 @@ function NavIcon({ shape, active }: { shape: "square" | "circle"; active: boolea
  * page (IntegrationsPage) — both share CategoryNav/IntegrationCardGrid
  * (see components/integrations/) so the two entry points can't drift.
  */
+/** Remembers the owner's collapse preference across reloads, same "just localStorage, no store needed for one boolean" call as sample-data.ts's peers. */
+const SIDEBAR_COLLAPSED_KEY = "igroom-sidebar-collapsed";
+
 export function AppShell() {
   const navigate = useNavigate();
   const owner = useAuthStore((s) => s.owner);
   const logOut = useAuthStore((s) => s.logOut);
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const [integrationsOpen, setIntegrationsOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1",
+  );
+
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? "1" : "0");
+  }, [collapsed]);
 
   // ProtectedRoute (see routes/ProtectedRoute.tsx) redirects to "/" for
   // any anonymous visit, but a deliberate logout should land on the
@@ -63,8 +117,26 @@ export function AppShell() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-tn-page">
-      <aside className="relative flex w-[220px] shrink-0 flex-col overflow-y-auto py-6">
-        <p className="m-0 mb-3.5 px-6 font-serif text-lg font-semibold text-tn-ink">iGroom</p>
+      <aside
+        className={`relative flex ${collapsed ? "w-[76px]" : "w-[220px]"} shrink-0 flex-col overflow-y-auto overflow-x-hidden py-6 transition-[width] duration-300 ease-in-out`}
+      >
+        <div className="mb-3.5 flex items-center justify-between px-6">
+          <CollapsibleLabel
+            collapsed={collapsed}
+            className="font-serif text-lg font-semibold text-tn-ink"
+          >
+            iGroom
+          </CollapsibleLabel>
+          <button
+            type="button"
+            onClick={() => setCollapsed((v) => !v)}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md border-none bg-transparent text-tn-muted-5 hover:bg-tn-page hover:text-tn-ink"
+          >
+            <SidebarToggleIcon />
+          </button>
+        </div>
 
         <nav className="flex flex-col gap-0.5">
           {NAV_ITEMS.map((item) => (
@@ -72,6 +144,7 @@ export function AppShell() {
               key={item.to}
               to={item.to}
               end
+              title={collapsed ? item.label : undefined}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-6 py-[11px] font-sans text-[13px] ${
                   isActive
@@ -83,7 +156,7 @@ export function AppShell() {
               {({ isActive }) => (
                 <>
                   <NavIcon shape={item.shape} active={isActive} />
-                  <span>{item.label}</span>
+                  <CollapsibleLabel collapsed={collapsed}>{item.label}</CollapsibleLabel>
                 </>
               )}
             </NavLink>
@@ -95,20 +168,25 @@ export function AppShell() {
         <button
           type="button"
           onClick={() => setWhatsNewOpen((v) => !v)}
+          title={collapsed ? "What's New" : undefined}
           className="flex cursor-pointer items-center gap-2.5 border-none bg-transparent px-6 pb-4 text-left"
         >
           <span className="font-sans text-base text-tn-gold" aria-hidden>
             ✨
           </span>
-          <span className="font-sans text-[13px] font-medium text-tn-nav-inactive">
+          <CollapsibleLabel
+            collapsed={collapsed}
+            className="font-sans text-[13px] font-medium text-tn-nav-inactive"
+          >
             What&rsquo;s New
-          </span>
+          </CollapsibleLabel>
         </button>
 
         <div className="mb-1 flex flex-col gap-0.5">
           <button
             type="button"
             onClick={() => setIntegrationsOpen(true)}
+            title={collapsed ? "Integrations" : undefined}
             className={`flex items-center justify-between px-6 py-[11px] font-sans text-[13px] ${
               integrationsOpen
                 ? "bg-tn-dark font-semibold text-tn-on-dark"
@@ -117,15 +195,18 @@ export function AppShell() {
           >
             <span className="flex items-center gap-3">
               <NavIcon shape="square" active={integrationsOpen} />
-              <span>Integrations</span>
+              <CollapsibleLabel collapsed={collapsed}>Integrations</CollapsibleLabel>
             </span>
-            <span className="rounded-full bg-tn-gold-bg px-[7px] py-0.5 font-sans text-[9px] font-semibold tracking-[0.02em] text-tn-gold">
-              BUSINESS
-            </span>
+            <CollapsibleLabel collapsed={collapsed}>
+              <span className="rounded-full bg-tn-gold-bg px-[7px] py-0.5 font-sans text-[9px] font-semibold tracking-[0.02em] text-tn-gold">
+                BUSINESS
+              </span>
+            </CollapsibleLabel>
           </button>
 
           <NavLink
             to="/settings"
+            title={collapsed ? "Settings" : undefined}
             className={({ isActive }) =>
               `flex items-center gap-3 px-6 py-[11px] font-sans text-[13px] ${
                 isActive
@@ -137,23 +218,27 @@ export function AppShell() {
             <span className="font-sans text-[15px] leading-4" aria-hidden>
               ⚙
             </span>
-            <span>Settings</span>
+            <CollapsibleLabel collapsed={collapsed}>Settings</CollapsibleLabel>
           </NavLink>
         </div>
 
         <div className="flex items-center gap-2 px-6">
-          <NavLink to="/settings" className="flex min-w-0 flex-1 items-center gap-2.5">
+          <NavLink
+            to="/settings"
+            title={collapsed ? (owner?.fullName ?? "Shop owner") : undefined}
+            className="flex min-w-0 flex-1 items-center gap-2.5"
+          >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[oklch(90%_0.03_20)] font-sans text-xs font-semibold text-tn-ink">
               {owner?.fullName?.[0]?.toUpperCase() ?? "?"}
             </div>
-            <div className="min-w-0">
+            <CollapsibleLabel collapsed={collapsed} className="min-w-0">
               <p className="m-0 truncate font-sans text-xs font-semibold text-tn-ink-soft">
                 {owner?.fullName ?? "Shop owner"}
               </p>
               <p className="m-0 truncate font-sans text-[11px] text-tn-muted-5">
                 {owner?.businessName ?? "Your shop"}
               </p>
-            </div>
+            </CollapsibleLabel>
           </NavLink>
           <button
             type="button"

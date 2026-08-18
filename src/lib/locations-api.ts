@@ -15,6 +15,9 @@ export interface AccountLocation {
   address: string;
   phone: string | null;
   timezone: string | null;
+  /** Set via the Locations settings page's map picker — see AddEditLocationModal.tsx/LocationMapPicker.tsx. Both null until an owner drops a pin. */
+  latitude: number | null;
+  longitude: number | null;
   status: "active" | "inactive";
   isPrimary: boolean;
   /** Active staff currently assigned to this location. */
@@ -40,6 +43,8 @@ export interface LocationInput {
   address: string;
   phone?: string | null;
   timezone?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 /** T12d's "+ Add Location". New locations are never primary — only the one created at signup is. */
@@ -65,4 +70,19 @@ export function updateLocation(
     body: patch,
     headers: authHeaders(accessToken),
   });
+}
+
+export interface GeocodeResult {
+  latitude: number;
+  longitude: number;
+  displayName: string;
+}
+
+/** Backs the map picker's "Locate from address" button — see locations.service.ts's geocodeAddress for why this goes through the backend instead of calling Nominatim straight from the browser. */
+export function geocodeLocation(
+  accessToken: string,
+  query: string,
+): Promise<{ results: GeocodeResult[] }> {
+  const params = new URLSearchParams({ q: query });
+  return request(`/locations/geocode?${params.toString()}`, { headers: authHeaders(accessToken) });
 }
