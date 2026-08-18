@@ -1,7 +1,8 @@
-import { Link, useNavigate } from "react-router";
+import { Link, Navigate, useNavigate } from "react-router";
 import { useAuthStore } from "@/auth/auth-store";
 import { useOnboardingStore } from "@/auth/onboarding-store";
 import { Button } from "@/components/ui/Button";
+import { LoadingScreen } from "@/components/layout/LoadingScreen";
 
 const FEATURES = [
   {
@@ -21,7 +22,7 @@ const FEATURES = [
 /** Matches the mockup's T1 landing/marketing frame — the public entry point at "/". */
 export function LandingPage() {
   const navigate = useNavigate();
-  const hasSession = useAuthStore((s) => s.owner !== null);
+  const status = useAuthStore((s) => s.status);
   // A visitor who abandoned signup partway through CAN resume at whichever
   // step they were last on (see onboarding-store.ts's lastRoute) — but
   // "Get Started" always opens the actual signup form (step 1) so it never
@@ -29,6 +30,13 @@ export function LandingPage() {
   // banner below, shown only once there's real progress to resume.
   const lastSignupRoute = useOnboardingStore((s) => s.lastRoute);
   const hasSignupInProgress = lastSignupRoute !== "/signup";
+
+  // A logged-in owner shouldn't land on the public marketing/signup page —
+  // send them straight to the dashboard instead. "unknown" briefly shows a
+  // loading screen (same one-tick rehydration window as ProtectedRoute) so
+  // an authenticated visitor never flashes this page before redirecting.
+  if (status === "unknown") return <LoadingScreen />;
+  if (status === "authenticated") return <Navigate to="/dashboard" replace />;
 
   function startSignup() {
     navigate("/signup");
@@ -48,7 +56,7 @@ export function LandingPage() {
           <span className="hidden sm:inline">Support</span>
           <button
             type="button"
-            onClick={() => navigate(hasSession ? "/dashboard" : "/login")}
+            onClick={() => navigate("/login")}
             className="cursor-pointer border-none bg-transparent p-0 font-sans text-sm font-medium text-tn-gold"
           >
             Log in
