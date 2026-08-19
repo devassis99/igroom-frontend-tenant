@@ -228,89 +228,11 @@ export const SERVICES: Service[] = [
   },
 ];
 
-export interface Customer {
-  id: string;
-  name: string;
-  contact: string;
-  lastVisit: string;
-  visits: number;
-  lifetimeSpend: number;
-  preferredBarber: string;
-  tag: "VIP" | "New" | "Inactive" | null;
-  avatarColor: string;
-  initials: string;
-  memberSince: string;
-  avgTicket: number;
-  avgWeeksBetweenVisits: number;
-  notes: string[];
-}
-
-export const CUSTOMERS: Customer[] = [
-  {
-    id: "jordan",
-    name: "Jordan Rivera",
-    contact: "(555) 555-0182",
-    lastVisit: "Today",
-    visits: 3,
-    lifetimeSpend: 174,
-    preferredBarber: "Marcus Webb",
-    tag: "VIP",
-    avatarColor: "var(--color-tn-avatar-peach)",
-    initials: "JR",
-    memberSince: "Jan 2025",
-    avgTicket: 58,
-    avgWeeksBetweenVisits: 6,
-    notes: ["Prefers Marcus Webb", "Scissor-only"],
-  },
-  {
-    id: "priya-n",
-    name: "Priya Nair",
-    contact: "priya.n@email.com",
-    lastVisit: "Aug 5",
-    visits: 9,
-    lifetimeSpend: 468,
-    preferredBarber: "Marcus Webb",
-    tag: "VIP",
-    avatarColor: "var(--color-tn-avatar-cream)",
-    initials: "PN",
-    memberSince: "Mar 2024",
-    avgTicket: 52,
-    avgWeeksBetweenVisits: 4,
-    notes: [],
-  },
-  {
-    id: "alex-r",
-    name: "Alex R.",
-    contact: "alex.r@email.com",
-    lastVisit: "Today",
-    visits: 1,
-    lifetimeSpend: 32,
-    preferredBarber: "Marcus Webb",
-    tag: "New",
-    avatarColor: "var(--color-tn-avatar-tan)",
-    initials: "AR",
-    memberSince: "Aug 2026",
-    avgTicket: 32,
-    avgWeeksBetweenVisits: 0,
-    notes: [],
-  },
-  {
-    id: "sam-k",
-    name: "Sam K.",
-    contact: "sam.k@email.com",
-    lastVisit: "May 20",
-    visits: 2,
-    lifetimeSpend: 90,
-    preferredBarber: "Any barber",
-    tag: "Inactive",
-    avatarColor: "var(--color-tn-avatar-blue)",
-    initials: "SK",
-    memberSince: "Feb 2025",
-    avgTicket: 45,
-    avgWeeksBetweenVisits: 12,
-    notes: [],
-  },
-];
+// Customer type + CUSTOMERS sample list used to live here — CustomersPage
+// and CustomerJourneyModal now run on real igroom-backend data instead
+// (see src/lib/customers-api.ts), the same "graduate out of sample-data.ts
+// once a module goes live" step Services/Staff/Locations already went
+// through.
 
 export interface Appointment {
   id: string;
