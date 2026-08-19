@@ -4,9 +4,11 @@ import { useAuthStore } from "@/auth/auth-store";
 import { usePermissions } from "@/auth/use-permissions";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
-import { formSelectClass } from "@/components/ui/FormField";
 import { AddOverrideModal } from "@/components/availability/AddOverrideModal";
 import { SuccessToast } from "@/components/ui/Toast";
+import { LocationFilterPopover } from "@/components/ui/LocationFilterPopover";
+import { StaffFilterPopover } from "@/components/ui/StaffFilterPopover";
+import { TimezonePicker } from "@/components/ui/TimezonePicker";
 import { listStaff } from "@/lib/staff-api";
 import { listLocations } from "@/lib/locations-api";
 import {
@@ -83,6 +85,10 @@ export function HoursSettingsPage() {
   const [selectedStaffUserId, setSelectedStaffUserId] = useState<string | null>(null);
   const [selectedLocationId, setSelectedLocationId] = useState<string>("all");
   const [weekly, setWeekly] = useState<WeeklyState>(emptyWeek());
+  // null until the seeding effect below runs at least once — rendered as
+  // "Loading…" (same as the rest of the page) rather than guessing at a
+  // default before we actually know the location/browser fallback.
+  const [timezone, setTimezone] = useState<string | null>(null);
   const [overrideModalOpen, setOverrideModalOpen] = useState(false);
   const [overrideToDelete, setOverrideToDelete] = useState<AvailabilityOverride | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -103,10 +109,14 @@ export function HoursSettingsPage() {
     queryFn: () => listStaff(accessToken ?? ""),
     enabled: !!accessToken && canManage,
   });
+  // Unlike staffQuery below (only a manager ever sees/needs the staff
+  // picker), this one isn't manager-gated: a self-viewing Barber still
+  // needs it to resolve their own location's timezone for the read-only
+  // label next to "Set your availability" (see the `timezone` memo).
   const locationsQuery = useQuery({
     queryKey: ["locations"],
     queryFn: () => listLocations(accessToken ?? ""),
-    enabled: !!accessToken && canManage,
+    enabled: !!accessToken,
   });
 
   const staffOptions = useMemo(() => {
@@ -115,6 +125,19 @@ export function HoursSettingsPage() {
       ? all
       : all.filter((s) => s.locationId === selectedLocationId);
   }, [staffQuery.data, selectedLocationId]);
+
+  const selectedStaffMember = staffOptions.find((s) => s.id === selectedStaffUserId);
+  // staffOptions (and so selectedStaffMember) is only populated for a
+  // manager — staffQuery above is manager-gated. A self-viewing
+  // non-manager always has selectedStaffUserId === their own id, so fall
+  // back to staffUser.locationId (already on hand from GET /accounts/me)
+  // rather than leaving this permanently null for the common "Barber
+  // checking their own hours" case.
+  const viewingLocationId =
+    selectedStaffMember?.locationId ?? (canManage ? null : staffUser?.locationId);
+  const locationTimezone = viewingLocationId
+    ? (locationsQuery.data?.locations.find((l) => l.id === viewingLocationId)?.timezone ?? null)
+    : null;
 
   // Switching the location filter can drop the currently-selected staff
   // member out of the list (they work at a different location) — fall
@@ -141,13 +164,29 @@ export function HoursSettingsPage() {
     }
   }, [availabilityQuery.data]);
 
+  // Fallback chain: this schedule's own saved timezone (staff_availability_settings)
+  // → the viewed staff member's location timezone → the browser's local
+  // zone, so the picker never comes up pointed at nothing. Re-seeds
+  // (discarding any unsaved pick) whenever the fetched schedule or the
+  // resolved location timezone changes — same "switching who you're
+  // viewing resets the form" behavior the `weekly` effect above already
+  // has.
+  useEffect(() => {
+    if (!availabilityQuery.data) return;
+    setTimezone(
+      availabilityQuery.data.timezone ??
+        locationTimezone ??
+        Intl.DateTimeFormat().resolvedOptions().timeZone,
+    );
+  }, [availabilityQuery.data, locationTimezone]);
+
   const saveMutation = useMutation({
     mutationFn: () => {
       const days: AvailabilityDay[] = Array.from({ length: 7 }, (_, dayOfWeek) => ({
         dayOfWeek,
         ranges: weekly[dayOfWeek] ?? [],
       }));
-      return setStaffAvailability(accessToken ?? "", selectedStaffUserId!, days);
+      return setStaffAvailability(accessToken ?? "", selectedStaffUserId!, days, timezone);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["availability", selectedStaffUserId] });
@@ -225,12 +264,6 @@ export function HoursSettingsPage() {
     });
   }
 
-  const selectedStaffMember = staffOptions.find((s) => s.id === selectedStaffUserId);
-  const timezone = selectedStaffMember
-    ? (locationsQuery.data?.locations.find((l) => l.id === selectedStaffMember.locationId)
-        ?.timezone ?? null)
-    : null;
-
   const overrides = availabilityQuery.data?.overrides ?? [];
 
   if (permissionsLoading || !selectedStaffUserId) {
@@ -249,31 +282,19 @@ export function HoursSettingsPage() {
 
         {canManage && (
           <div className="flex flex-wrap items-center gap-2.5">
-            <select
+            <LocationFilterPopover
+              locations={locationsQuery.data?.locations ?? []}
               value={selectedLocationId}
-              onChange={(e) => setSelectedLocationId(e.target.value)}
-              aria-label="Filter by location"
-              className={`${formSelectClass} w-44`}
-            >
-              <option value="all">All locations</option>
-              {(locationsQuery.data?.locations ?? []).map((loc) => (
-                <option key={loc.id} value={loc.id}>
-                  {loc.name}
-                </option>
-              ))}
-            </select>
-            <select
-              value={selectedStaffUserId}
-              onChange={(e) => setSelectedStaffUserId(e.target.value)}
-              aria-label="Viewing whose schedule"
-              className={`${formSelectClass} w-52`}
-            >
-              {staffOptions.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.id === staffUser?.id ? `${member.name} (me)` : member.name}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedLocationId}
+              label="Filter by location"
+            />
+            <StaffFilterPopover
+              staff={staffOptions}
+              value={selectedStaffUserId ?? ""}
+              onChange={setSelectedStaffUserId}
+              selfId={staffUser?.id}
+              label="Filter by member"
+            />
           </div>
         )}
       </div>
@@ -282,7 +303,17 @@ export function HoursSettingsPage() {
         <section className="flex flex-col gap-1 rounded-2xl border border-tn-border p-5">
           <div className="mb-3 flex items-center justify-between">
             <p className="m-0 font-sans text-sm font-semibold text-tn-ink">Set your availability</p>
-            {timezone && <span className="font-sans text-xs text-tn-muted-5">{timezone}</span>}
+            {timezone && (
+              <TimezonePicker
+                value={timezone}
+                onChange={setTimezone}
+                label={
+                  locationTimezone
+                    ? "Timezone"
+                    : "Timezone (no location timezone set — defaulted to your browser's)"
+                }
+              />
+            )}
           </div>
 
           {DISPLAY_ORDER.map((dayOfWeek, i) => {

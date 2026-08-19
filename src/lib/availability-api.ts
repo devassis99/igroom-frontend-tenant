@@ -38,6 +38,8 @@ export interface AvailabilityOverride {
 export interface AvailabilityResponse {
   weeklySchedule: AvailabilityDay[];
   overrides: AvailabilityOverride[];
+  /** This schedule's own IANA timezone if one's been set, independent of the staff member's location — null until explicitly picked (see HoursSettingsPage.tsx's fallback chain). */
+  timezone: string | null;
 }
 
 function authHeaders(accessToken: string): HeadersInit {
@@ -51,16 +53,23 @@ export function getStaffAvailability(
   return request(`/availability/staff/${staffUserId}`, { headers: authHeaders(accessToken) });
 }
 
-/** Replaces the target staff member's entire weekly schedule in one call — always send all 7 days. */
+/**
+ * Replaces the target staff member's entire weekly schedule in one call —
+ * always send all 7 days. `timezone` follows the same "omit to leave
+ * unchanged, null to clear" rule as the backend — HoursSettingsPage.tsx
+ * always sends its current value, whatever that is, since the picker
+ * there is always showing *something* (saved, or a fallback).
+ */
 export function setStaffAvailability(
   accessToken: string,
   staffUserId: string,
   days: AvailabilityDay[],
-): Promise<{ weeklySchedule: AvailabilityDay[] }> {
+  timezone?: string | null,
+): Promise<{ weeklySchedule: AvailabilityDay[]; timezone: string | null }> {
   return request(`/availability/staff/${staffUserId}`, {
     method: "PUT",
     headers: authHeaders(accessToken),
-    body: { days },
+    body: { days, timezone },
   });
 }
 
@@ -109,7 +118,7 @@ export function getMyAvailability(accessToken: string): Promise<AvailabilityResp
 export function setMyAvailability(
   accessToken: string,
   days: AvailabilityDay[],
-): Promise<{ weeklySchedule: AvailabilityDay[] }> {
+): Promise<{ weeklySchedule: AvailabilityDay[]; timezone: string | null }> {
   return request("/availability/me", {
     method: "PUT",
     headers: authHeaders(accessToken),

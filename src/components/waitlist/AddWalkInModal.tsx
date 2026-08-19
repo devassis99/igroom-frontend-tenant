@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Field, formInputClass, formSelectClass } from "@/components/ui/FormField";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 
 interface AddWalkInModalProps {
   open: boolean;
@@ -11,6 +12,7 @@ interface AddWalkInModalProps {
 /** Matches the mockup's T8c "Add Walk-in" modal. */
 export function AddWalkInModal({ open, onClose }: AddWalkInModalProps) {
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
 
   return (
     <Modal open={open} onClose={onClose}>
@@ -41,7 +43,7 @@ export function AddWalkInModal({ open, onClose }: AddWalkInModalProps) {
           />
         </Field>
         <Field label="PHONE (OPTIONAL — FOR SMS ALERTS)">
-          <input type="text" placeholder="(555) 555-0100" className={formInputClass} />
+          <PhoneInput value={phone} onChange={setPhone} />
         </Field>
         <Field label="SERVICE">
           <select className={formSelectClass}>

@@ -4,6 +4,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Field, formInputClass } from "@/components/ui/FormField";
 import { Toggle } from "@/components/ui/Toggle";
+import { PhoneInput, isPhoneValid } from "@/components/ui/PhoneInput";
 import { useAuthStore } from "@/auth/auth-store";
 import { createCustomer } from "@/lib/customers-api";
 
@@ -61,6 +62,10 @@ export function AddCustomerModal({ open, onClose }: AddCustomerModalProps) {
       setFormError("Give this customer a name.");
       return;
     }
+    if (!isPhoneValid(phone)) {
+      setFormError("That phone number doesn't look right for the selected country.");
+      return;
+    }
     setFormError(null);
     mutation.mutate();
   }
@@ -91,13 +96,7 @@ export function AddCustomerModal({ open, onClose }: AddCustomerModalProps) {
             />
           </Field>
           <Field label="PHONE">
-            <input
-              type="text"
-              placeholder="(555) 555-0100"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className={formInputClass}
-            />
+            <PhoneInput value={phone} onChange={setPhone} />
           </Field>
           <Field label="EMAIL">
             <input

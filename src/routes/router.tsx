@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, redirect } from "react-router";
 import { ProtectedRoute } from "./ProtectedRoute";
 
 /**
@@ -141,12 +141,13 @@ export const router = createBrowserRouter([
                     Component: m.default,
                   })),
               },
+              // Roles & Permissions used to be its own page here — it's now
+              // the Roles tab on Staff Management itself (see
+              // StaffManagementPage.tsx's activeTab state), so this route
+              // just forwards any old link/bookmark there.
               {
                 path: "staff/roles",
-                lazy: () =>
-                  import("@/pages/settings/RolesManagementPage").then((m) => ({
-                    Component: m.default,
-                  })),
+                loader: () => redirect("/settings/staff"),
               },
               {
                 path: "integrations",

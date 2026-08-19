@@ -1,5 +1,8 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+
+/** How long the slide/fade transition takes, in ms — kept in one place so the exit timer (below) can wait for it before actually unmounting. */
+const TRANSITION_MS = 220;
 
 function CheckCircleIcon() {
   return (
@@ -40,11 +43,32 @@ interface SuccessToastProps {
  * HoursSettingsPage.tsx's saveMutation.onSuccess for the reference usage.
  */
 export function SuccessToast({ message, onDismiss, duration = 3000 }: SuccessToastProps) {
+  // Starts off-screen/hidden, then flips to visible a tick after mount so
+  // the transition classes below actually animate in (mounting already
+  // "visible" would just paint it in its final state with nothing to
+  // transition from). `dismissing` drives the mirror-image exit — we ask
+  // the parent to unmount us only after that animation has had time to
+  // play, rather than yanking the toast out mid-transition.
+  const [visible, setVisible] = useState(false);
+  const [dismissing, setDismissing] = useState(false);
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const dismiss = useCallback(() => {
+    setDismissing(true);
+    setTimeout(onDismiss, TRANSITION_MS);
+  }, [onDismiss]);
+
   useEffect(() => {
     if (duration <= 0) return;
-    const timer = setTimeout(onDismiss, duration);
+    const timer = setTimeout(dismiss, duration);
     return () => clearTimeout(timer);
-  }, [onDismiss, duration]);
+  }, [duration, dismiss]);
+
+  const shown = visible && !dismissing;
 
   return createPortal(
     // <output> is the semantic element for "result of an action" and
@@ -52,13 +76,17 @@ export function SuccessToast({ message, onDismiss, duration = 3000 }: SuccessToa
     // flags a bare role="status" div in favor of it.
     <output
       aria-live="polite"
-      className="fixed top-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2.5 rounded-xl bg-tn-success px-4 py-3 text-tn-on-dark shadow-lg"
+      className={`fixed top-5 left-1/2 z-50 flex items-center gap-2.5 rounded-full bg-tn-success/85 px-5 py-2.5 text-tn-on-dark shadow-lg backdrop-blur-sm transition-all duration-200 ease-out ${
+        shown
+          ? "translate-x-[-50%] translate-y-0 opacity-100"
+          : "translate-x-[-50%] -translate-y-3 opacity-0"
+      }`}
     >
       <CheckCircleIcon />
       <span className="font-sans text-sm font-medium">{message}</span>
       <button
         type="button"
-        onClick={onDismiss}
+        onClick={dismiss}
         aria-label="Dismiss"
         className="ml-1 cursor-pointer border-none bg-transparent p-0.5 text-base leading-none opacity-80 hover:opacity-100"
       >

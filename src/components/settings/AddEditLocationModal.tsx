@@ -4,6 +4,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Toggle } from "@/components/ui/Toggle";
 import { Field, formInputClass } from "@/components/ui/FormField";
+import { PhoneInput, isPhoneValid } from "@/components/ui/PhoneInput";
 import { useAuthStore } from "@/auth/auth-store";
 import { LocationMapPicker } from "@/components/settings/LocationMapPicker";
 import {
@@ -169,6 +170,10 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
       setFormError("A location needs at least a name and an address.");
       return;
     }
+    if (!isPhoneValid(form.phone ?? "")) {
+      setFormError("That phone number doesn't look right for the selected country.");
+      return;
+    }
     setFormError(null);
     mutation.mutate();
   }
@@ -242,12 +247,9 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
           </Field>
 
           <Field label="PHONE (OPTIONAL)">
-            <input
-              type="tel"
+            <PhoneInput
               value={form.phone ?? ""}
-              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-              placeholder="(555) 555-0100"
-              className={formInputClass}
+              onChange={(phone) => setForm((f) => ({ ...f, phone }))}
             />
           </Field>
 

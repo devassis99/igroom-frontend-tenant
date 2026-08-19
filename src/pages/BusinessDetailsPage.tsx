@@ -4,6 +4,7 @@ import { useOnboardingStore } from "@/auth/onboarding-store";
 import { Button } from "@/components/ui/Button";
 import { Field, formInputClass } from "@/components/ui/FormField";
 import { StepProgress } from "@/components/ui/StepProgress";
+import { PhoneInput, isPhoneValid } from "@/components/ui/PhoneInput";
 
 const CATEGORIES = ["Barbershop", "Hair Salon", "Nails", "Spa"];
 
@@ -37,6 +38,10 @@ export function BusinessDetailsPage() {
     e.preventDefault();
     if (!businessName.trim() || !phone.trim()) {
       setError("Fill in your business name and phone to continue.");
+      return;
+    }
+    if (!isPhoneValid(phone)) {
+      setError("That phone number doesn't look right for the selected country.");
       return;
     }
     setError(null);
@@ -86,13 +91,7 @@ export function BusinessDetailsPage() {
         </div>
 
         <Field label="BUSINESS PHONE">
-          <input
-            type="tel"
-            placeholder="(512) 555-0100"
-            value={phone}
-            onChange={(e) => setBusinessDetails({ phone: e.target.value })}
-            className={formInputClass}
-          />
+          <PhoneInput value={phone} onChange={(next) => setBusinessDetails({ phone: next })} />
         </Field>
 
         {error && <p className="m-0 font-sans text-xs text-tn-danger">{error}</p>}

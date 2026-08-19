@@ -1,18 +1,114 @@
-import { NavLink, Outlet, useNavigate } from "react-router";
-import { useAuthStore } from "@/auth/auth-store";
+import type { ReactNode } from "react";
+import { NavLink, Outlet } from "react-router";
 
-const GENERAL_ITEMS = [
-  { to: "/settings", label: "Business Profile", icon: "👤", end: true },
-  { to: "/settings/hours", label: "Hours & Availability", icon: "🕐" },
-  { to: "/settings/security", label: "Security", icon: "🔒" },
+type NavIconComponent = (props: { className?: string }) => ReactNode;
+
+const GENERAL_ITEMS: Array<{ to: string; label: string; icon: NavIconComponent; end?: boolean }> = [
+  { to: "/settings", label: "Business Profile", icon: BusinessProfileIcon, end: true },
+  { to: "/settings/hours", label: "Availability", icon: AvailabilityIcon },
+  { to: "/settings/security", label: "Security", icon: SecurityIcon },
 ];
 
-const WORKSPACE_ITEMS = [
-  { to: "/settings/locations", label: "Locations", icon: "📍" },
-  { to: "/settings/staff", label: "Staff Management", icon: "👥" },
-  { to: "/settings/integrations", label: "Integrations", icon: "🔌", badge: "BUSINESS" },
-  { to: "/settings/billing", label: "Billing & Plan", icon: "💳" },
+const WORKSPACE_ITEMS: Array<{
+  to: string;
+  label: string;
+  icon: NavIconComponent;
+  badge?: string;
+}> = [
+  { to: "/settings/locations", label: "Locations", icon: LocationsIcon },
+  { to: "/settings/staff", label: "Staff Management", icon: StaffIcon },
+  {
+    to: "/settings/integrations",
+    label: "Integrations",
+    icon: IntegrationsIcon,
+    badge: "BUSINESS",
+  },
+  { to: "/settings/billing", label: "Billing & Plan", icon: BillingIcon },
 ];
+
+// Same outline-glyph family (24x24 viewBox, 1.75 stroke, round caps/joins,
+// currentColor) as AppShell.tsx's root nav icons, so the Settings sidebar
+// reads as a continuation of that nav rather than a differently-styled
+// sub-section — see this file's earlier emoji icons, which the user asked
+// to swap out for "like main root menu".
+const ICON_PROPS = {
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.75,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+  "aria-hidden": true as const,
+};
+
+function BusinessProfileIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function AvailabilityIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <polyline points="12 7 12 12 15.5 14.5" />
+    </svg>
+  );
+}
+
+function SecurityIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </svg>
+  );
+}
+
+function LocationsIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <path d="M12 21s7-7.58 7-12a7 7 0 1 0-14 0c0 4.42 7 12 7 12z" />
+      <circle cx="12" cy="9" r="2.5" />
+    </svg>
+  );
+}
+
+/** Two-person glyph for Staff Management, matching AppShell.tsx's root Staff nav row. */
+function StaffIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
+/** 2x2 app-grid glyph, matching AppShell.tsx's root Integrations row. */
+function IntegrationsIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="14" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+    </svg>
+  );
+}
+
+function BillingIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <line x1="2" y1="10" x2="22" y2="10" />
+    </svg>
+  );
+}
 
 function navClass(isActive: boolean) {
   return `flex items-center gap-2.5 rounded-lg px-4 py-2.5 font-sans text-[13px] ${
@@ -38,14 +134,6 @@ function navClass(isActive: boolean) {
  * long sidebar with no visible seam between "app nav" and "settings nav".
  */
 export function SettingsLayout() {
-  const navigate = useNavigate();
-  const logOut = useAuthStore((s) => s.logOut);
-
-  function handleLogOut() {
-    logOut();
-    navigate("/");
-  }
-
   return (
     <div className="-my-8 flex min-h-screen">
       <nav className="-ml-10 flex w-[240px] flex-none flex-col gap-6 border-r border-tn-border bg-tn-table-head py-8">
@@ -62,7 +150,7 @@ export function SettingsLayout() {
                 end={item.end}
                 className={({ isActive }) => navClass(isActive)}
               >
-                <span aria-hidden>{item.icon}</span>
+                <item.icon className="h-[18px] w-[18px] shrink-0" />
                 <span>{item.label}</span>
               </NavLink>
             ))}
@@ -76,7 +164,7 @@ export function SettingsLayout() {
           <div className="flex flex-col gap-0.5">
             {WORKSPACE_ITEMS.map((item) => (
               <NavLink key={item.to} to={item.to} className={({ isActive }) => navClass(isActive)}>
-                <span aria-hidden>{item.icon}</span>
+                <item.icon className="h-[18px] w-[18px] shrink-0" />
                 <span className="flex-1">{item.label}</span>
                 {item.badge && (
                   <span className="rounded-full bg-tn-gold-bg px-1.5 py-0.5 font-sans text-[9px] font-semibold text-tn-gold">
@@ -87,14 +175,6 @@ export function SettingsLayout() {
             ))}
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={handleLogOut}
-          className="mt-auto flex cursor-pointer items-center justify-between border-none bg-transparent px-4 py-2 text-left font-sans text-[13px] font-medium text-tn-muted-5"
-        >
-          Log out <span aria-hidden>›</span>
-        </button>
       </nav>
 
       <div className="min-w-0 flex-1 py-8 pl-10">

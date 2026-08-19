@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { LocationFilterPopover } from "@/components/ui/LocationFilterPopover";
+import { TimezonePicker } from "@/components/ui/TimezonePicker";
 import { AppointmentModal } from "@/components/calendar/AppointmentModal";
 import { AppointmentListView } from "@/components/calendar/AppointmentListView";
 import { AddBookingModal } from "@/components/calendar/AddBookingModal";
@@ -23,12 +25,14 @@ import {
   formatTimeLabel,
   formatWeekColumnLabel,
   formatWeekNavLabel,
+  formatUtcOffset,
   getDaySlots,
   getMonthGrid,
   isSameDay,
   isSameMonth,
   startOfDay,
   startOfWeek,
+  zonedHourMinute,
 } from "@/lib/calendar-dates";
 
 type View = "day" | "week" | "month" | "list";
@@ -39,6 +43,16 @@ type BookingModalMode = "detail" | "reschedule" | "cancel";
 const EMPTY_STAFF: BookingsStaffMember[] = [];
 const EMPTY_BOOKINGS: Booking[] = [];
 const EMPTY_LOCATIONS: AccountLocation[] = [];
+
+// Fallback when neither the selected location nor an explicit override
+// supplies one — same "last resort" tier as PhoneInput's DEFAULT_COUNTRY.
+const BROWSER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+// Matches the Day view rows' own `min-h-16` (Tailwind's 4rem, i.e. 64px at
+// the default root font size) — the red current-time line's pixel math
+// below has to agree with that same row height or it'll drift out of
+// alignment with the actual hour gridlines.
+const DAY_SLOT_HEIGHT_PX = 64;
 
 interface AddBookingRequest {
   defaultDate: Date;
@@ -67,6 +81,11 @@ export function CalendarPage() {
   // resolveLocationId) until the effect below picks a default once
   // `locations` has loaded.
   const [selectedLocationId, setSelectedLocationId] = useState("");
+  // null = "follow the selected location's own timezone" (or the
+  // browser's, if the location has none set) — set once the picker below
+  // is used explicitly, and then sticks even if the location changes,
+  // same override-wins-over-default relationship as PhoneInput's country.
+  const [timezoneOverride, setTimezoneOverride] = useState<string | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [selectedBookingMode, setSelectedBookingMode] = useState<BookingModalMode>("detail");
   const [addRequest, setAddRequest] = useState<AddBookingRequest | null>(null);
@@ -98,6 +117,14 @@ export function CalendarPage() {
     enabled: !!accessToken,
   });
   const locations = locationsQuery.data?.locations ?? EMPTY_LOCATIONS;
+
+  // Day/Week grid's wall-clock zone — an explicit pick from the picker
+  // below wins outright, otherwise it follows the selected location's own
+  // timezone (see locations-api.ts), falling back to the browser's when
+  // that location has none configured (e.g. an older location row from
+  // before the field existed).
+  const selectedLocation = locations.find((l) => l.id === selectedLocationId);
+  const timezone = timezoneOverride ?? selectedLocation?.timezone ?? BROWSER_TIMEZONE;
 
   // Default to the account's primary location the moment the list loads —
   // same "default to primary, let them change it" pattern as
@@ -188,13 +215,14 @@ export function CalendarPage() {
       const start = new Date(booking.startAt);
       if (!isSameDay(start, cursorDate)) continue; // overlaps in from the prior day — not this day's row range
       const end = new Date(booking.endAt);
-      minHour = Math.min(minHour, start.getHours());
-      const endHourCeil =
-        end.getMinutes() > 0 || end.getSeconds() > 0 ? end.getHours() + 1 : end.getHours();
+      const startZoned = zonedHourMinute(start, timezone);
+      const endZoned = zonedHourMinute(end, timezone);
+      minHour = Math.min(minHour, startZoned.hour);
+      const endHourCeil = endZoned.minute > 0 ? endZoned.hour + 1 : endZoned.hour;
       maxHour = Math.max(maxHour, Math.min(endHourCeil, 24));
     }
-    return getDaySlots(cursorDate, minHour, Math.max(maxHour, minHour + 1));
-  }, [cursorDate, bookings]);
+    return getDaySlots(cursorDate, minHour, Math.max(maxHour, minHour + 1), 30, timezone);
+  }, [cursorDate, bookings, timezone]);
 
   /**
    * Columns for the Day view. Bookings only ever come back from the API
@@ -226,14 +254,61 @@ export function CalendarPage() {
     if (view !== "day") return map;
     for (const booking of bookings) {
       const start = new Date(booking.startAt);
-      const minutesSinceMidnight = start.getHours() * 60 + start.getMinutes();
+      const { hour, minute } = zonedHourMinute(start, timezone);
+      const minutesSinceMidnight = hour * 60 + minute;
       const flooredMinutes = Math.floor(minutesSinceMidnight / 30) * 30;
       const hh = String(Math.floor(flooredMinutes / 60)).padStart(2, "0");
       const mm = String(flooredMinutes % 60).padStart(2, "0");
       map.set(`${booking.staffUserId}__${hh}:${mm}`, booking);
     }
     return map;
-  }, [bookings, view]);
+  }, [bookings, view, timezone]);
+
+  // Ticks every 30s while Day view is open so the red current-time line
+  // below keeps drifting down through the grid without needing a manual
+  // refresh — cheap enough (a plain re-render, no refetch) to just leave
+  // running the whole time the view is active.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    if (view !== "day") return;
+    const id = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(id);
+  }, [view]);
+
+  const dayScrollRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Pixel offset of "now" within the Day view's slot rows, or null when
+   * `now` isn't actually on the visible day (per the existing
+   * browser-local day-identity rule, same as daySlots/isSameDay above) or
+   * falls outside the grid's visible hour range. Assumes every row is
+   * exactly DAY_SLOT_HEIGHT_PX tall — true as long as row content doesn't
+   * wrap onto a second line.
+   */
+  const nowLineOffsetPx = useMemo(() => {
+    if (view !== "day" || daySlots.length === 0) return null;
+    if (!isSameDay(cursorDate, now)) return null;
+    const first = zonedHourMinute(daySlots[0]!, timezone);
+    const nowZoned = zonedHourMinute(now, timezone);
+    const minutesFromStart =
+      nowZoned.hour * 60 + nowZoned.minute - (first.hour * 60 + first.minute);
+    const totalMinutes = daySlots.length * 30;
+    if (minutesFromStart < 0 || minutesFromStart > totalMinutes) return null;
+    return (minutesFromStart / 30) * DAY_SLOT_HEIGHT_PX;
+  }, [view, daySlots, cursorDate, now, timezone]);
+
+  // Lands the current time roughly a third of the way down the visible
+  // grid on entering Day view or switching days — same landing spot
+  // Google Calendar's Day view opens to — rather than requiring a manual
+  // scroll to find "now". Deliberately NOT re-run on every `now` tick
+  // (see deps below) so it doesn't yank the user's scroll position back
+  // out from under them every 30 seconds while they're looking at it.
+  useEffect(() => {
+    if (view !== "day" || nowLineOffsetPx === null || !dayScrollRef.current) return;
+    const container = dayScrollRef.current;
+    container.scrollTop = Math.max(0, nowLineOffsetPx - container.clientHeight / 3);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally excludes nowLineOffsetPx/daySlots so re-renders while viewing don't reset scroll
+  }, [view, cursorDate, timezone]);
 
   const weekDays = useMemo(() => {
     const start = startOfWeek(cursorDate);
@@ -262,27 +337,15 @@ export function CalendarPage() {
         <div className="flex items-center gap-3.5">
           <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">Calendar</h1>
           {locations.length > 1 && (
-            <div className="relative">
-              <select
-                value={selectedLocationId}
-                onChange={(e) => handleLocationChange(e.target.value)}
-                aria-label="Location"
-                className="cursor-pointer appearance-none rounded-lg border border-tn-input-border bg-tn-surface py-1.5 pr-7 pl-3 font-sans text-xs font-semibold text-tn-ink-soft outline-none hover:bg-tn-page focus:border-2 focus:border-tn-gold"
-              >
-                {locations.map((loc) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name}
-                  </option>
-                ))}
-              </select>
-              {/* appearance-none above drops the browser's own (inconsistent-looking) arrow — this
-                  plain-glyph chevron matches the ‹ › nav buttons' convention of text glyphs over
-                  SVG icons for these small header controls. */}
-              <span className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-[10px] text-tn-muted-5">
-                ▾
-              </span>
-            </div>
+            <LocationFilterPopover
+              locations={locations}
+              value={selectedLocationId}
+              onChange={handleLocationChange}
+              label="Filter by location"
+              includeAllOption={false}
+            />
           )}
+          <TimezonePicker value={timezone} onChange={setTimezoneOverride} />
         </div>
         <div className="flex items-center gap-3.5">
           {view !== "list" && (
@@ -353,205 +416,244 @@ export function CalendarPage() {
       >
         {view === "day" && (
           <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
-            <div
-              className="grid border-b border-tn-border-softer"
-              style={{ gridTemplateColumns: `70px repeat(${Math.max(dayColumns.length, 1)}, 1fr)` }}
-            >
-              <div />
-              {staffQuery.isPending && (
-                <div className="border-l border-tn-border-soft p-3 font-sans text-[13px] text-tn-muted-5">
-                  Loading staff…
+            {/* Fixed-height, self-scrolling grid (independent of the page's own scroll container) so the
+                header row below can stay pinned while the hour rows scroll under it, and so the
+                auto-scroll-to-now effect has a predictable container to act on. */}
+            <div ref={dayScrollRef} className="max-h-[640px] overflow-y-auto">
+              <div
+                className="sticky top-0 z-10 grid border-b border-tn-border-softer bg-tn-surface"
+                style={{
+                  gridTemplateColumns: `70px repeat(${Math.max(dayColumns.length, 1)}, 1fr)`,
+                }}
+              >
+                <div className="p-2 font-sans text-[11px] font-medium text-tn-muted-5">
+                  {formatUtcOffset(timezone)}
                 </div>
-              )}
-              {!staffQuery.isPending && dayColumns.length === 0 && (
-                <div className="border-l border-tn-border-soft p-3 font-sans text-[13px] text-tn-muted-5">
-                  No active staff at this location yet — add staff in Settings.
-                </div>
-              )}
-              {dayColumns.map((member) => (
-                <div
-                  key={member.id}
-                  className="border-l border-tn-border-soft p-3 font-sans text-[13px] font-semibold text-tn-ink"
-                >
-                  {member.name}
-                </div>
-              ))}
-            </div>
-            {daySlots.map((slot, rowIndex) => {
-              const hh = String(slot.getHours()).padStart(2, "0");
-              const mm = String(slot.getMinutes()).padStart(2, "0");
-              return (
-                <div
-                  key={slot.toISOString()}
-                  className="grid min-h-16"
-                  style={{
-                    gridTemplateColumns: `70px repeat(${Math.max(dayColumns.length, 1)}, 1fr)`,
-                  }}
-                >
-                  <div
-                    className={`p-2.5 font-sans text-xs font-medium text-tn-muted-5 ${rowIndex < daySlots.length - 1 ? "border-b border-tn-border-soft" : ""}`}
-                  >
-                    {formatTimeLabel(slot)}
+                {staffQuery.isPending && (
+                  <div className="border-l border-tn-border-soft p-3 font-sans text-[13px] text-tn-muted-5">
+                    Loading staff…
                   </div>
-                  {dayColumns.map((member) => {
-                    const booking = dayBookingsBySlot.get(`${member.id}__${hh}:${mm}`);
-                    // Ghost columns (a staffUserId seen on a booking but no
-                    // longer in the active roster) can't be picked as an
-                    // "assign to" target for a *new* booking — only real,
-                    // currently-active staff can.
-                    const isActiveStaff = staff.some((s) => s.id === member.id);
-                    return (
+                )}
+                {!staffQuery.isPending && dayColumns.length === 0 && (
+                  <div className="border-l border-tn-border-soft p-3 font-sans text-[13px] text-tn-muted-5">
+                    No active staff at this location yet — add staff in Settings.
+                  </div>
+                )}
+                {dayColumns.map((member) => (
+                  <div
+                    key={member.id}
+                    className="border-l border-tn-border-soft p-3 font-sans text-[13px] font-semibold text-tn-ink"
+                  >
+                    {member.name}
+                  </div>
+                ))}
+              </div>
+
+              <div className="relative">
+                {/* Google Calendar-style "now" line — a dot at the hour gutter's right edge plus a line
+                    spanning the staff columns, positioned in px (see DAY_SLOT_HEIGHT_PX/nowLineOffsetPx)
+                    rather than as a real grid row, so it can sit *between* two rows without disturbing
+                    the booking grid's own layout. */}
+                {nowLineOffsetPx !== null && (
+                  <div
+                    className="pointer-events-none absolute inset-x-0 z-[5]"
+                    style={{ top: nowLineOffsetPx }}
+                  >
+                    <div className="flex items-center" style={{ marginLeft: 70 }}>
+                      <span className="h-2.5 w-2.5 shrink-0 -translate-x-1/2 rounded-full bg-tn-danger" />
+                      <span className="h-px flex-1 bg-tn-danger" />
+                    </div>
+                  </div>
+                )}
+
+                {daySlots.map((slot, rowIndex) => {
+                  const slotZoned = zonedHourMinute(slot, timezone);
+                  const hh = String(slotZoned.hour).padStart(2, "0");
+                  const mm = String(slotZoned.minute).padStart(2, "0");
+                  return (
+                    <div
+                      key={slot.toISOString()}
+                      className="grid min-h-16"
+                      style={{
+                        gridTemplateColumns: `70px repeat(${Math.max(dayColumns.length, 1)}, 1fr)`,
+                      }}
+                    >
                       <div
-                        key={member.id}
-                        className={`border-l border-tn-border-soft p-2 ${rowIndex < daySlots.length - 1 ? "border-b border-tn-border-soft" : ""}`}
+                        className={`p-2.5 font-sans text-xs font-medium text-tn-muted-5 ${rowIndex < daySlots.length - 1 ? "border-b border-tn-border-soft" : ""}`}
                       >
-                        {booking ? (
-                          <button
-                            type="button"
-                            onClick={() => openBooking(booking)}
-                            className={`w-full rounded-md p-2 text-left font-sans text-xs font-medium text-tn-ink-soft ${BOOKING_STATUS_BLOCK[booking.status]}`}
-                          >
-                            {booking.customerName}
-                            <br />
-                            {booking.serviceName}
-                          </button>
-                        ) : isActiveStaff ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setAddRequest({
-                                defaultDate: cursorDate,
-                                defaultStaffId: member.id,
-                                defaultTime: `${hh}:${mm}`,
-                              })
-                            }
-                            className="h-full w-full cursor-pointer rounded-md border border-dashed border-transparent text-transparent hover:border-tn-input-border hover:text-tn-faint-2"
-                            aria-label={`Add booking for ${member.name} at ${formatTimeLabel(slot)}`}
-                          >
-                            +
-                          </button>
-                        ) : null}
+                        {formatTimeLabel(slot, timezone)}
                       </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
+                      {dayColumns.map((member) => {
+                        const booking = dayBookingsBySlot.get(`${member.id}__${hh}:${mm}`);
+                        // Ghost columns (a staffUserId seen on a booking but no
+                        // longer in the active roster) can't be picked as an
+                        // "assign to" target for a *new* booking — only real,
+                        // currently-active staff can.
+                        const isActiveStaff = staff.some((s) => s.id === member.id);
+                        return (
+                          <div
+                            key={member.id}
+                            className={`border-l border-tn-border-soft p-2 ${rowIndex < daySlots.length - 1 ? "border-b border-tn-border-soft" : ""}`}
+                          >
+                            {booking ? (
+                              <button
+                                type="button"
+                                onClick={() => openBooking(booking)}
+                                className={`w-full rounded-md p-2 text-left font-sans text-xs font-medium text-tn-ink-soft ${BOOKING_STATUS_BLOCK[booking.status]}`}
+                              >
+                                {booking.customerName}
+                                <br />
+                                {booking.serviceName}
+                              </button>
+                            ) : isActiveStaff ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setAddRequest({
+                                    defaultDate: cursorDate,
+                                    defaultStaffId: member.id,
+                                    defaultTime: `${hh}:${mm}`,
+                                  })
+                                }
+                                className="h-full w-full cursor-pointer rounded-md border border-dashed border-transparent text-transparent hover:border-tn-input-border hover:text-tn-faint-2"
+                                aria-label={`Add booking for ${member.name} at ${formatTimeLabel(slot, timezone)}`}
+                              >
+                                +
+                              </button>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
 
         {view === "week" && (
           <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
-            <div className="grid grid-cols-7 border-b border-tn-border-softer">
-              {weekDays.map((day) => (
-                <div
-                  key={day.toDateString()}
-                  className={`border-l border-tn-border-soft px-3 py-2.5 font-sans text-[11px] font-medium ${
-                    isSameDay(day, new Date())
-                      ? "bg-tn-gold-bg-soft text-tn-gold font-semibold"
-                      : "text-tn-muted-5"
-                  }`}
-                >
-                  {formatWeekColumnLabel(day)}
-                </div>
-              ))}
-            </div>
-            <div className="grid min-h-[360px] grid-cols-7">
-              {weekDays.map((day) => {
-                const dayBookings = bookingsByDay.get(day.toDateString()) ?? [];
-                return (
+            {/* Same self-scrolling-card-with-sticky-header pattern as Day view above, so a week with
+                enough bookings to need scrolling still keeps MON..SUN pinned at the top. */}
+            <div className="max-h-[640px] overflow-y-auto">
+              <div className="sticky top-0 z-10 grid grid-cols-7 border-b border-tn-border-softer bg-tn-surface">
+                {weekDays.map((day) => (
                   <div
                     key={day.toDateString()}
-                    className="flex flex-col gap-1.5 border-l border-tn-border-soft p-2"
+                    className={`border-l border-tn-border-soft px-3 py-2.5 font-sans text-[11px] font-medium ${
+                      isSameDay(day, new Date())
+                        ? "bg-tn-gold-bg-soft text-tn-gold font-semibold"
+                        : "text-tn-muted-5"
+                    }`}
                   >
-                    {dayBookings.length === 0 && (
-                      <span className="text-center font-sans text-[11px] text-tn-faint">
-                        No bookings
-                      </span>
-                    )}
-                    {dayBookings.map((booking) => (
-                      <button
-                        key={booking.id}
-                        type="button"
-                        onClick={() => setSelectedBooking(booking)}
-                        className={`rounded-md p-1.5 text-left font-sans text-[11px] font-medium text-tn-ink-soft ${BOOKING_STATUS_BLOCK[booking.status]}`}
-                      >
-                        {formatTimeLabel(new Date(booking.startAt))} {booking.customerName}
-                        <br />
-                        {booking.serviceName}
-                      </button>
-                    ))}
+                    {formatWeekColumnLabel(day)}
                   </div>
-                );
-              })}
+                ))}
+              </div>
+              <div className="grid min-h-[360px] grid-cols-7">
+                {weekDays.map((day) => {
+                  const dayBookings = bookingsByDay.get(day.toDateString()) ?? [];
+                  return (
+                    <div
+                      key={day.toDateString()}
+                      className="flex flex-col gap-1.5 border-l border-tn-border-soft p-2"
+                    >
+                      {dayBookings.length === 0 && (
+                        <span className="text-center font-sans text-[11px] text-tn-faint">
+                          No bookings
+                        </span>
+                      )}
+                      {dayBookings.map((booking) => (
+                        <button
+                          key={booking.id}
+                          type="button"
+                          onClick={() => setSelectedBooking(booking)}
+                          className={`rounded-md p-1.5 text-left font-sans text-[11px] font-medium text-tn-ink-soft ${BOOKING_STATUS_BLOCK[booking.status]}`}
+                        >
+                          {formatTimeLabel(new Date(booking.startAt), timezone)}{" "}
+                          {booking.customerName}
+                          <br />
+                          {booking.serviceName}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
 
         {view === "month" && (
           <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
-            <div className="grid grid-cols-7 border-b border-tn-border-softer bg-tn-table-head">
-              {["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map((d) => (
-                <div
-                  key={d}
-                  className="px-5 py-4 font-sans text-[13px] font-semibold tracking-wide text-tn-muted-5"
-                >
-                  {d}
-                </div>
-              ))}
-            </div>
-            <div
-              className="grid grid-cols-7"
-              style={{ gridTemplateRows: `repeat(${monthWeeks.length}, 1fr)` }}
-            >
-              {monthWeeks.map((week) =>
-                week.map((day) => {
-                  const isOut = !isSameMonth(day, cursorDate);
-                  const isToday = isSameDay(day, new Date());
-                  const count = bookingsByDay.get(day.toDateString())?.length ?? 0;
-                  // Loosely-full days read as busier at a glance — matches the
-                  // mockup's month grid, where 1-2 bookings sit in a muted
-                  // gray chip and 3+ get the gold treatment.
-                  const isBusy = count >= 3;
-                  return (
-                    <button
-                      key={day.toDateString()}
-                      type="button"
-                      onClick={() => {
-                        setNavDirection("fade");
-                        setCursorDate(day);
-                        setView("day");
-                      }}
-                      className={`flex min-h-[132px] cursor-pointer flex-col items-start gap-2 border-l border-t border-tn-border-soft p-4 text-left ${
-                        isToday
-                          ? "border-t-2 border-t-tn-gold bg-tn-gold-bg-soft"
-                          : "hover:bg-tn-page"
-                      }`}
-                    >
-                      <span
-                        className={`font-sans text-[15px] ${
-                          isOut
-                            ? "font-medium text-tn-faint-2"
-                            : isToday
-                              ? "font-bold text-tn-gold"
-                              : "font-semibold text-tn-ink"
+            {/* Same sticky-header-in-a-scrollbox treatment as Day/Week above — a 6-week month
+                (a month that spills into a leading/trailing week, see getMonthGrid) can run
+                taller than the viewport, so MON..SUN needs to stay pinned while it scrolls. */}
+            <div className="max-h-[640px] overflow-y-auto">
+              <div className="sticky top-0 z-10 grid grid-cols-7 border-b border-tn-border-softer bg-tn-table-head">
+                {["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map((d) => (
+                  <div
+                    key={d}
+                    className="px-5 py-4 font-sans text-[13px] font-semibold tracking-wide text-tn-muted-5"
+                  >
+                    {d}
+                  </div>
+                ))}
+              </div>
+              <div
+                className="grid grid-cols-7"
+                style={{ gridTemplateRows: `repeat(${monthWeeks.length}, 1fr)` }}
+              >
+                {monthWeeks.map((week) =>
+                  week.map((day) => {
+                    const isOut = !isSameMonth(day, cursorDate);
+                    const isToday = isSameDay(day, new Date());
+                    const count = bookingsByDay.get(day.toDateString())?.length ?? 0;
+                    // Loosely-full days read as busier at a glance — matches the
+                    // mockup's month grid, where 1-2 bookings sit in a muted
+                    // gray chip and 3+ get the gold treatment.
+                    const isBusy = count >= 3;
+                    return (
+                      <button
+                        key={day.toDateString()}
+                        type="button"
+                        onClick={() => {
+                          setNavDirection("fade");
+                          setCursorDate(day);
+                          setView("day");
+                        }}
+                        className={`flex min-h-[132px] cursor-pointer flex-col items-start gap-2 border-l border-t border-tn-border-soft p-4 text-left ${
+                          isToday
+                            ? "border-t-2 border-t-tn-gold bg-tn-gold-bg-soft"
+                            : "hover:bg-tn-page"
                         }`}
                       >
-                        {day.getDate()}
-                      </span>
-                      {count > 0 && (
                         <span
-                          className={`w-fit rounded-md px-3 py-1.5 font-sans text-xs font-medium ${
-                            isBusy ? "bg-tn-gold-bg text-tn-gold" : "bg-tn-page text-tn-muted-3"
+                          className={`font-sans text-[15px] ${
+                            isOut
+                              ? "font-medium text-tn-faint-2"
+                              : isToday
+                                ? "font-bold text-tn-gold"
+                                : "font-semibold text-tn-ink"
                           }`}
                         >
-                          {count} booking{count === 1 ? "" : "s"}
+                          {day.getDate()}
                         </span>
-                      )}
-                    </button>
-                  );
-                }),
-              )}
+                        {count > 0 && (
+                          <span
+                            className={`w-fit rounded-md px-3 py-1.5 font-sans text-xs font-medium ${
+                              isBusy ? "bg-tn-gold-bg text-tn-gold" : "bg-tn-page text-tn-muted-3"
+                            }`}
+                          >
+                            {count} booking{count === 1 ? "" : "s"}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  }),
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -582,6 +684,7 @@ export function CalendarPage() {
         defaultDate={addRequest?.defaultDate ?? cursorDate}
         defaultStaffId={addRequest?.defaultStaffId}
         defaultTime={addRequest?.defaultTime}
+        timezone={timezone}
       />
     </div>
   );

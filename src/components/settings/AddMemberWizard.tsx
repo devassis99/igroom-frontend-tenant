@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Field, formInputClass, formSelectClass } from "@/components/ui/FormField";
 import { WizardTabs } from "@/components/ui/WizardTabs";
 import { Toggle } from "@/components/ui/Toggle";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import { useAuthStore } from "@/auth/auth-store";
 import { listLocations } from "@/lib/locations-api";
 import { listRoles } from "@/lib/roles-api";
@@ -48,6 +49,7 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
   const [step, setStep] = useState(0);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [locationId, setLocationId] = useState("");
   const [assignedServices, setAssignedServices] = useState<Set<string>>(
@@ -113,6 +115,7 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
     setStep(0);
     setFirstName("");
     setLastName("");
+    setPhone("");
     setEmail("");
     setLocationId("");
     setRoleId("");
@@ -203,7 +206,7 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
               </Field>
             </div>
             <Field label="PHONE">
-              <input type="text" placeholder="(555) 555-0100" className={formInputClass} />
+              <PhoneInput value={phone} onChange={setPhone} />
             </Field>
             <Field label="EMAIL">
               <input
