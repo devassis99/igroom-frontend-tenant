@@ -262,18 +262,26 @@ export function CalendarPage() {
         <div className="flex items-center gap-3.5">
           <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">Calendar</h1>
           {locations.length > 1 && (
-            <select
-              value={selectedLocationId}
-              onChange={(e) => handleLocationChange(e.target.value)}
-              aria-label="Location"
-              className="cursor-pointer rounded-full border border-tn-input-border bg-tn-page px-3 py-1.5 font-sans text-xs font-semibold text-tn-ink-soft"
-            >
-              {locations.map((loc) => (
-                <option key={loc.id} value={loc.id}>
-                  {loc.name}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={selectedLocationId}
+                onChange={(e) => handleLocationChange(e.target.value)}
+                aria-label="Location"
+                className="cursor-pointer appearance-none rounded-lg border border-tn-input-border bg-tn-surface py-1.5 pr-7 pl-3 font-sans text-xs font-semibold text-tn-ink-soft outline-none hover:bg-tn-page focus:border-2 focus:border-tn-gold"
+              >
+                {locations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name}
+                  </option>
+                ))}
+              </select>
+              {/* appearance-none above drops the browser's own (inconsistent-looking) arrow — this
+                  plain-glyph chevron matches the ‹ › nav buttons' convention of text glyphs over
+                  SVG icons for these small header controls. */}
+              <span className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-[10px] text-tn-muted-5">
+                ▾
+              </span>
+            </div>
           )}
         </div>
         <div className="flex items-center gap-3.5">

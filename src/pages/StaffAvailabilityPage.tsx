@@ -7,14 +7,37 @@ import type { AvailabilityDay } from "@/lib/availability-api";
 
 const DAY_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
+/**
+ * This step's own lightweight per-day shape — a single on/off toggle plus
+ * one time range, editable in place. Converted to the API's
+ * `AvailabilityDay[]` (dayOfWeek + a `ranges` array — see
+ * availability-api.ts) only at submit time, in toApiDays below: the
+ * onboarding step never needs more than one range per day, so there's no
+ * "+" add-another-range UI here, just Settings > Availability's fuller
+ * editor.
+ */
+interface LocalDay {
+  dayOfWeek: number;
+  isEnabled: boolean;
+  startTime: string;
+  endTime: string;
+}
+
 // Sunday off, Monday–Saturday 9–6 — same default spread Settings'
 // AddMemberWizard "Schedule" tab shows as sample data (see WEEK there).
-const DEFAULT_DAYS: AvailabilityDay[] = DAY_LABELS.map((_, dayOfWeek) => ({
+const DEFAULT_DAYS: LocalDay[] = DAY_LABELS.map((_, dayOfWeek) => ({
   dayOfWeek,
   isEnabled: dayOfWeek !== 0,
   startTime: "09:00",
   endTime: "18:00",
 }));
+
+function toApiDays(days: LocalDay[]): AvailabilityDay[] {
+  return days.map((d) => ({
+    dayOfWeek: d.dayOfWeek,
+    ranges: d.isEnabled ? [{ startTime: d.startTime, endTime: d.endTime }] : [],
+  }));
+}
 
 /**
  * Step 3 of 4 (Account → Business details → Availability → Plan) — runs
@@ -30,7 +53,7 @@ const DEFAULT_DAYS: AvailabilityDay[] = DAY_LABELS.map((_, dayOfWeek) => ({
 export function StaffAvailabilityPage() {
   const navigate = useNavigate();
   const { setAvailabilityDays, setLastRoute } = useOnboardingStore();
-  const [days, setDays] = useState<AvailabilityDay[]>(DEFAULT_DAYS);
+  const [days, setDays] = useState<LocalDay[]>(DEFAULT_DAYS);
 
   // Records "this is the step the visitor is currently on" so a later
   // resume click from LandingPage jumps back here instead of restarting
@@ -55,7 +78,7 @@ export function StaffAvailabilityPage() {
   }
 
   function saveAndContinue() {
-    setAvailabilityDays(days);
+    setAvailabilityDays(toApiDays(days));
     navigate("/signup/plan");
   }
 

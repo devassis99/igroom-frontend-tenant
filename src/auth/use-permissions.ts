@@ -30,5 +30,7 @@ export function usePermissions() {
     permissions,
     has: (key: string) => permissions.includes(key),
     isLoading: query.isPending,
+    /** The caller's own staff_users row (id, locationId, roleId, ...) — e.g. Settings > Availability defaults its staff picker to this id. Null until this query resolves. */
+    staffUser: query.data?.staffUser ?? null,
   };
 }
