@@ -1,20 +1,73 @@
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import { WHATS_NEW } from "@/lib/sample-data";
 
 interface WhatsNewDrawerProps {
   open: boolean;
   onClose: () => void;
+  /** The "What's New" trigger button's ref — measured to position the portal (see the doc comment below for why this can't just be an absolutely-positioned child). */
+  anchorRef: RefObject<HTMLElement | null>;
 }
 
-/** Matches the mockup's T6b "What's New" popover, anchored above the sidebar's What's New row. */
-export function WhatsNewDrawer({ open, onClose }: WhatsNewDrawerProps) {
-  if (!open) return null;
+const DRAWER_WIDTH = 340;
+const GAP = 8;
+
+/**
+ * Matches the mockup's T6b "What's New" popover, anchored above the
+ * sidebar's What's New row.
+ *
+ * Rendered through a portal to document.body and positioned from the
+ * trigger's own getBoundingClientRect(), same fix as AccountMenu.tsx:
+ * the `<aside>` sets overflow-x-hidden (needed so its collapse-width
+ * transition doesn't show a horizontal scrollbar), which was silently
+ * clipping this drawer's right edge since 340px is wider than the
+ * sidebar itself.
+ */
+export function WhatsNewDrawer({ open, onClose, anchorRef }: WhatsNewDrawerProps) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState<{ left: number; bottom: number } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!open || !anchorRef.current) {
+      setPosition(null);
+      return;
+    }
+    const rect = anchorRef.current.getBoundingClientRect();
+    setPosition({ left: rect.left, bottom: window.innerHeight - rect.top + GAP });
+  }, [open, anchorRef]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: MouseEvent) {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) onClose();
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("resize", onClose);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("resize", onClose);
+    };
+  }, [open, onClose]);
+
+  if (!open || !position) return null;
 
   const [latest, ...previous] = WHATS_NEW;
 
-  return (
+  return createPortal(
     <div
-      className="absolute bottom-[90px] left-6 z-10 flex max-h-[480px] w-[340px] flex-col rounded-tl-2xl rounded-tr-2xl rounded-br-2xl rounded-bl-sm border border-tn-border bg-tn-surface"
-      style={{ boxShadow: "0 20px 50px -18px rgba(40,30,10,.3)" }}
+      ref={rootRef}
+      className="fixed z-50 flex max-h-[480px] flex-col rounded-tl-2xl rounded-tr-2xl rounded-br-2xl rounded-bl-sm border border-tn-border bg-tn-surface"
+      style={{
+        left: position.left,
+        bottom: position.bottom,
+        width: DRAWER_WIDTH,
+        boxShadow: "0 20px 50px -18px rgba(40,30,10,.3)",
+      }}
     >
       <div className="flex items-center justify-between border-b border-tn-border-soft px-5 py-[18px]">
         <div className="flex items-center gap-2">
@@ -76,7 +129,8 @@ export function WhatsNewDrawer({ open, onClose }: WhatsNewDrawerProps) {
           View All ↗
         </span>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

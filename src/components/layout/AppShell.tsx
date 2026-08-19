@@ -1,7 +1,8 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { useAuthStore } from "@/auth/auth-store";
 import { IntegrationsModal } from "@/components/integrations/IntegrationsModal";
+import { AccountMenu } from "./AccountMenu";
 import { WhatsNewDrawer } from "./WhatsNewDrawer";
 
 type NavIconComponent = (props: { className?: string }) => ReactNode;
@@ -208,17 +209,46 @@ const SIDEBAR_COLLAPSED_KEY = "igroom-sidebar-collapsed";
 
 export function AppShell() {
   const navigate = useNavigate();
+  const location = useLocation();
   const owner = useAuthStore((s) => s.owner);
   const logOut = useAuthStore((s) => s.logOut);
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const [integrationsOpen, setIntegrationsOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const accountTriggerRef = useRef<HTMLButtonElement>(null);
+  const whatsNewTriggerRef = useRef<HTMLButtonElement>(null);
+  const [storedCollapsed, setStoredCollapsed] = useState(
     () => localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1",
   );
 
   useEffect(() => {
-    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? "1" : "0");
-  }, [collapsed]);
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, storedCollapsed ? "1" : "0");
+  }, [storedCollapsed]);
+
+  // Settings (see SettingsLayout.tsx) renders its own full-height secondary
+  // sidebar flush against this one — two side-by-side sidebars reads
+  // cramped, so the root nav auto-collapses to its icon rail while any
+  // /settings/* route is active. This is a transient, route-driven
+  // override: it never touches the owner's persisted storedCollapsed
+  // preference, and the toggle button still works to manually re-expand
+  // while inside Settings (reset back to collapsed the next time Settings
+  // is entered fresh).
+  const isSettingsRoute = location.pathname.startsWith("/settings");
+  const [expandedInSettings, setExpandedInSettings] = useState(false);
+
+  useEffect(() => {
+    if (!isSettingsRoute) setExpandedInSettings(false);
+  }, [isSettingsRoute]);
+
+  const collapsed = isSettingsRoute ? !expandedInSettings : storedCollapsed;
+
+  function toggleCollapsed() {
+    if (isSettingsRoute) {
+      setExpandedInSettings((v) => !v);
+    } else {
+      setStoredCollapsed((v) => !v);
+    }
+  }
 
   // ProtectedRoute (see routes/ProtectedRoute.tsx) redirects to "/" for
   // any anonymous visit, but a deliberate logout should land on the
@@ -243,7 +273,7 @@ export function AppShell() {
           </CollapsibleLabel>
           <button
             type="button"
-            onClick={() => setCollapsed((v) => !v)}
+            onClick={toggleCollapsed}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md border-none bg-transparent text-tn-muted-5 hover:bg-tn-page hover:text-tn-ink"
@@ -280,6 +310,7 @@ export function AppShell() {
         <div className="flex-1" />
 
         <button
+          ref={whatsNewTriggerRef}
           type="button"
           onClick={() => setWhatsNewOpen((v) => !v)}
           title={collapsed ? "What's New" : undefined}
@@ -334,11 +365,15 @@ export function AppShell() {
           </NavLink>
         </div>
 
-        <div className="flex items-center gap-2 px-6">
-          <NavLink
-            to="/settings"
+        <div className="relative px-6">
+          <button
+            ref={accountTriggerRef}
+            type="button"
+            onClick={() => setAccountMenuOpen((v) => !v)}
             title={collapsed ? (owner?.fullName ?? "Shop owner") : undefined}
-            className="flex min-w-0 flex-1 items-center gap-2.5"
+            aria-haspopup="menu"
+            aria-expanded={accountMenuOpen}
+            className="flex w-full min-w-0 cursor-pointer items-center gap-2.5 border-none bg-transparent p-0 text-left"
           >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[oklch(90%_0.03_20)] font-sans text-xs font-semibold text-tn-ink">
               {owner?.fullName?.[0]?.toUpperCase() ?? "?"}
@@ -351,34 +386,26 @@ export function AppShell() {
                 {owner?.businessName ?? "Your shop"}
               </p>
             </CollapsibleLabel>
-          </NavLink>
-          <button
-            type="button"
-            onClick={handleLogOut}
-            title="Log out"
-            aria-label="Log out"
-            className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-tn-muted-5 hover:bg-tn-page hover:text-tn-ink"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M16 17l5-5-5-5M21 12H9"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
           </button>
+
+          <AccountMenu
+            open={accountMenuOpen}
+            onClose={() => setAccountMenuOpen(false)}
+            owner={owner}
+            anchorRef={accountTriggerRef}
+            onSettingsClick={() => {
+              setAccountMenuOpen(false);
+              navigate("/settings");
+            }}
+            onLogOut={handleLogOut}
+          />
         </div>
 
-        <WhatsNewDrawer open={whatsNewOpen} onClose={() => setWhatsNewOpen(false)} />
+        <WhatsNewDrawer
+          open={whatsNewOpen}
+          onClose={() => setWhatsNewOpen(false)}
+          anchorRef={whatsNewTriggerRef}
+        />
       </aside>
 
       <div className="flex-1 overflow-y-auto bg-tn-surface px-10 py-8">
