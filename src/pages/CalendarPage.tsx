@@ -30,7 +30,6 @@ import {
   getMonthGrid,
   isSameDay,
   isSameMonth,
-  isValidTimeZone,
   startOfDay,
   startOfWeek,
   zonedHourMinute,
@@ -90,6 +89,17 @@ export function CalendarPage() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [selectedBookingMode, setSelectedBookingMode] = useState<BookingModalMode>("detail");
   const [addRequest, setAddRequest] = useState<AddBookingRequest | null>(null);
+  // Which Day view time rows are highlighted, keyed by each row's slot
+  // (`slot.toISOString()`, the same key each row is already keyed on
+  // below) — clicking a time label in the hour gutter toggles that whole
+  // row (across every staff column, not just that one cell) in or out of
+  // the selection, so multiple rows can be highlighted at once by
+  // clicking several times. Reset below whenever the day/view changes so
+  // a highlight doesn't appear to "carry over" onto an unrelated slot
+  // after navigating away and back.
+  const [selectedRowSlotKeys, setSelectedRowSlotKeys] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
 
   /** Opens the appointment modal straight into a given mode — the List view's inline Reschedule/Cancel row actions skip the extra click through the detail screen that the Day/Week/Month grid's plain click still goes through. */
   function openBooking(booking: Booking, mode: BookingModalMode = "detail") {
@@ -123,18 +133,9 @@ export function CalendarPage() {
   // below wins outright, otherwise it follows the selected location's own
   // timezone (see locations-api.ts), falling back to the browser's when
   // that location has none configured (e.g. an older location row from
-  // before the field existed) — or when it's configured but invalid: the
-  // Locations form's own TIMEZONE field is still free text (see
-  // AddEditLocationModal.tsx), so a typo like "saddsad" can end up saved
-  // on a location, and every date helper below hands that straight to
-  // `Intl.DateTimeFormat`, which throws rather than failing gracefully.
-  // Validating here means one bad location falls back to the browser's
-  // zone instead of taking down the whole Calendar page.
+  // before the field existed).
   const selectedLocation = locations.find((l) => l.id === selectedLocationId);
-  const locationTimezone = isValidTimeZone(selectedLocation?.timezone)
-    ? selectedLocation.timezone
-    : null;
-  const timezone = timezoneOverride ?? locationTimezone ?? BROWSER_TIMEZONE;
+  const timezone = timezoneOverride ?? selectedLocation?.timezone ?? BROWSER_TIMEZONE;
 
   // Default to the account's primary location the moment the list loads —
   // same "default to primary, let them change it" pattern as
@@ -320,6 +321,13 @@ export function CalendarPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally excludes nowLineOffsetPx/daySlots so re-renders while viewing don't reset scroll
   }, [view, cursorDate, timezone]);
 
+  // Clear the row highlight(s) on any day/view change — otherwise a row
+  // selected on one day could visually "reappear" selected on another day
+  // that happens to have a slot at the exact same wall-clock time.
+  useEffect(() => {
+    setSelectedRowSlotKeys(new Set());
+  }, [view, cursorDate]);
+
   const weekDays = useMemo(() => {
     const start = startOfWeek(cursorDate);
     return Array.from({ length: 7 }, (_, i) => addDays(start, i));
@@ -480,19 +488,32 @@ export function CalendarPage() {
                   const slotZoned = zonedHourMinute(slot, timezone);
                   const hh = String(slotZoned.hour).padStart(2, "0");
                   const mm = String(slotZoned.minute).padStart(2, "0");
+                  const slotKey = slot.toISOString();
+                  const isRowSelected = selectedRowSlotKeys.has(slotKey);
                   return (
                     <div
-                      key={slot.toISOString()}
-                      className="grid min-h-16"
+                      key={slotKey}
+                      className={`grid min-h-16 ${isRowSelected ? "bg-tn-blue-bg" : ""}`}
                       style={{
                         gridTemplateColumns: `70px repeat(${Math.max(dayColumns.length, 1)}, 1fr)`,
                       }}
                     >
-                      <div
-                        className={`p-2.5 font-sans text-xs font-medium text-tn-muted-5 ${rowIndex < daySlots.length - 1 ? "border-b border-tn-border-soft" : ""}`}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedRowSlotKeys((keys) => {
+                            const next = new Set(keys);
+                            if (next.has(slotKey)) next.delete(slotKey);
+                            else next.add(slotKey);
+                            return next;
+                          })
+                        }
+                        aria-pressed={isRowSelected}
+                        aria-label={`Select the ${formatTimeLabel(slot, timezone)} row`}
+                        className={`select-none border-none bg-transparent p-2.5 text-left font-sans text-xs font-medium text-tn-muted-5 ${isRowSelected ? "text-tn-blue" : ""} ${rowIndex < daySlots.length - 1 ? "border-b border-tn-border-soft" : ""}`}
                       >
                         {formatTimeLabel(slot, timezone)}
-                      </div>
+                      </button>
                       {dayColumns.map((member) => {
                         const booking = dayBookingsBySlot.get(`${member.id}__${hh}:${mm}`);
                         // Ghost columns (a staffUserId seen on a booking but no
