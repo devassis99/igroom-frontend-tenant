@@ -4,6 +4,25 @@
  * framework-free so they're trivial to unit-test later.
  */
 
+/**
+ * True only for a string `Intl.DateTimeFormat` actually accepts as an IANA
+ * zone (e.g. "America/Chicago") — everything else, including a location's
+ * free-text TIMEZONE field (see AddEditLocationModal.tsx) if it was left
+ * with garbage in it, is rejected. Constructing `Intl.DateTimeFormat` with
+ * a bad `timeZone` throws a `RangeError` rather than returning false, so
+ * this exists specifically so callers can fall back instead of crashing —
+ * see CalendarPage.tsx's `timezone` derivation.
+ */
+export function isValidTimeZone(timeZone: string | null | undefined): timeZone is string {
+  if (!timeZone) return false;
+  try {
+    new Intl.DateTimeFormat(undefined, { timeZone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function startOfDay(date: Date): Date {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);

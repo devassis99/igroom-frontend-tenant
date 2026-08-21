@@ -30,6 +30,7 @@ import {
   getMonthGrid,
   isSameDay,
   isSameMonth,
+  isValidTimeZone,
   startOfDay,
   startOfWeek,
   zonedHourMinute,
@@ -122,9 +123,18 @@ export function CalendarPage() {
   // below wins outright, otherwise it follows the selected location's own
   // timezone (see locations-api.ts), falling back to the browser's when
   // that location has none configured (e.g. an older location row from
-  // before the field existed).
+  // before the field existed) — or when it's configured but invalid: the
+  // Locations form's own TIMEZONE field is still free text (see
+  // AddEditLocationModal.tsx), so a typo like "saddsad" can end up saved
+  // on a location, and every date helper below hands that straight to
+  // `Intl.DateTimeFormat`, which throws rather than failing gracefully.
+  // Validating here means one bad location falls back to the browser's
+  // zone instead of taking down the whole Calendar page.
   const selectedLocation = locations.find((l) => l.id === selectedLocationId);
-  const timezone = timezoneOverride ?? selectedLocation?.timezone ?? BROWSER_TIMEZONE;
+  const locationTimezone = isValidTimeZone(selectedLocation?.timezone)
+    ? selectedLocation.timezone
+    : null;
+  const timezone = timezoneOverride ?? locationTimezone ?? BROWSER_TIMEZONE;
 
   // Default to the account's primary location the moment the list loads —
   // same "default to primary, let them change it" pattern as
