@@ -439,12 +439,12 @@ export function CalendarPage() {
                 auto-scroll-to-now effect has a predictable container to act on. */}
             <div ref={dayScrollRef} className="max-h-[640px] overflow-y-auto">
               <div
-                className="sticky top-0 z-10 grid border-b border-tn-border-softer bg-tn-surface"
+                className="sticky top-0 z-10 grid border-b border-tn-border-softer bg-tn-table-head"
                 style={{
                   gridTemplateColumns: `70px repeat(${Math.max(dayColumns.length, 1)}, 1fr)`,
                 }}
               >
-                <div className="p-2 font-sans text-[11px] font-medium text-tn-muted-5">
+                <div className="flex items-center justify-center p-2 text-center font-sans text-[11px] font-medium text-tn-muted-5">
                   {formatUtcOffset(timezone)}
                 </div>
                 {staffQuery.isPending && (
