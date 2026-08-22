@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { Field, formInputClass } from "@/components/ui/FormField";
+import { OtpInput } from "@/components/ui/OtpInput";
 import { ApiError } from "@/lib/http";
 import { beginMfaSetup, confirmMfaSetup, disableMfa } from "@/lib/accounts-api";
 
@@ -39,7 +39,6 @@ export function TwoFactorSetupModal({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const requestedRef = useRef(false);
-  const codeInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) {
@@ -65,21 +64,24 @@ export function TwoFactorSetupModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- accessToken identity changing shouldn't re-trigger a fresh setup call while the modal's already open
   }, [open, mfaEnabled]);
 
-  // Replaces an autoFocus prop (jsx-a11y/no-autofocus objects to it
-  // outright) — fires once the code input actually has something to
-  // focus into: immediately for the disable flow, or once setup finishes
-  // loading for the enable flow.
-  useEffect(() => {
-    if (open && !setupLoading) codeInputRef.current?.focus();
-  }, [open, setupLoading]);
-
   const canSubmit = code.length === 6 && !submitting && (mfaEnabled || Boolean(setup));
 
-  function handleSubmit() {
-    if (!canSubmit) return;
+  /**
+   * Takes the code directly (rather than reading `code` off closure alone)
+   * so OtpInput's onComplete can auto-submit the instant the 6th digit
+   * lands, same pattern as LoginPage.tsx/CreateAccountPage.tsx's MFA
+   * challenge step — OtpInput itself handles focusing its first box on
+   * mount (see its own comment on why that's a ref/useEffect internally
+   * rather than an `autoFocus` prop), replacing the codeInputRef this
+   * modal used to manage by hand.
+   */
+  function submitCode(value: string) {
+    if (value.length !== 6 || submitting || (!mfaEnabled && !setup)) return;
     setSubmitting(true);
     setSubmitError(null);
-    const request = mfaEnabled ? disableMfa(accessToken, code) : confirmMfaSetup(accessToken, code);
+    const request = mfaEnabled
+      ? disableMfa(accessToken, value)
+      : confirmMfaSetup(accessToken, value);
     request
       .then(() => {
         onSuccess(!mfaEnabled);
@@ -88,6 +90,7 @@ export function TwoFactorSetupModal({
       })
       .catch((err) => {
         setSubmitError(err instanceof ApiError ? err.message : "Incorrect code — try again.");
+        setCode("");
       })
       .finally(() => setSubmitting(false));
   }
@@ -135,19 +138,12 @@ export function TwoFactorSetupModal({
           </p>
         )}
 
-        <Field label={mfaEnabled ? "AUTHENTICATOR CODE" : "CODE FROM YOUR APP"}>
-          <input
-            ref={codeInputRef}
-            type="text"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={6}
-            value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-            placeholder="6-digit code"
-            className={formInputClass}
-          />
-        </Field>
+        <OtpInput
+          value={code}
+          onChange={setCode}
+          onComplete={submitCode}
+          disabled={submitting || (!mfaEnabled && !setup)}
+        />
 
         {submitError && (
           <p className="m-0 rounded-lg bg-tn-danger-bg px-3 py-2 font-sans text-xs text-tn-danger">
@@ -162,7 +158,7 @@ export function TwoFactorSetupModal({
           <Button
             variant={mfaEnabled ? "danger" : "primary"}
             className="flex-1"
-            onClick={handleSubmit}
+            onClick={() => submitCode(code)}
             disabled={!canSubmit}
           >
             {submitting ? "Saving…" : mfaEnabled ? "Turn off" : "Enable"}

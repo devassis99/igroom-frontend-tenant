@@ -134,15 +134,32 @@ function refreshTokens(): Promise<TokenPair> {
  * waiting on that fallback. The *original* 401 is still surfaced to the
  * caller rather than the internal refresh failure — that's the error the
  * page's own error state was already built to show.
+ *
+ * Only retries when the 401's body carries `code: "TOKEN_INVALID"` (see
+ * accounts.service.ts's AuthError and require-account-auth.middleware.ts)
+ * — every account-authenticated endpoint uses the same AuthError/401 for
+ * *any* rejection, not just a bad token: TwoFactorSetupModal's "Incorrect
+ * authenticator code" is a 401 too. Retrying those blindly used to refresh
+ * the token, retry with the same wrong code, fail again, and that retry
+ * failure was treated as "the whole session is dead" — logging the owner
+ * out over a typo, with 2FA never actually getting enabled. Gating on the
+ * marker means only a genuinely bad/expired token triggers the silent
+ * refresh; every other 401 (wrong code, wrong password, ...) just
+ * surfaces to the caller as the specific error it is.
  */
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   try {
     return await rawRequest<T>(path, options);
   } catch (err) {
     const authHeader = (options.headers as Record<string, string> | undefined)?.Authorization;
+    const errorCode =
+      err instanceof ApiError && err.body && typeof err.body === "object"
+        ? (err.body as { code?: unknown }).code
+        : undefined;
     const canRetryWithRefresh =
       err instanceof ApiError &&
       err.status === 401 &&
+      errorCode === "TOKEN_INVALID" &&
       !options.isRetryAttempt &&
       typeof authHeader === "string" &&
       path !== "/accounts/refresh";
