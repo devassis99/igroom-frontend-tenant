@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { Link } from "react-router";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { LocationFilterPopover } from "@/components/ui/LocationFilterPopover";
@@ -7,15 +8,28 @@ import { TimezonePicker } from "@/components/ui/TimezonePicker";
 import { AppointmentModal } from "@/components/calendar/AppointmentModal";
 import { AppointmentListView } from "@/components/calendar/AppointmentListView";
 import { AddBookingModal } from "@/components/calendar/AddBookingModal";
+import { StaffFilterBar } from "@/components/calendar/StaffFilterBar";
+import { ManageStaffSetsModal } from "@/components/calendar/ManageStaffSetsModal";
 import { useAuthStore } from "@/auth/auth-store";
 import {
   listBookings,
   listStaff,
+  listStaffSets,
+  createStaffSet,
+  updateStaffSet,
+  deleteStaffSet,
+  reorderStaffSets,
+  setDefaultStaffSet,
+  getStaffShifts,
   type Booking,
   type BookingsStaffMember,
+  type StaffSet,
+  type StaffSetUpdatePayload,
+  type StaffShift,
 } from "@/lib/bookings-api";
 import { listLocations, type AccountLocation } from "@/lib/locations-api";
 import { BOOKING_STATUS_BLOCK } from "@/lib/booking-status";
+import { staffAvatarColor } from "@/lib/staff-avatar-color";
 import {
   addDays,
   addMonths,
@@ -43,16 +57,73 @@ type BookingModalMode = "detail" | "reschedule" | "cancel";
 const EMPTY_STAFF: BookingsStaffMember[] = [];
 const EMPTY_BOOKINGS: Booking[] = [];
 const EMPTY_LOCATIONS: AccountLocation[] = [];
+const EMPTY_STAFF_SETS: StaffSet[] = [];
+
+/** Per-location so switching locations doesn't carry over a staff selection that doesn't even apply there. */
+function staffSelectionStorageKey(locationId: string): string {
+  return `tn-cal-staff-selection:${locationId}`;
+}
+
+/** "09:00" -> "9 AM", "13:30" -> "1:30 PM" — a plain string formatter (no Date object) since these are wall-clock values with no date of their own. */
+function formatShiftClock(hhmm: string): string {
+  const [hStr, mStr] = hhmm.split(":");
+  let h = Number(hStr);
+  const period = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return mStr === "00" ? `${h} ${period}` : `${h}:${mStr} ${period}`;
+}
+
+/** Backs the Day view column header's shift-hours line. */
+function formatShiftSummary(shift: StaffShift | undefined): string {
+  if (!shift || shift.isOff || shift.ranges.length === 0) return "Not working today";
+  return shift.ranges
+    .map((r) => `${formatShiftClock(r.startTime)}–${formatShiftClock(r.endTime)}`)
+    .join(", ");
+}
 
 // Fallback when neither the selected location nor an explicit override
 // supplies one — same "last resort" tier as PhoneInput's DEFAULT_COUNTRY.
 const BROWSER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+/**
+ * A location's `timezone` field isn't guaranteed to be a real IANA zone —
+ * TimezonePicker itself only ever offers valid ids, but a location's own
+ * value can still come from an older free-text field, a bad import, or
+ * direct API/DB edits, and calendar-dates.ts's zonedTimeToUtc throws a
+ * RangeError (not something try/catching a component render helps with)
+ * the moment an invalid one reaches it. Checked once here, at the single
+ * point everything else in this file reads `timezone` from, so every
+ * downstream call (daySlots, formatTimeLabel, the appointment/add-booking
+ * modals, etc.) is protected without needing its own guard.
+ */
+function isValidTimeZone(tz: string): boolean {
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 // Matches the Day view rows' own `min-h-16` (Tailwind's 4rem, i.e. 64px at
 // the default root font size) — the red current-time line's pixel math
 // below has to agree with that same row height or it'll drift out of
 // alignment with the actual hour gridlines.
 const DAY_SLOT_HEIGHT_PX = 64;
+
+// Day view's frozen time gutter — both the header corner and every row's
+// time-label button pin to the scroll container's left edge at this width
+// (see the `sticky left-0` cells below), so the "now" line's marginLeft has
+// to keep agreeing with it too.
+const DAY_GUTTER_WIDTH_PX = 74;
+
+// Staff columns floor at 200px (narrowest a two-line "Name / Service" card
+// avoids truncating) and stop stretching past 320px (wider than that and a
+// short card looks stranded in the middle of its own column) — with 2-4
+// staff there's room for every column to grow toward the ceiling, past that
+// columns hold at the floor and the grid scrolls horizontally instead of
+// squeezing every column unreadably thin.
+const DAY_COLUMN_WIDTH = "minmax(200px, 320px)";
 
 interface AddBookingRequest {
   defaultDate: Date;
@@ -100,11 +171,30 @@ export function CalendarPage() {
   const [selectedRowSlotKeys, setSelectedRowSlotKeys] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
+  // The Day view's staff filter (StaffFilterBar below). null = "no explicit
+  // choice restored yet for this location" — effectiveStaffIds (below)
+  // falls back to that location's default saved set, or every active staff
+  // member when there isn't one. An explicit choice (including "everyone",
+  // once it's been chosen at least once) persists to localStorage per
+  // location so it survives a refresh — see staffSelectionStorageKey.
+  const [selectedStaffIds, setSelectedStaffIdsState] = useState<string[] | null>(null);
+  const [manageSetsOpen, setManageSetsOpen] = useState(false);
 
   /** Opens the appointment modal straight into a given mode — the List view's inline Reschedule/Cancel row actions skip the extra click through the detail screen that the Day/Week/Month grid's plain click still goes through. */
   function openBooking(booking: Booking, mode: BookingModalMode = "detail") {
     setSelectedBooking(booking);
     setSelectedBookingMode(mode);
+  }
+
+  /** Sets the staff filter AND persists it, so a manual pick sticks around past a refresh — same "explicit override wins and sticks" relationship as timezoneOverride above. */
+  function applyStaffSelection(ids: string[]) {
+    setSelectedStaffIdsState(ids);
+    if (!selectedLocationId) return;
+    try {
+      localStorage.setItem(staffSelectionStorageKey(selectedLocationId), JSON.stringify(ids));
+    } catch {
+      // Private browsing / quota exceeded — the pick still applies this session, it just won't survive a refresh.
+    }
   }
 
   const range = useMemo(() => {
@@ -135,7 +225,11 @@ export function CalendarPage() {
   // that location has none configured (e.g. an older location row from
   // before the field existed).
   const selectedLocation = locations.find((l) => l.id === selectedLocationId);
-  const timezone = timezoneOverride ?? selectedLocation?.timezone ?? BROWSER_TIMEZONE;
+  const rawTimezone = timezoneOverride ?? selectedLocation?.timezone ?? BROWSER_TIMEZONE;
+  // A bad value (see isValidTimeZone above) falls all the way back to the
+  // browser's own zone rather than crashing the whole page — better to
+  // show the wrong-but-plausible zone than an error boundary.
+  const timezone = isValidTimeZone(rawTimezone) ? rawTimezone : BROWSER_TIMEZONE;
 
   // Default to the account's primary location the moment the list loads —
   // same "default to primary, let them change it" pattern as
@@ -145,6 +239,20 @@ export function CalendarPage() {
     setSelectedLocationId(locations.find((l) => l.isPrimary)?.id ?? locations[0]!.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when the list itself changes
   }, [locations]);
+
+  // Restore whatever staff selection was last saved for this location (see
+  // applyStaffSelection) — falls back to null ("no explicit choice") when
+  // there isn't one, letting effectiveStaffIds below apply the location's
+  // default saved set instead.
+  useEffect(() => {
+    if (!selectedLocationId) return;
+    try {
+      const raw = localStorage.getItem(staffSelectionStorageKey(selectedLocationId));
+      setSelectedStaffIdsState(raw ? (JSON.parse(raw) as string[]) : null);
+    } catch {
+      setSelectedStaffIdsState(null);
+    }
+  }, [selectedLocationId]);
 
   const staffQuery = useQuery({
     queryKey: ["bookings-staff", selectedLocationId],
@@ -172,6 +280,134 @@ export function CalendarPage() {
     placeholderData: keepPreviousData,
   });
   const bookings = bookingsQuery.data?.bookings ?? EMPTY_BOOKINGS;
+
+  const queryClient = useQueryClient();
+
+  const staffSetsQuery = useQuery({
+    queryKey: ["bookings-staff-sets", selectedLocationId],
+    queryFn: () => listStaffSets(accessToken ?? "", selectedLocationId || undefined),
+    enabled: !!accessToken,
+  });
+  const staffSets = staffSetsQuery.data?.staffSets ?? EMPTY_STAFF_SETS;
+
+  function invalidateStaffSets() {
+    queryClient.invalidateQueries({ queryKey: ["bookings-staff-sets", selectedLocationId] });
+  }
+
+  const createStaffSetMutation = useMutation({
+    mutationFn: (input: { name: string; staffUserIds: string[]; isShared: boolean }) =>
+      createStaffSet(accessToken ?? "", input),
+    onSuccess: invalidateStaffSets,
+  });
+  const updateStaffSetMutation = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: StaffSetUpdatePayload }) =>
+      updateStaffSet(accessToken ?? "", id, patch),
+    onSuccess: invalidateStaffSets,
+  });
+  const deleteStaffSetMutation = useMutation({
+    mutationFn: (id: string) => deleteStaffSet(accessToken ?? "", id),
+    onSuccess: invalidateStaffSets,
+  });
+  const reorderStaffSetsMutation = useMutation({
+    mutationFn: (ids: string[]) => reorderStaffSets(accessToken ?? "", ids),
+    onSuccess: invalidateStaffSets,
+  });
+  const setDefaultStaffSetMutation = useMutation({
+    mutationFn: ({ id, isDefault }: { id: string; isDefault: boolean }) =>
+      setDefaultStaffSet(accessToken ?? "", id, isDefault),
+    onSuccess: invalidateStaffSets,
+  });
+
+  // Browser-local Y/M/D of the visible day — same "day identity stays
+  // local, only time-of-day labels follow the selected timezone" rule
+  // daySlots/isSameDay already follow elsewhere in this file. Backs the
+  // shift-hours lookup below, which is inherently a per-calendar-day
+  // question ("is this person working *this* day"), not a per-instant one.
+  const dayYMD = useMemo(() => {
+    const y = cursorDate.getFullYear();
+    const m = String(cursorDate.getMonth() + 1).padStart(2, "0");
+    const d = String(cursorDate.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }, [cursorDate]);
+
+  // Every active staff id, stringified as a stable query-key fragment —
+  // `staff` itself is a fresh array each fetch, which would otherwise
+  // retrigger this query even when the actual roster didn't change.
+  const activeStaffIdsKey = useMemo(
+    () =>
+      staff
+        .map((s) => s.id)
+        .sort()
+        .join(","),
+    [staff],
+  );
+
+  const shiftsQuery = useQuery({
+    queryKey: ["bookings-staff-shifts", selectedLocationId, dayYMD, activeStaffIdsKey],
+    queryFn: () =>
+      getStaffShifts(
+        accessToken ?? "",
+        dayYMD,
+        staff.map((s) => s.id),
+        selectedLocationId || undefined,
+      ),
+    enabled: !!accessToken && view === "day" && staff.length > 0,
+    placeholderData: keepPreviousData,
+  });
+  const shiftsByStaffId = useMemo(() => {
+    const map = new Map<string, StaffShift>();
+    for (const shift of shiftsQuery.data?.shifts ?? []) map.set(shift.staffUserId, shift);
+    return map;
+  }, [shiftsQuery.data]);
+
+  // Today's booking count per staff id (cancelled ones don't count as "a
+  // booking to plan around") — backs the picker's "N booked" line and its
+  // "Has bookings" quick filter. `bookings` is already scoped to the
+  // visible range, which for Day view is exactly this one day.
+  const bookingCountByStaffId = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const booking of bookings) {
+      if (booking.status === "cancelled") continue;
+      map.set(booking.staffUserId, (map.get(booking.staffUserId) ?? 0) + 1);
+    }
+    return map;
+  }, [bookings]);
+
+  /**
+   * Who the Day view actually shows right now. An explicit pick (from the
+   * picker, a saved-set chip, or one restored from localStorage) wins
+   * outright; otherwise this location's default saved set applies; and
+   * failing that, every active staff member shows — same three-tier
+   * "override > configured default > fallback" shape as the timezone
+   * resolution above.
+   *
+   * Both the explicit pick and the default set get reconciled against the
+   * *current* roster first — an id from before someone was deactivated (or
+   * from before they'd claimed their invite, now that listStaffForLocation
+   * requires that too) would otherwise linger in a saved selection forever,
+   * inflating the picker's "Staff: N of M" count past M and outliving the
+   * person it pointed to. Skipped while `staff` is still the empty-loading
+   * sentinel, so a slow first fetch doesn't look like everyone dropped out.
+   */
+  const effectiveStaffIds = useMemo(() => {
+    const activeIds = new Set(staff.map((s) => s.id));
+    const reconcile = (ids: string[]) =>
+      staff.length > 0 ? ids.filter((id) => activeIds.has(id)) : ids;
+
+    if (selectedStaffIds !== null) {
+      const reconciled = reconcile(selectedStaffIds);
+      if (reconciled.length > 0 || staff.length === 0) return new Set(reconciled);
+      // Every previously-selected id has fallen out of the roster — fall
+      // through to the same default-set/all-active tiers as "no explicit
+      // choice", rather than showing an impossible empty selection.
+    }
+    const defaultSet = staffSets.find((s) => s.isDefault);
+    if (defaultSet) {
+      const reconciled = reconcile(defaultSet.staffUserIds);
+      if (reconciled.length > 0 || staff.length === 0) return new Set(reconciled);
+    }
+    return activeIds;
+  }, [selectedStaffIds, staffSets, staff]);
 
   function goPrev() {
     setNavDirection("prev");
@@ -244,9 +480,16 @@ export function CalendarPage() {
    * Day view while Week/Month (which don't key off the roster at all)
    * kept showing it fine. So any staffUserId seen on today's bookings
    * gets a column too, even if it's fallen out of the active roster.
+   *
+   * On top of that, the staff filter bar (effectiveStaffIds) narrows the
+   * *active* roster down to whoever's currently picked — but a ghost
+   * column stays visible regardless of the picker, since it isn't
+   * selectable there in the first place and hiding it would just make an
+   * existing booking silently vanish.
    */
   const dayColumns = useMemo(() => {
     const known = new Map(staff.map((member) => [member.id, member]));
+    const ghostIds = new Set<string>();
     for (const booking of bookings) {
       if (!known.has(booking.staffUserId)) {
         known.set(booking.staffUserId, {
@@ -254,10 +497,19 @@ export function CalendarPage() {
           name: booking.staffName,
           role: "",
         });
+        ghostIds.add(booking.staffUserId);
       }
     }
-    return Array.from(known.values());
-  }, [staff, bookings]);
+    return Array.from(known.values()).filter(
+      (member) => ghostIds.has(member.id) || effectiveStaffIds.has(member.id),
+    );
+  }, [staff, bookings, effectiveStaffIds]);
+
+  // Shared by the header row and every hour row below so the two grids stay
+  // pixel-for-pixel aligned — fixed-width columns (see DAY_COLUMN_WIDTH)
+  // mean this can genuinely overflow the card's width once there are enough
+  // staff, which is what turns on the outer container's horizontal scroll.
+  const dayGridColumns = `${DAY_GUTTER_WIDTH_PX}px repeat(${Math.max(dayColumns.length, 1)}, ${DAY_COLUMN_WIDTH})`;
 
   /** [staffId__slotHHmm] -> booking, floored to the slot it starts in — lets a booking at 1:05 still land in the 1:00 row. */
   const dayBookingsBySlot = useMemo(() => {
@@ -287,6 +539,70 @@ export function CalendarPage() {
   }, [view]);
 
   const dayScrollRef = useRef<HTMLDivElement>(null);
+
+  // Horizontal-scroll bookkeeping for the staff columns — backs the
+  // progress bar, the right-edge fade, the "N of M columns in view" label,
+  // and the floating jump button below the grid. Read from the scroll
+  // container directly (rather than derived from state) since scroll
+  // position isn't something React otherwise tracks.
+  const [dayScroll, setDayScroll] = useState({ scrollLeft: 0, scrollWidth: 0, clientWidth: 0 });
+
+  function handleDayScroll() {
+    const el = dayScrollRef.current;
+    if (!el) return;
+    setDayScroll({
+      scrollLeft: el.scrollLeft,
+      scrollWidth: el.scrollWidth,
+      clientWidth: el.clientWidth,
+    });
+  }
+
+  // Re-measure whenever the column count or the view itself changes — e.g.
+  // narrowing the staff filter can turn a scrollable grid into one that
+  // fits entirely, which should hide the scroll-polish UI below.
+  useEffect(() => {
+    handleDayScroll();
+  }, [dayColumns.length, view]);
+
+  const dayScrollableWidth = Math.max(0, dayScroll.scrollWidth - dayScroll.clientWidth);
+  const dayHasOverflow = dayScrollableWidth > 1;
+  const dayScrollProgress = dayHasOverflow ? dayScroll.scrollLeft / dayScrollableWidth : 0;
+  // Rough count, not exact — actual column widths vary between the 200px
+  // floor and 320px ceiling (see DAY_COLUMN_WIDTH), so this uses the floor
+  // as a conservative "at least this many fit" estimate.
+  const dayColumnsInView = Math.max(
+    1,
+    Math.min(dayColumns.length, Math.floor((dayScroll.clientWidth - DAY_GUTTER_WIDTH_PX) / 200)),
+  );
+
+  /** Scrolls one viewport-width "page" of staff columns left/right. */
+  function jumpDayColumns(direction: 1 | -1) {
+    const el = dayScrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: direction * (el.clientWidth - DAY_GUTTER_WIDTH_PX), behavior: "smooth" });
+  }
+
+  /**
+   * Whether `hh:mm` on the visible day falls outside `staffId`'s shift —
+   * backs the greyed-out cell treatment below. Returns false (don't grey
+   * out) when there's no shift data yet, since that's "not loaded" or "a
+   * ghost column with no roster entry", not "this person is off" — greying
+   * out on missing data would misread as a real off-shift signal.
+   */
+  function isSlotOutsideShift(staffId: string, hh: string, mm: string): boolean {
+    const shift = shiftsByStaffId.get(staffId);
+    if (!shift) return false;
+    if (shift.isOff) return true;
+    const minutes = Number(hh) * 60 + Number(mm);
+    const within = shift.ranges.some((r) => {
+      const [startH, startM] = r.startTime.split(":").map(Number);
+      const [endH, endM] = r.endTime.split(":").map(Number);
+      const startMinutes = startH! * 60 + startM!;
+      const endMinutes = endH! * 60 + endM!;
+      return minutes >= startMinutes && minutes < endMinutes;
+    });
+    return !within;
+  }
 
   /**
    * Pixel offset of "now" within the Day view's slot rows, or null when
@@ -432,134 +748,259 @@ export function CalendarPage() {
         key={`${view}-${selectedLocationId}-${cursorDate.toDateString()}`}
         style={{ animation: gridAnimation }}
       >
-        {view === "day" && (
-          <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
-            {/* Fixed-height, self-scrolling grid (independent of the page's own scroll container) so the
-                header row below can stay pinned while the hour rows scroll under it, and so the
-                auto-scroll-to-now effect has a predictable container to act on. */}
-            <div ref={dayScrollRef} className="max-h-[640px] overflow-y-auto">
+        {view === "day" && !staffQuery.isPending && staff.length === 0 && (
+          /* Brand-new account — no staff has been added at this location at all yet, so the
+             grid below has nothing to show and no one to assign a booking to. Replaces the
+             whole card rather than rendering an empty grid with a message buried in its header. */
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-tn-input-border bg-tn-page px-8 py-16 text-center">
+            <span className="font-sans text-[15px] font-semibold text-tn-ink">
+              No staff at this location yet
+            </span>
+            <span className="max-w-[380px] font-sans text-[13px] text-tn-muted-5">
+              Add your first staff member and their working hours — once they&rsquo;re on the
+              roster, their column shows up here automatically.
+            </span>
+            <Link
+              to="/staff"
+              className="mt-1 cursor-pointer rounded-lg border-none bg-tn-dark px-4 py-2.5 font-sans text-[13px] font-semibold text-tn-on-dark no-underline"
+            >
+              Add staff
+            </Link>
+          </div>
+        )}
+
+        {view === "day" && (staffQuery.isPending || staff.length > 0) && (
+          <div className="flex flex-col gap-3">
+            <StaffFilterBar
+              allStaff={staff}
+              selectedStaffIds={Array.from(effectiveStaffIds)}
+              onApply={applyStaffSelection}
+              shiftsByStaffId={shiftsByStaffId}
+              bookingCountByStaffId={bookingCountByStaffId}
+              staffSets={staffSets}
+              onApplySet={(set) => applyStaffSelection(set.staffUserIds.slice())}
+              onCreateSet={(name, staffUserIds, isShared) =>
+                createStaffSetMutation.mutate({ name, staffUserIds, isShared })
+              }
+              onOpenManageSets={() => setManageSetsOpen(true)}
+              isSaving={createStaffSetMutation.isPending}
+            />
+
+            <div className="relative flex flex-col overflow-hidden rounded-2xl border border-tn-border">
+              {/* Fixed-height, self-scrolling grid (independent of the page's own scroll container) so the
+                  header row below can stay pinned while the hour rows scroll under it, and so the
+                  auto-scroll-to-now effect has a predictable container to act on. Columns are fixed-width
+                  (see DAY_COLUMN_WIDTH) rather than `1fr`, so a location with enough staff overflows this
+                  container's own width too — `overflow-auto` (not just -y) is what turns that into a
+                  horizontal scrollbar instead of squeezing every column unreadably thin. */}
               <div
-                className="sticky top-0 z-10 grid border-b border-tn-border-softer bg-tn-table-head"
-                style={{
-                  gridTemplateColumns: `70px repeat(${Math.max(dayColumns.length, 1)}, 1fr)`,
-                }}
+                ref={dayScrollRef}
+                onScroll={handleDayScroll}
+                className="max-h-[640px] overflow-auto"
               >
-                <div className="flex items-center justify-center p-2 text-center font-sans text-[11px] font-medium text-tn-muted-5">
-                  {formatUtcOffset(timezone)}
-                </div>
-                {staffQuery.isPending && (
-                  <div className="border-l border-tn-border-soft p-3 font-sans text-[13px] text-tn-muted-5">
-                    Loading staff…
+                <div
+                  className="sticky top-0 z-20 grid border-b border-tn-border-softer bg-tn-table-head"
+                  style={{ gridTemplateColumns: dayGridColumns }}
+                >
+                  {/* The one cell that's sticky on BOTH axes — pinned to the top via the row above and to
+                      the left here, so it stays put as the corner anchor while the rest of the header (and
+                      every row's own gutter cell below) scrolls sideways underneath it. Needs its own
+                      opaque background (matching the header row's) since sticky positioning takes it out of
+                      the row's normal paint order. */}
+                  <div className="sticky left-0 z-10 flex items-center justify-center bg-tn-table-head p-2 text-center font-sans text-[11px] font-medium text-tn-muted-5">
+                    {formatUtcOffset(timezone)}
                   </div>
-                )}
-                {!staffQuery.isPending && dayColumns.length === 0 && (
-                  <div className="border-l border-tn-border-soft p-3 font-sans text-[13px] text-tn-muted-5">
-                    No active staff at this location yet — add staff in Settings.
-                  </div>
-                )}
-                {dayColumns.map((member) => (
-                  <div
-                    key={member.id}
-                    className="border-l border-tn-border-soft p-3 font-sans text-[13px] font-semibold text-tn-ink"
-                  >
-                    {member.name}
-                  </div>
-                ))}
-              </div>
-
-              <div className="relative">
-                {/* Google Calendar-style "now" line — a dot at the hour gutter's right edge plus a line
-                    spanning the staff columns, positioned in px (see DAY_SLOT_HEIGHT_PX/nowLineOffsetPx)
-                    rather than as a real grid row, so it can sit *between* two rows without disturbing
-                    the booking grid's own layout. */}
-                {nowLineOffsetPx !== null && (
-                  <div
-                    className="pointer-events-none absolute inset-x-0 z-[5]"
-                    style={{ top: nowLineOffsetPx }}
-                  >
-                    <div className="flex items-center" style={{ marginLeft: 70 }}>
-                      <span className="h-2.5 w-2.5 shrink-0 -translate-x-1/2 rounded-full bg-tn-danger" />
-                      <span className="h-px flex-1 bg-tn-danger" />
+                  {staffQuery.isPending && (
+                    <div className="border-l border-tn-border-soft p-3 font-sans text-[13px] text-tn-muted-5">
+                      Loading staff…
                     </div>
-                  </div>
-                )}
-
-                {daySlots.map((slot, rowIndex) => {
-                  const slotZoned = zonedHourMinute(slot, timezone);
-                  const hh = String(slotZoned.hour).padStart(2, "0");
-                  const mm = String(slotZoned.minute).padStart(2, "0");
-                  const slotKey = slot.toISOString();
-                  const isRowSelected = selectedRowSlotKeys.has(slotKey);
-                  return (
-                    <div
-                      key={slotKey}
-                      className={`grid min-h-16 ${isRowSelected ? "bg-tn-blue-bg" : ""}`}
-                      style={{
-                        gridTemplateColumns: `70px repeat(${Math.max(dayColumns.length, 1)}, 1fr)`,
-                      }}
-                    >
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setSelectedRowSlotKeys((keys) => {
-                            const next = new Set(keys);
-                            if (next.has(slotKey)) next.delete(slotKey);
-                            else next.add(slotKey);
-                            return next;
-                          })
-                        }
-                        aria-pressed={isRowSelected}
-                        aria-label={`Select the ${formatTimeLabel(slot, timezone)} row`}
-                        className={`select-none border-none bg-transparent p-2.5 text-left font-sans text-xs font-medium text-tn-muted-5 ${isRowSelected ? "text-tn-blue" : ""} ${rowIndex < daySlots.length - 1 ? "border-b border-tn-border-soft" : ""}`}
+                  )}
+                  {!staffQuery.isPending && dayColumns.length === 0 && (
+                    <div className="border-l border-tn-border-soft p-3 font-sans text-[13px] text-tn-muted-5">
+                      No staff selected — use the Staff picker above to choose who to show.
+                    </div>
+                  )}
+                  {dayColumns.map((member) => {
+                    const shift = shiftsByStaffId.get(member.id);
+                    const bookingCount = bookingCountByStaffId.get(member.id) ?? 0;
+                    return (
+                      <div
+                        key={member.id}
+                        className="flex min-w-0 items-center gap-2.5 border-l border-tn-border-soft p-3"
                       >
-                        {formatTimeLabel(slot, timezone)}
-                      </button>
-                      {dayColumns.map((member) => {
-                        const booking = dayBookingsBySlot.get(`${member.id}__${hh}:${mm}`);
-                        // Ghost columns (a staffUserId seen on a booking but no
-                        // longer in the active roster) can't be picked as an
-                        // "assign to" target for a *new* booking — only real,
-                        // currently-active staff can.
-                        const isActiveStaff = staff.some((s) => s.id === member.id);
-                        return (
-                          <div
-                            key={member.id}
-                            className={`border-l border-tn-border-soft p-2 ${rowIndex < daySlots.length - 1 ? "border-b border-tn-border-soft" : ""}`}
-                          >
-                            {booking ? (
-                              <button
-                                type="button"
-                                onClick={() => openBooking(booking)}
-                                className={`w-full rounded-md p-2 text-left font-sans text-xs font-medium text-tn-ink-soft ${BOOKING_STATUS_BLOCK[booking.status]}`}
-                              >
-                                {booking.customerName}
-                                <br />
-                                {booking.serviceName}
-                              </button>
-                            ) : isActiveStaff ? (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setAddRequest({
-                                    defaultDate: cursorDate,
-                                    defaultStaffId: member.id,
-                                    defaultTime: `${hh}:${mm}`,
-                                  })
-                                }
-                                className="h-full w-full cursor-pointer rounded-md border border-dashed border-transparent text-transparent hover:border-tn-input-border hover:text-tn-faint-2"
-                                aria-label={`Add booking for ${member.name} at ${formatTimeLabel(slot, timezone)}`}
-                              >
-                                +
-                              </button>
-                            ) : null}
-                          </div>
-                        );
-                      })}
+                        <span
+                          className="h-8 w-8 shrink-0 rounded-full"
+                          style={{ background: staffAvatarColor(member.id) }}
+                        />
+                        <span className="flex min-w-0 flex-col">
+                          <span className="truncate font-sans text-[13px] font-semibold text-tn-ink">
+                            {member.name}
+                          </span>
+                          <span className="truncate font-sans text-[10.5px] text-tn-muted-5">
+                            {formatShiftSummary(shift)}
+                            {bookingCount > 0 ? ` · ${bookingCount} booked` : ""}
+                          </span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="relative">
+                  {/* Google Calendar-style "now" line — a dot at the hour gutter's right edge plus a line
+                      spanning the staff columns, positioned in px (see DAY_SLOT_HEIGHT_PX/nowLineOffsetPx)
+                      rather than as a real grid row, so it can sit *between* two rows without disturbing
+                      the booking grid's own layout. */}
+                  {nowLineOffsetPx !== null && (
+                    <div
+                      className="pointer-events-none absolute inset-x-0 z-[5]"
+                      style={{ top: nowLineOffsetPx }}
+                    >
+                      <div
+                        className="flex items-center"
+                        style={{ marginLeft: DAY_GUTTER_WIDTH_PX }}
+                      >
+                        <span className="h-2.5 w-2.5 shrink-0 -translate-x-1/2 rounded-full bg-tn-danger" />
+                        <span className="h-px flex-1 bg-tn-danger" />
+                      </div>
                     </div>
-                  );
-                })}
+                  )}
+
+                  {daySlots.map((slot, rowIndex) => {
+                    const slotZoned = zonedHourMinute(slot, timezone);
+                    const hh = String(slotZoned.hour).padStart(2, "0");
+                    const mm = String(slotZoned.minute).padStart(2, "0");
+                    const slotKey = slot.toISOString();
+                    const isRowSelected = selectedRowSlotKeys.has(slotKey);
+                    // Dulled once the slot's actual instant has passed — covers both "this
+                    // whole day is behind us" (every slot on it is already before `now`)
+                    // and "today, but this hour already happened" with a single comparison,
+                    // since `slot`/`now` are absolute instants regardless of which zone
+                    // they're displayed in.
+                    const isPastSlot = slot.getTime() < now.getTime();
+                    // Also doubles as the sticky gutter button's own background below — a sticky
+                    // cell needs an opaque fill of its own (it's out of the row's normal paint
+                    // order), and using the row's actual color rather than a fixed one keeps the
+                    // pinned time label matching whatever state the row it belongs to is in.
+                    const rowBg = isRowSelected
+                      ? "bg-tn-blue-bg"
+                      : isPastSlot
+                        ? "bg-black/10"
+                        : "bg-tn-surface";
+                    return (
+                      <div
+                        key={slotKey}
+                        className={`grid min-h-16 ${rowBg}`}
+                        style={{ gridTemplateColumns: dayGridColumns }}
+                      >
+                        <button
+                          type="button"
+                          disabled={isPastSlot}
+                          onClick={() =>
+                            setSelectedRowSlotKeys((keys) => {
+                              const next = new Set(keys);
+                              if (next.has(slotKey)) next.delete(slotKey);
+                              else next.add(slotKey);
+                              return next;
+                            })
+                          }
+                          aria-pressed={isRowSelected}
+                          aria-label={
+                            isPastSlot
+                              ? `${formatTimeLabel(slot, timezone)} has already passed — row selection isn't available for past times`
+                              : `Select the ${formatTimeLabel(slot, timezone)} row`
+                          }
+                          className={`sticky left-0 z-[4] select-none border-none ${rowBg} p-2.5 text-left font-sans text-xs font-medium text-tn-muted-5 ${isRowSelected ? "text-tn-blue" : isPastSlot ? "cursor-not-allowed text-tn-faint-2" : ""} ${rowIndex < daySlots.length - 1 ? "border-b border-tn-border-soft" : ""}`}
+                        >
+                          {formatTimeLabel(slot, timezone)}
+                        </button>
+                        {dayColumns.map((member) => {
+                          const booking = dayBookingsBySlot.get(`${member.id}__${hh}:${mm}`);
+                          // Ghost columns (a staffUserId seen on a booking but no
+                          // longer in the active roster) can't be picked as an
+                          // "assign to" target for a *new* booking — only real,
+                          // currently-active staff can.
+                          const isActiveStaff = staff.some((s) => s.id === member.id);
+                          // Greyed when this slot falls outside the member's shift for
+                          // the day (see isSlotOutsideShift) — a visual "they're not
+                          // scheduled then" cue, not a hard block: it stays clickable so
+                          // an unplanned or one-off booking can still be added.
+                          const outsideShift = !booking && isSlotOutsideShift(member.id, hh, mm);
+                          return (
+                            <div
+                              key={member.id}
+                              className={`border-l border-tn-border-soft p-2 ${rowIndex < daySlots.length - 1 ? "border-b border-tn-border-soft" : ""} ${outsideShift ? "bg-black/5" : ""}`}
+                            >
+                              {booking ? (
+                                <button
+                                  type="button"
+                                  onClick={() => openBooking(booking)}
+                                  className={`w-full rounded-md p-2 text-left font-sans text-xs font-medium text-tn-ink-soft ${BOOKING_STATUS_BLOCK[booking.status]}`}
+                                >
+                                  {booking.customerName}
+                                  <br />
+                                  {booking.serviceName}
+                                </button>
+                              ) : isActiveStaff ? (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setAddRequest({
+                                      defaultDate: cursorDate,
+                                      defaultStaffId: member.id,
+                                      defaultTime: `${hh}:${mm}`,
+                                    })
+                                  }
+                                  className="h-full w-full cursor-pointer rounded-md border border-dashed border-transparent text-transparent hover:border-tn-input-border hover:text-tn-faint-2"
+                                  aria-label={
+                                    outsideShift
+                                      ? `Add booking for ${member.name} at ${formatTimeLabel(slot, timezone)} (outside their shift)`
+                                      : `Add booking for ${member.name} at ${formatTimeLabel(slot, timezone)}`
+                                  }
+                                >
+                                  +
+                                </button>
+                              ) : null}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
+
+              {/* Right-edge fade cueing "there's more to scroll to" — fades out once the grid's
+                  scrolled all the way, so it never sits there implying overflow that's gone. */}
+              {dayHasOverflow && dayScrollProgress < 0.98 && (
+                <div className="pointer-events-none absolute inset-y-0 right-0 z-[6] w-10 bg-gradient-to-l from-tn-surface to-transparent" />
+              )}
+
+              {dayHasOverflow && (
+                <div className="flex items-center gap-2.5 border-t border-tn-border-softer bg-tn-page px-3 py-1.5">
+                  <div className="h-1 flex-1 overflow-hidden rounded-full bg-tn-border-soft">
+                    <div
+                      className="h-full rounded-full bg-tn-ink-soft"
+                      style={{ width: `${Math.max(8, dayScrollProgress * 100)}%` }}
+                    />
+                  </div>
+                  <span className="shrink-0 font-sans text-[10.5px] text-tn-muted-5">
+                    {dayColumnsInView} of {dayColumns.length} columns in view
+                  </span>
+                </div>
+              )}
             </div>
+
+            {dayHasOverflow && dayScrollProgress < 0.98 && (
+              <button
+                type="button"
+                onClick={() => jumpDayColumns(1)}
+                aria-label="Scroll to more staff columns"
+                className="fixed bottom-8 right-8 z-20 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-none bg-tn-dark text-tn-on-dark shadow-[0_14px_30px_-10px_rgba(40,30,10,0.5)]"
+              >
+                ›
+              </button>
+            )}
           </div>
         )}
 
@@ -569,26 +1010,36 @@ export function CalendarPage() {
                 enough bookings to need scrolling still keeps MON..SUN pinned at the top. */}
             <div className="max-h-[640px] overflow-y-auto">
               <div className="sticky top-0 z-10 grid grid-cols-7 border-b border-tn-border-softer bg-tn-surface">
-                {weekDays.map((day) => (
-                  <div
-                    key={day.toDateString()}
-                    className={`border-l border-tn-border-soft px-3 py-2.5 font-sans text-[11px] font-medium ${
-                      isSameDay(day, new Date())
-                        ? "bg-tn-gold-bg-soft text-tn-gold font-semibold"
-                        : "text-tn-muted-5"
-                    }`}
-                  >
-                    {formatWeekColumnLabel(day)}
-                  </div>
-                ))}
+                {weekDays.map((day) => {
+                  const isToday = isSameDay(day, new Date());
+                  // Whole day already behind "today" — the past days at the start of
+                  // this week's strip, dulled the same way Month view fades out days
+                  // outside the current month.
+                  const isPastDay = !isToday && day < startOfDay(new Date());
+                  return (
+                    <div
+                      key={day.toDateString()}
+                      className={`border-l border-tn-border-soft px-3 py-2.5 font-sans text-[11px] font-medium ${
+                        isToday
+                          ? "bg-tn-gold-bg-soft text-tn-gold font-semibold"
+                          : isPastDay
+                            ? "text-tn-faint-2"
+                            : "text-tn-muted-5"
+                      }`}
+                    >
+                      {formatWeekColumnLabel(day)}
+                    </div>
+                  );
+                })}
               </div>
               <div className="grid min-h-[360px] grid-cols-7">
                 {weekDays.map((day) => {
                   const dayBookings = bookingsByDay.get(day.toDateString()) ?? [];
+                  const isPastDay = !isSameDay(day, new Date()) && day < startOfDay(new Date());
                   return (
                     <div
                       key={day.toDateString()}
-                      className="flex flex-col gap-1.5 border-l border-tn-border-soft p-2"
+                      className={`flex flex-col gap-1.5 border-l border-tn-border-soft p-2 ${isPastDay ? "bg-black/10" : ""}`}
                     >
                       {dayBookings.length === 0 && (
                         <span className="text-center font-sans text-[11px] text-tn-faint">
@@ -640,6 +1091,11 @@ export function CalendarPage() {
                   week.map((day) => {
                     const isOut = !isSameMonth(day, cursorDate);
                     const isToday = isSameDay(day, new Date());
+                    // Same "already happened" fade as Day/Week view, so a past date
+                    // in the current month reads as past even though it's still
+                    // "in month" (unlike isOut, which only flags the leading/trailing
+                    // days that spill in from adjacent months).
+                    const isPastDay = !isToday && day < startOfDay(new Date());
                     const count = bookingsByDay.get(day.toDateString())?.length ?? 0;
                     // Loosely-full days read as busier at a glance — matches the
                     // mockup's month grid, where 1-2 bookings sit in a muted
@@ -657,7 +1113,9 @@ export function CalendarPage() {
                         className={`flex min-h-[132px] cursor-pointer flex-col items-start gap-2 border-l border-t border-tn-border-soft p-4 text-left ${
                           isToday
                             ? "border-t-2 border-t-tn-gold bg-tn-gold-bg-soft"
-                            : "hover:bg-tn-page"
+                            : isPastDay
+                              ? "bg-black/10 hover:bg-black/15"
+                              : "hover:bg-tn-page"
                         }`}
                       >
                         <span
@@ -666,7 +1124,9 @@ export function CalendarPage() {
                               ? "font-medium text-tn-faint-2"
                               : isToday
                                 ? "font-bold text-tn-gold"
-                                : "font-semibold text-tn-ink"
+                                : isPastDay
+                                  ? "font-medium text-tn-faint-2"
+                                  : "font-semibold text-tn-ink"
                           }`}
                         >
                           {day.getDate()}
@@ -716,6 +1176,23 @@ export function CalendarPage() {
         defaultStaffId={addRequest?.defaultStaffId}
         defaultTime={addRequest?.defaultTime}
         timezone={timezone}
+      />
+
+      <ManageStaffSetsModal
+        open={manageSetsOpen}
+        onClose={() => setManageSetsOpen(false)}
+        staffSets={staffSets}
+        onRename={(staffSetId, name) =>
+          updateStaffSetMutation.mutate({ id: staffSetId, patch: { name } })
+        }
+        onDelete={(staffSetId) => deleteStaffSetMutation.mutate(staffSetId)}
+        onSetDefault={(staffSetId, isDefault) =>
+          setDefaultStaffSetMutation.mutate({ id: staffSetId, isDefault })
+        }
+        onToggleShared={(staffSetId, isShared) =>
+          updateStaffSetMutation.mutate({ id: staffSetId, patch: { isShared } })
+        }
+        onReorder={(staffSetIds) => reorderStaffSetsMutation.mutate(staffSetIds)}
       />
     </div>
   );

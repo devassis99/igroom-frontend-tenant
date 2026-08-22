@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Field, formInputClass } from "@/components/ui/FormField";
+import { TimePicker } from "@/components/ui/TimePicker";
 import type { UpsertOverrideInput } from "@/lib/availability-api";
 
 interface AddOverrideModalProps {
@@ -98,21 +99,13 @@ export function AddOverrideModal({ open, onClose, onSubmit, submitting }: AddOve
 
         {!isUnavailable && (
           <div className="flex items-center gap-2">
-            <input
-              type="time"
-              aria-label="Override start time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              className={formInputClass}
-            />
+            <div className="flex-1">
+              <TimePicker label="Override start time" value={startTime} onChange={setStartTime} />
+            </div>
             <span className="font-sans text-xs text-tn-muted-6">to</span>
-            <input
-              type="time"
-              aria-label="Override end time"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-              className={formInputClass}
-            />
+            <div className="flex-1">
+              <TimePicker label="Override end time" value={endTime} onChange={setEndTime} />
+            </div>
           </div>
         )}
 

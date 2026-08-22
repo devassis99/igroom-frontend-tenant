@@ -294,6 +294,13 @@ export function StaffManagementPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["staff"] });
       queryClient.invalidateQueries({ queryKey: ["staff-performance"] });
+      // CalendarPage's Day view keys its own roster fetch as
+      // ["bookings-staff", locationId] even though it hits this same
+      // GET /bookings/staff endpoint — a distinct cache entry from this
+      // page's ["staff"], so without this it can keep showing a
+      // just-deactivated (or reactivated) member for up to the 30s
+      // staleTime, or indefinitely if the Calendar tab stayed mounted.
+      queryClient.invalidateQueries({ queryKey: ["bookings-staff"] });
       setTogglingMember(null);
     },
   });

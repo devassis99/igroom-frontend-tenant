@@ -69,51 +69,93 @@ export function LocationsSettingsPage() {
         <p className="m-0 font-sans text-sm text-tn-muted-5">Loading your locations…</p>
       )}
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2" style={{ maxWidth: 720 }}>
-        {locations.map((loc) => (
-          <div key={loc.id} className="flex flex-col gap-3 rounded-2xl border border-tn-border p-5">
-            <div className="flex items-start justify-between gap-2">
-              <p className="m-0 font-sans text-base font-semibold text-tn-ink">{loc.name}</p>
-              <div className="flex items-center gap-2">
-                <StatusPill tone={loc.status === "active" ? "success" : "neutral"}>
-                  {loc.status === "active" ? "Active" : "Inactive"}
-                </StatusPill>
-                {canManageLocations && (
-                  <button
-                    type="button"
-                    onClick={() => handleEdit(loc)}
-                    aria-label={`Edit ${loc.name}`}
-                    title="Edit location"
-                    className="cursor-pointer border-none bg-transparent p-0 font-sans text-tn-muted-5"
+      {locations.length > 0 && (
+        <div
+          className="overflow-x-auto rounded-2xl border border-tn-border"
+          style={{ maxWidth: 960 }}
+        >
+          <table className="w-full border-collapse font-sans">
+            <thead>
+              <tr className="border-b border-tn-border-softer bg-tn-table-head">
+                <th className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold text-tn-muted-5">
+                  Location
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-tn-muted-5">
+                  Address
+                </th>
+                <th className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold text-tn-muted-5">
+                  Staff
+                </th>
+                <th className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold text-tn-muted-5">
+                  Bookings today
+                </th>
+                <th className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold text-tn-muted-5">
+                  Revenue
+                </th>
+                <th className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold text-tn-muted-5">
+                  Waitlist
+                </th>
+                {canManageLocations && <th className="w-10 px-5 py-3" aria-hidden="true" />}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-tn-border-soft">
+              {locations.map((loc) => (
+                <tr key={loc.id}>
+                  <td
+                    className="whitespace-nowrap px-5 py-3.5"
+                    aria-label={`${loc.name} — ${loc.status === "active" ? "Active" : "Inactive"}`}
                   >
-                    ✎
-                  </button>
-                )}
-              </div>
-            </div>
-            <p className="m-0 font-sans text-xs text-tn-muted-5">{loc.address}</p>
-            <div className="flex gap-6 font-sans text-xs text-tn-muted-4">
-              <span>
-                Staff <strong className="text-tn-ink">{loc.staffCount}</strong>
-              </span>
-              <span>
-                Bookings today <strong className="text-tn-ink">{loc.bookingsToday}</strong>
-              </span>
-              <span>
-                Revenue{" "}
-                <strong className="text-tn-ink">${(loc.revenueTodayCents / 100).toFixed(0)}</strong>
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setQrLocation(loc)}
-              className="flex w-fit cursor-pointer items-center gap-1.5 border-none bg-transparent font-sans text-xs font-medium text-tn-gold"
-            >
-              🔑 View Waitlist QR Code
-            </button>
-          </div>
-        ))}
-      </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-sans text-[13px] font-semibold text-tn-ink">
+                        {loc.name}
+                      </span>
+                      <StatusPill tone={loc.status === "active" ? "success" : "neutral"}>
+                        {loc.status === "active" ? "Active" : "Inactive"}
+                      </StatusPill>
+                    </div>
+                  </td>
+                  <td className="px-5 py-3.5 text-xs text-tn-muted-5">
+                    <div className="max-w-[280px] truncate" title={loc.address}>
+                      {loc.address}
+                    </div>
+                  </td>
+                  <td className="whitespace-nowrap px-5 py-3.5 text-xs font-medium text-tn-ink">
+                    {loc.staffCount}
+                  </td>
+                  <td className="whitespace-nowrap px-5 py-3.5 text-xs font-medium text-tn-ink">
+                    {loc.bookingsToday}
+                  </td>
+                  <td className="whitespace-nowrap px-5 py-3.5 text-xs font-medium text-tn-ink">
+                    ${(loc.revenueTodayCents / 100).toFixed(0)}
+                  </td>
+                  <td className="whitespace-nowrap px-5 py-3.5">
+                    <button
+                      type="button"
+                      onClick={() => setQrLocation(loc)}
+                      className="flex cursor-pointer items-center gap-1.5 border-none bg-transparent font-sans text-xs font-medium text-tn-gold"
+                    >
+                      🔑 QR Code
+                    </button>
+                  </td>
+                  {canManageLocations && (
+                    <td className="whitespace-nowrap px-5 py-3.5 text-right">
+                      <button
+                        type="button"
+                        onClick={() => handleEdit(loc)}
+                        aria-label={`Edit ${loc.name}`}
+                        title="Edit location"
+                        className="cursor-pointer border-none bg-transparent p-0 font-sans text-tn-muted-5"
+                      >
+                        ✎
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {!locationsQuery.isPending && locations.length === 0 && (
         <p className="m-0 font-sans text-sm text-tn-muted-5">

@@ -9,6 +9,7 @@ import { SuccessToast } from "@/components/ui/Toast";
 import { LocationFilterPopover } from "@/components/ui/LocationFilterPopover";
 import { StaffFilterPopover } from "@/components/ui/StaffFilterPopover";
 import { TimezonePicker } from "@/components/ui/TimezonePicker";
+import { TimePicker } from "@/components/ui/TimePicker";
 import { listStaff } from "@/lib/staff-api";
 import { listLocations } from "@/lib/locations-api";
 import {
@@ -47,6 +48,39 @@ function toWeeklyState(days: AvailabilityDay[]): WeeklyState {
     week[day.dayOfWeek] = day.ranges.map((r) => ({ startTime: r.startTime, endTime: r.endTime }));
   }
   return week;
+}
+
+/** "09:30" -> 570 — lets two ranges compare as plain numbers instead of doing string time-math. */
+function toMinutes(hhmm: string): number {
+  const [h = 0, m = 0] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+}
+
+/**
+ * True if `a` and `b` overlap OR are merely back-to-back (one ends exactly
+ * when the other starts) — matches availability.service.ts's setAvailability,
+ * which rejects both the same way server-side (a staff member can't be
+ * "available" in two ranges that touch with no gap; that's just one range
+ * split in two for no reason). Order of `a`/`b` doesn't matter.
+ */
+function rangesConflict(a: EditableRange, b: EditableRange): boolean {
+  const aStart = toMinutes(a.startTime);
+  const aEnd = toMinutes(a.endTime);
+  const bStart = toMinutes(b.startTime);
+  const bEnd = toMinutes(b.endTime);
+  return (aStart < bEnd && bStart < aEnd) || aEnd === bStart || bEnd === aStart;
+}
+
+/**
+ * Flags index i whenever it conflicts with an *earlier* range in the same
+ * day — not every conflicting range — so a conflicting pair only shows the
+ * "aren't permitted" message once, under the later of the two, rather than
+ * duplicating it under both.
+ */
+function computeRangeConflicts(ranges: EditableRange[]): boolean[] {
+  return ranges.map((range, i) =>
+    ranges.slice(0, i).some((earlier) => rangesConflict(range, earlier)),
+  );
 }
 
 /** iso is "YYYY-MM-DD" — parsed as local calendar fields, not through Date's UTC-based ISO parsing, so it never off-by-one's across a timezone boundary. */
@@ -92,6 +126,7 @@ export function HoursSettingsPage() {
   const [overrideModalOpen, setOverrideModalOpen] = useState(false);
   const [overrideToDelete, setOverrideToDelete] = useState<AvailabilityOverride | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Default the picker to "myself" the moment GET /accounts/me resolves —
   // everyone can always see their own schedule, so there's no reason to
@@ -180,6 +215,18 @@ export function HoursSettingsPage() {
     );
   }, [availabilityQuery.data, locationTimezone]);
 
+  // Per-day "does range i conflict with an earlier range that same day"
+  // flags — drives the inline "Overlapping or consecutive slots aren't
+  // permitted" messages below, and gates the Save button so a conflict
+  // never even reaches setAvailability's own server-side version of this
+  // same check (see availability.service.ts).
+  const weeklyConflicts = useMemo(() => {
+    const conflicts: Record<number, boolean[]> = {};
+    for (let d = 0; d < 7; d++) conflicts[d] = computeRangeConflicts(weekly[d] ?? []);
+    return conflicts;
+  }, [weekly]);
+  const hasConflicts = Object.values(weeklyConflicts).some((flags) => flags.some(Boolean));
+
   const saveMutation = useMutation({
     mutationFn: () => {
       const days: AvailabilityDay[] = Array.from({ length: 7 }, (_, dayOfWeek) => ({
@@ -191,7 +238,11 @@ export function HoursSettingsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["availability", selectedStaffUserId] });
       queryClient.invalidateQueries({ queryKey: ["staff-performance"] });
+      setSaveError(null);
       setToast("Availability saved");
+    },
+    onError: (err) => {
+      setSaveError(err instanceof Error ? err.message : "Couldn't save — try again.");
     },
   });
 
@@ -348,60 +399,73 @@ export function HoursSettingsPage() {
 
                 {isOn ? (
                   <div className="flex flex-1 flex-col gap-2">
-                    {ranges.map((range, index) => (
-                      <div key={index} className="flex items-center gap-1.5">
-                        <input
-                          type="time"
-                          aria-label={`${DAY_LABELS[dayOfWeek]} range ${index + 1} start`}
-                          value={range.startTime}
-                          onChange={(e) =>
-                            updateRange(dayOfWeek, index, "startTime", e.target.value)
-                          }
-                          className="rounded-lg border border-tn-input-border bg-tn-surface px-2 py-1 font-sans text-[13px] text-tn-ink outline-none focus:border-2 focus:border-tn-gold"
-                        />
-                        <span className="font-sans text-xs text-tn-muted-6">-</span>
-                        <input
-                          type="time"
-                          aria-label={`${DAY_LABELS[dayOfWeek]} range ${index + 1} end`}
-                          value={range.endTime}
-                          onChange={(e) => updateRange(dayOfWeek, index, "endTime", e.target.value)}
-                          className="rounded-lg border border-tn-input-border bg-tn-surface px-2 py-1 font-sans text-[13px] text-tn-ink outline-none focus:border-2 focus:border-tn-gold"
-                        />
-                        {index === ranges.length - 1 && (
-                          <button
-                            type="button"
-                            onClick={() => addRange(dayOfWeek)}
-                            title="Add another range"
-                            aria-label={`Add another time range to ${DAY_LABELS[dayOfWeek]}`}
-                            className="cursor-pointer rounded-md border-none bg-transparent px-1 font-sans text-base leading-none text-tn-muted-5 hover:text-tn-ink"
-                          >
-                            +
-                          </button>
-                        )}
-                        {ranges.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeRange(dayOfWeek, index)}
-                            title="Remove this range"
-                            aria-label={`Remove time range ${index + 1} from ${DAY_LABELS[dayOfWeek]}`}
-                            className="cursor-pointer rounded-md border-none bg-transparent px-1 font-sans text-base leading-none text-tn-muted-5 hover:text-tn-danger"
-                          >
-                            ×
-                          </button>
-                        )}
-                        {index === 0 && (
-                          <button
-                            type="button"
-                            onClick={() => copyToAllDays(dayOfWeek)}
-                            title="Copy these hours to every other day"
-                            aria-label={`Copy ${DAY_LABELS[dayOfWeek]}'s hours to every other day`}
-                            className="cursor-pointer rounded-md border-none bg-transparent px-1 font-sans text-xs text-tn-muted-5 hover:text-tn-ink"
-                          >
-                            ⧉
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                    {ranges.map((range, index) => {
+                      const conflicts = weeklyConflicts[dayOfWeek]?.[index] ?? false;
+                      return (
+                        <div key={index} className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1.5">
+                            <TimePicker
+                              label={`${DAY_LABELS[dayOfWeek]} range ${index + 1} start`}
+                              value={range.startTime}
+                              onChange={(next) => updateRange(dayOfWeek, index, "startTime", next)}
+                              // `!` on width too, not just padding/text — TimePicker's own
+                              // trigger button is `w-full` by default, and an un-!'d
+                              // `w-[132px]` here loses that specificity fight (both are
+                              // single-class selectors; Tailwind resolves ties by
+                              // stylesheet order, not by where the class sits in this
+                              // string), which is what made every field balloon to fill
+                              // its row instead of staying a compact 132px.
+                              className="!w-[132px] !px-2.5 !py-1.5 !text-[13px]"
+                            />
+                            <span className="font-sans text-xs text-tn-muted-6">-</span>
+                            <TimePicker
+                              label={`${DAY_LABELS[dayOfWeek]} range ${index + 1} end`}
+                              value={range.endTime}
+                              onChange={(next) => updateRange(dayOfWeek, index, "endTime", next)}
+                              className="!w-[132px] !px-2.5 !py-1.5 !text-[13px]" // see the start TimePicker's comment above
+                            />
+                            {index === ranges.length - 1 && (
+                              <button
+                                type="button"
+                                onClick={() => addRange(dayOfWeek)}
+                                title="Add another range"
+                                aria-label={`Add another time range to ${DAY_LABELS[dayOfWeek]}`}
+                                className="cursor-pointer rounded-md border-none bg-transparent px-1 font-sans text-base leading-none text-tn-muted-5 hover:text-tn-ink"
+                              >
+                                +
+                              </button>
+                            )}
+                            {ranges.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => removeRange(dayOfWeek, index)}
+                                title="Remove this range"
+                                aria-label={`Remove time range ${index + 1} from ${DAY_LABELS[dayOfWeek]}`}
+                                className="cursor-pointer rounded-md border-none bg-transparent px-1 font-sans text-base leading-none text-tn-muted-5 hover:text-tn-danger"
+                              >
+                                ×
+                              </button>
+                            )}
+                            {index === 0 && (
+                              <button
+                                type="button"
+                                onClick={() => copyToAllDays(dayOfWeek)}
+                                title="Copy these hours to every other day"
+                                aria-label={`Copy ${DAY_LABELS[dayOfWeek]}'s hours to every other day`}
+                                className="cursor-pointer rounded-md border-none bg-transparent px-1 font-sans text-xs text-tn-muted-5 hover:text-tn-ink"
+                              >
+                                ⧉
+                              </button>
+                            )}
+                          </div>
+                          {conflicts && (
+                            <span className="font-sans text-xs text-tn-danger">
+                              Overlapping or consecutive slots aren&rsquo;t permitted
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <span className="pt-1 font-sans text-[13px] text-tn-faint-2">Unavailable</span>
@@ -461,8 +525,17 @@ export function HoursSettingsPage() {
         </section>
       </div>
 
-      <div className="flex justify-end">
-        <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+      <div className="flex items-center justify-end gap-3">
+        {saveError && <p className="m-0 font-sans text-sm text-tn-danger">{saveError}</p>}
+        {!saveError && hasConflicts && (
+          <p className="m-0 font-sans text-sm text-tn-danger">
+            Fix the overlapping or consecutive slots above before saving.
+          </p>
+        )}
+        <Button
+          onClick={() => saveMutation.mutate()}
+          disabled={saveMutation.isPending || hasConflicts}
+        >
           {saveMutation.isPending ? "Saving…" : "Save Changes"}
         </Button>
       </div>

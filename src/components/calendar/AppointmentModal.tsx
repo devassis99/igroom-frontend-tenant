@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { Field, formInputClass, formSelectClass } from "@/components/ui/FormField";
+import { TimePicker } from "@/components/ui/TimePicker";
 import {
   cancelBooking,
   updateBooking,
+  getBookingReviews,
   type Booking,
   type BookingsStaffMember,
 } from "@/lib/bookings-api";
@@ -103,10 +105,38 @@ export function AppointmentModal({
     onError: (err) => setError(err instanceof Error ? err.message : "Couldn't cancel — try again."),
   });
 
+  // Reconciles a still-"confirmed"/"walk_in" appointment once its time has
+  // passed — offered instead of Reschedule/Cancel below, same reasoning as
+  // AppointmentListView.tsx's Past tab.
+  const markStatusMutation = useMutation({
+    mutationFn: (nextStatus: "completed" | "no_show") => {
+      if (!booking) return Promise.reject(new Error("No booking selected"));
+      return updateBooking(accessToken, booking.id, { status: nextStatus });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["bookings-list"] });
+      handleClose();
+    },
+    onError: (err) => setError(err instanceof Error ? err.message : "Couldn't update — try again."),
+  });
+
+  // Only fetched once the appointment's actually past — see
+  // AppointmentListView.tsx's identical reasoning (a customer can't
+  // review a visit that hasn't happened yet).
+  const reviewQuery = useQuery({
+    queryKey: ["bookings-reviews", booking?.id],
+    queryFn: () => getBookingReviews(accessToken, [booking!.id]),
+    enabled: !!booking && new Date(booking.endAt).getTime() < Date.now(),
+  });
+
   if (!booking) return null;
 
   const start = new Date(booking.startAt);
+  const end = new Date(booking.endAt);
   const status = BOOKING_STATUS_TONE[booking.status];
+  const isPast = end.getTime() < Date.now();
+  const review = reviewQuery.data?.reviews[0];
 
   const titles: Record<Mode, string> = {
     detail: "Appointment",
@@ -174,9 +204,72 @@ export function AppointmentModal({
               ))}
             </div>
 
+            {isPast && (
+              <div className="flex flex-col gap-1.5 rounded-xl border border-tn-border p-3.5">
+                <p className="m-0 font-sans text-[11px] font-semibold tracking-wide text-tn-muted-5">
+                  CUSTOMER REVIEW
+                </p>
+                {reviewQuery.isPending ? (
+                  <p className="m-0 font-sans text-[13px] text-tn-faint-2">Loading review…</p>
+                ) : review ? (
+                  <>
+                    <span
+                      aria-label={`${review.rating} out of 5 stars`}
+                      className="font-sans text-[13px] text-tn-gold"
+                    >
+                      {"★".repeat(review.rating)}
+                      <span className="text-tn-border-soft">
+                        {"★".repeat(Math.max(0, 5 - review.rating))}
+                      </span>
+                    </span>
+                    <p
+                      className={`m-0 font-sans text-[13px] ${
+                        review.comment ? "text-tn-ink-soft" : "text-tn-faint-2"
+                      }`}
+                    >
+                      {review.comment || "No written comment"}
+                    </p>
+                  </>
+                ) : (
+                  <p className="m-0 font-sans text-[13px] text-tn-faint-2">No review yet</p>
+                )}
+              </div>
+            )}
+
             {booking.status !== "cancelled" &&
               booking.status !== "completed" &&
-              booking.status !== "no_show" && (
+              booking.status !== "no_show" &&
+              (isPast ? (
+                <div className="flex gap-2.5">
+                  <Button
+                    variant="secondary"
+                    className="flex-1"
+                    disabled={markStatusMutation.isPending}
+                    onClick={() => markStatusMutation.mutate("completed")}
+                  >
+                    Mark completed
+                  </Button>
+                  <Button
+                    variant="danger-outline"
+                    className="flex-1"
+                    disabled={markStatusMutation.isPending}
+                    onClick={() => markStatusMutation.mutate("no_show")}
+                  >
+                    Mark no-show
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="flex-1"
+                    disabled={!booking.customerEmail}
+                    onClick={() => {
+                      if (booking.customerEmail)
+                        window.location.href = `mailto:${booking.customerEmail}`;
+                    }}
+                  >
+                    Message
+                  </Button>
+                </div>
+              ) : (
                 <>
                   <div className="flex gap-2.5">
                     <Button
@@ -209,7 +302,7 @@ export function AppointmentModal({
                     Cancel appointment
                   </button>
                 </>
-              )}
+              ))}
           </>
         )}
 
@@ -237,12 +330,7 @@ export function AppointmentModal({
                 />
               </Field>
               <Field label="NEW TIME">
-                <input
-                  type="time"
-                  className={formInputClass}
-                  value={newTime}
-                  onChange={(e) => setNewTime(e.target.value)}
-                />
+                <TimePicker label="New time" value={newTime} onChange={setNewTime} />
               </Field>
             </div>
 

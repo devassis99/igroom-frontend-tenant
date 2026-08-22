@@ -117,6 +117,10 @@ export interface MeResponse {
     email: string;
     roleId: string | null;
     roleName: string;
+    /** False for a caller who's only ever signed in with Google — see accounts.service.ts's getMeDetails. Drives SecuritySettingsPage's "Set password" vs "Change password" row label. */
+    hasPassword: boolean;
+    /** Whether this caller has TOTP 2FA enabled — see SetPasswordModal.tsx, which asks for an authenticator code instead of emailing one when this is true. */
+    mfaEnabled: boolean;
   };
   /** Permission keys granted to staffUser.roleId — see use-permissions.ts. */
   permissions: string[];
@@ -127,5 +131,47 @@ export interface MeResponse {
 export function getMe(accessToken: string): Promise<MeResponse> {
   return request<MeResponse>("/accounts/me", {
     headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+/**
+ * Security page's Set/Change password flow, step 1 — emails a 6-digit
+ * code to the caller's own address. Only valid when staffUser.mfaEnabled
+ * is false; a caller with 2FA enabled skips this and goes straight to
+ * confirmSetPassword with their authenticator code instead (see
+ * SetPasswordModal.tsx). Throws ApiError(409, ...) if called too soon
+ * after a previous send (accounts.service.ts rate-limits to one a
+ * minute) or while 2FA is actually enabled.
+ */
+export function requestPasswordResetCode(accessToken: string): Promise<void> {
+  return request<void>("/accounts/security/password/request-code", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export interface ConfirmSetPasswordPayload {
+  newPassword: string;
+  /** The emailed code from requestPasswordResetCode — required unless the caller has 2FA enabled. */
+  code?: string;
+  /** The authenticator app code — required only when the caller has 2FA enabled. */
+  totpCode?: string;
+}
+
+/**
+ * Security page's Set/Change password flow, final step — verifies
+ * whichever code was supplied and, on success, sets the new password and
+ * emails a "your password was reset" confirmation. Works the same
+ * whether this is a first-time Set password or a Change password on an
+ * existing one.
+ */
+export function confirmSetPassword(
+  accessToken: string,
+  payload: ConfirmSetPasswordPayload,
+): Promise<void> {
+  return request<void>("/accounts/security/password/confirm", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: payload,
   });
 }

@@ -156,3 +156,147 @@ export function cancelBooking(accessToken: string, bookingId: string): Promise<B
     headers: authHeaders(accessToken),
   });
 }
+
+// --- Day view staff sets ("Front room" / "Colour team" chips) ---
+
+export interface StaffSet {
+  id: string;
+  locationId: string;
+  name: string;
+  staffUserIds: string[];
+  isDefault: boolean;
+  isShared: boolean;
+  createdByStaffUserId: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Every set the caller can see at a location — their own private sets plus every set shared account-wide for it. */
+export function listStaffSets(
+  accessToken: string,
+  locationId?: string,
+): Promise<{ staffSets: StaffSet[] }> {
+  const params = locationId ? `?${new URLSearchParams({ locationId }).toString()}` : "";
+  return request(`/bookings/staff-sets${params}`, { headers: authHeaders(accessToken) });
+}
+
+export interface StaffSetPayload {
+  name: string;
+  staffUserIds: string[];
+  /** Defaults to false (private to the creator) server-side. */
+  isShared?: boolean;
+}
+
+export function createStaffSet(
+  accessToken: string,
+  payload: StaffSetPayload,
+): Promise<{ staffSet: StaffSet }> {
+  return request("/bookings/staff-sets", {
+    method: "POST",
+    body: payload,
+    headers: authHeaders(accessToken),
+  });
+}
+
+export interface StaffSetUpdatePayload {
+  name?: string;
+  staffUserIds?: string[];
+  isShared?: boolean;
+}
+
+/** Rename, member edit, and the share toggle all go through this one PATCH. */
+export function updateStaffSet(
+  accessToken: string,
+  staffSetId: string,
+  payload: StaffSetUpdatePayload,
+): Promise<{ staffSet: StaffSet }> {
+  return request(`/bookings/staff-sets/${staffSetId}`, {
+    method: "PATCH",
+    body: payload,
+    headers: authHeaders(accessToken),
+  });
+}
+
+export function deleteStaffSet(accessToken: string, staffSetId: string): Promise<void> {
+  return request(`/bookings/staff-sets/${staffSetId}`, {
+    method: "DELETE",
+    headers: authHeaders(accessToken),
+  });
+}
+
+/** Persists a full drag-reorder of every set visible to the caller — pass the complete desired order. */
+export function reorderStaffSets(
+  accessToken: string,
+  staffSetIds: string[],
+): Promise<{ staffSets: StaffSet[] }> {
+  return request("/bookings/staff-sets/reorder", {
+    method: "POST",
+    body: { staffSetIds },
+    headers: authHeaders(accessToken),
+  });
+}
+
+export function setDefaultStaffSet(
+  accessToken: string,
+  staffSetId: string,
+  isDefault: boolean,
+): Promise<{ staffSet: StaffSet }> {
+  return request(`/bookings/staff-sets/${staffSetId}/default`, {
+    method: "POST",
+    body: { isDefault },
+    headers: authHeaders(accessToken),
+  });
+}
+
+export interface StaffShift {
+  staffUserId: string;
+  /** Empty when isOff is true. */
+  ranges: { startTime: string; endTime: string }[];
+  isOff: boolean;
+}
+
+/**
+ * Effective working hours on `date` ("YYYY-MM-DD") for each of
+ * `staffUserIds` — a date-specific override wins outright when one
+ * exists, otherwise this falls back to their recurring weekly schedule.
+ * Backs the staff picker's "on shift today" grouping and the Day view's
+ * greyed-out-outside-shift cells.
+ */
+export function getStaffShifts(
+  accessToken: string,
+  date: string,
+  staffUserIds: string[],
+  locationId?: string,
+): Promise<{ shifts: StaffShift[] }> {
+  const params = new URLSearchParams({ date, staffUserIds: staffUserIds.join(",") });
+  if (locationId) params.set("locationId", locationId);
+  return request(`/bookings/staff-shifts?${params.toString()}`, {
+    headers: authHeaders(accessToken),
+  });
+}
+
+export interface BookingReview {
+  bookingId: string;
+  /** 1-5, set by the customer through the marketplace review flow — not editable here. */
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+}
+
+/**
+ * Reviews for a batch of bookings — backs the List view's Past tab and the
+ * appointment detail modal's "What the customer said" section. Only
+ * bookings that actually have a review come back; treat a missing
+ * bookingId as "no review yet" rather than an empty one.
+ */
+export function getBookingReviews(
+  accessToken: string,
+  bookingIds: string[],
+): Promise<{ reviews: BookingReview[] }> {
+  if (bookingIds.length === 0) return Promise.resolve({ reviews: [] });
+  const params = new URLSearchParams({ bookingIds: bookingIds.join(",") });
+  return request(`/bookings/reviews?${params.toString()}`, {
+    headers: authHeaders(accessToken),
+  });
+}

@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { StatusPill } from "@/components/ui/StatusPill";
-import { listBookingsPaged, type Booking } from "@/lib/bookings-api";
+import {
+  listBookingsPaged,
+  updateBooking,
+  getBookingReviews,
+  type Booking,
+  type BookingReview,
+} from "@/lib/bookings-api";
 import { BOOKING_STATUS_BAR, BOOKING_STATUS_TONE } from "@/lib/booking-status";
 import { formatListDateHeader, formatTimeLabel, startOfDay } from "@/lib/calendar-dates";
 
@@ -17,6 +23,7 @@ interface AppointmentListViewProps {
 }
 
 const EMPTY_BOOKINGS: Booking[] = [];
+const EMPTY_REVIEWS: BookingReview[] = [];
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 /**
@@ -36,6 +43,20 @@ export function AppointmentListView({
   const [pageSize, setPageSize] = useState(20);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  const queryClient = useQueryClient();
+
+  // Reconciles a still-"confirmed"/"walk_in" appointment once its time has
+  // passed — see the isPast branch below, which offers this instead of
+  // Reschedule/Cancel (neither makes sense once the slot is behind you).
+  const markStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: "completed" | "no_show" }) =>
+      updateBooking(accessToken, id, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookings-list"] });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    },
+  });
+
   // Any of these changing invalidates whatever page we were on.
   useEffect(() => {
     setPage(1);
@@ -50,6 +71,29 @@ export function AppointmentListView({
   });
 
   const bookings = query.data?.bookings ?? EMPTY_BOOKINGS;
+
+  // Reviews only ever exist for past appointments (a customer can't review
+  // a visit that hasn't happened), so this only runs on the Past tab —
+  // fetched in one batch for whatever page is on screen rather than
+  // per-row, since a row's detail panel stays mounted (just collapsed)
+  // and would otherwise mean a hook-per-row problem inside the .map below.
+  const bookingIdsKey = useMemo(() => bookings.map((b) => b.id).join(","), [bookings]);
+  const reviewsQuery = useQuery({
+    queryKey: ["bookings-reviews", bookingIdsKey],
+    queryFn: () =>
+      getBookingReviews(
+        accessToken,
+        bookings.map((b) => b.id),
+      ),
+    enabled: !!accessToken && tab === "past" && bookings.length > 0,
+  });
+  const reviewsByBookingId = useMemo(() => {
+    const map = new Map<string, BookingReview>();
+    for (const review of reviewsQuery.data?.reviews ?? EMPTY_REVIEWS)
+      map.set(review.bookingId, review);
+    return map;
+  }, [reviewsQuery.data]);
+
   const totalCount = query.data?.totalCount ?? 0;
   const upcomingCount = query.data?.upcomingCount ?? 0;
   const pastCount = query.data?.pastCount ?? 0;
@@ -142,6 +186,10 @@ export function AppointmentListView({
                   booking.status !== "no_show";
                 const start = new Date(booking.startAt);
                 const end = new Date(booking.endAt);
+                // Still "confirmed"/"walk_in" but the slot's already behind us —
+                // needs reconciling (did the client show up or not), not
+                // rescheduling/cancelling into a slot that's already passed.
+                const isPast = end.getTime() < Date.now();
                 return (
                   <div
                     key={booking.id}
@@ -251,6 +299,46 @@ export function AppointmentListView({
                             </p>
                           </div>
 
+                          {isPast &&
+                            (() => {
+                              const review = reviewsByBookingId.get(booking.id);
+                              return (
+                                <div>
+                                  <p className="m-0 font-sans text-[11px] font-semibold tracking-wide text-tn-muted-5">
+                                    CUSTOMER REVIEW
+                                  </p>
+                                  {reviewsQuery.isPending ? (
+                                    <p className="m-0 mt-1 font-sans text-[13px] text-tn-faint-2">
+                                      Loading review…
+                                    </p>
+                                  ) : review ? (
+                                    <div className="mt-1 flex flex-col gap-1">
+                                      <span
+                                        aria-label={`${review.rating} out of 5 stars`}
+                                        className="font-sans text-[13px] text-tn-gold"
+                                      >
+                                        {"★".repeat(review.rating)}
+                                        <span className="text-tn-border-soft">
+                                          {"★".repeat(Math.max(0, 5 - review.rating))}
+                                        </span>
+                                      </span>
+                                      <p
+                                        className={`m-0 font-sans text-[13px] ${
+                                          review.comment ? "text-tn-ink-soft" : "text-tn-faint-2"
+                                        }`}
+                                      >
+                                        {review.comment || "No written comment"}
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <p className="m-0 mt-1 font-sans text-[13px] text-tn-faint-2">
+                                      No review yet
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })()}
+
                           {canManage && (
                             <div className="flex gap-2.5 border-t border-tn-border-soft pt-3">
                               {/* !bg-* pins each button to its own solid background (both
@@ -260,32 +348,77 @@ export function AppointmentListView({
                                 bg-tn-detail-bg instead of the page's default). Sized to
                                 content (no flex-1) and left-aligned, not stretched across
                                 the row. */}
-                              <Button
-                                variant="secondary"
-                                className="!bg-tn-surface hover:!bg-tn-page"
-                                onClick={() => onOpenBooking(booking, "reschedule")}
-                              >
-                                Reschedule
-                              </Button>
-                              <Button
-                                variant="secondary"
-                                className="!bg-tn-surface hover:!bg-tn-page"
-                                disabled={!booking.customerEmail}
-                                onClick={() => {
-                                  if (booking.customerEmail) {
-                                    window.location.href = `mailto:${booking.customerEmail}`;
-                                  }
-                                }}
-                              >
-                                Message client
-                              </Button>
-                              <Button
-                                variant="danger-outline"
-                                className="!bg-tn-danger-bg hover:!opacity-80"
-                                onClick={() => onOpenBooking(booking, "cancel")}
-                              >
-                                Cancel appointment
-                              </Button>
+                              {isPast ? (
+                                <>
+                                  <Button
+                                    variant="secondary"
+                                    className="!bg-tn-surface hover:!bg-tn-page"
+                                    disabled={markStatusMutation.isPending}
+                                    onClick={() =>
+                                      markStatusMutation.mutate({
+                                        id: booking.id,
+                                        status: "completed",
+                                      })
+                                    }
+                                  >
+                                    Mark completed
+                                  </Button>
+                                  <Button
+                                    variant="danger-outline"
+                                    className="!bg-tn-danger-bg hover:!opacity-80"
+                                    disabled={markStatusMutation.isPending}
+                                    onClick={() =>
+                                      markStatusMutation.mutate({
+                                        id: booking.id,
+                                        status: "no_show",
+                                      })
+                                    }
+                                  >
+                                    Mark no-show
+                                  </Button>
+                                  <Button
+                                    variant="secondary"
+                                    className="!bg-tn-surface hover:!bg-tn-page"
+                                    disabled={!booking.customerEmail}
+                                    onClick={() => {
+                                      if (booking.customerEmail) {
+                                        window.location.href = `mailto:${booking.customerEmail}`;
+                                      }
+                                    }}
+                                  >
+                                    Message client
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  <Button
+                                    variant="secondary"
+                                    className="!bg-tn-surface hover:!bg-tn-page"
+                                    onClick={() => onOpenBooking(booking, "reschedule")}
+                                  >
+                                    Reschedule
+                                  </Button>
+                                  <Button
+                                    variant="secondary"
+                                    className="!bg-tn-surface hover:!bg-tn-page"
+                                    disabled={!booking.customerEmail}
+                                    onClick={() => {
+                                      if (booking.customerEmail) {
+                                        window.location.href = `mailto:${booking.customerEmail}`;
+                                      }
+                                    }}
+                                  >
+                                    Message client
+                                  </Button>
+                                  <Button
+                                    variant="danger-outline"
+                                    className="!bg-tn-danger-bg hover:!opacity-80"
+                                    onClick={() => onOpenBooking(booking, "cancel")}
+                                  >
+                                    Cancel appointment
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           )}
                         </div>

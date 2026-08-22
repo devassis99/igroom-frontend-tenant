@@ -70,6 +70,11 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["staff"] });
       queryClient.invalidateQueries({ queryKey: ["staff-performance"] });
+      // See StaffManagementPage's toggleActiveMutation comment — Calendar's
+      // Day view roster is a separate cache entry keyed ["bookings-staff",
+      // locationId], so a name/role/location change wouldn't show up there
+      // without this.
+      queryClient.invalidateQueries({ queryKey: ["bookings-staff"] });
       onClose();
     },
     onError: (err) => {

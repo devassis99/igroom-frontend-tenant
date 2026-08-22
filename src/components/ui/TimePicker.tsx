@@ -10,11 +10,21 @@ interface TimePickerProps {
 }
 
 const GAP = 6;
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
-// 5-minute steps rather than every one of the 60 — matches how booking
-// slots actually get scheduled in practice and keeps the column short
-// enough to scan instead of the native picker's full 00-59 scroll.
-const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5);
+// Close duration must match the tn-popover-out keyframe's own duration
+// (see index.css) — this is what keeps the panel mounted long enough for
+// that animation to actually finish playing before it's removed.
+const POPOVER_OPEN_MS = 150;
+const POPOVER_CLOSE_MS = 120;
+
+// A single flat list of every "HH:mm" 24-hour slot, 15 minutes apart
+// (00:00, 00:15, 00:30 … 23:45 — 96 entries) — one scrollable column of
+// full times to click, rather than two side-by-side hour/minute columns
+// you had to combine yourself. 15 minutes (not 5, like the old minute
+// column) keeps that one list a reasonable length to scroll.
+const TIME_OPTIONS = Array.from({ length: 24 * 4 }, (_, i) => {
+  const totalMinutes = i * 15;
+  return `${pad2(Math.floor(totalMinutes / 60))}:${pad2(totalMinutes % 60)}`;
+});
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
@@ -51,17 +61,18 @@ function ClockIcon() {
   );
 }
 
-function useAnchoredPosition(open: boolean, anchorRef: RefObject<HTMLElement | null>) {
+/** `active` should stay true through a closing animation (not just while genuinely open) — see the `mounted` state below — so the panel doesn't lose its anchored position mid-animation. */
+function useAnchoredPosition(active: boolean, anchorRef: RefObject<HTMLElement | null>) {
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
 
   useLayoutEffect(() => {
-    if (!open || !anchorRef.current) {
+    if (!active || !anchorRef.current) {
       setPosition(null);
       return;
     }
     const rect = anchorRef.current.getBoundingClientRect();
     setPosition({ top: rect.bottom + GAP, left: rect.left });
-  }, [open, anchorRef]);
+  }, [active, anchorRef]);
 
   return position;
 }
@@ -69,7 +80,9 @@ function useAnchoredPosition(open: boolean, anchorRef: RefObject<HTMLElement | n
 /**
  * Replaces the native `<input type="time">` (whose scroll-wheel popup is
  * the OS/browser's own blue-accented UI, not this app's) with an in-app
- * hour/minute picker — same portal/getBoundingClientRect positioning,
+ * time picker — a single scrollable list of 15-minute slots (00:00 through
+ * 23:45) you click once, rather than combining separate hour/minute
+ * columns. Same portal/getBoundingClientRect positioning,
  * outside-click/Escape/resize-close, and gold-accent-on-selection styling
  * as DatePicker.tsx, so the two paired "Staff & Time" fields read as one
  * family instead of one custom control next to one native one. Value
@@ -78,24 +91,40 @@ function useAnchoredPosition(open: boolean, anchorRef: RefObject<HTMLElement | n
  */
 export function TimePicker({ value, onChange, label = "Time", className = "" }: TimePickerProps) {
   const [open, setOpen] = useState(false);
+  // Separate from `open` so the panel can stay in the DOM — and keep
+  // animating — for the brief window after `open` flips false. Without
+  // this the portal below would unmount the instant `open` goes false,
+  // which is what made the popover pop in but just vanish on close.
+  const [mounted, setMounted] = useState(false);
+  const [closing, setClosing] = useState(false);
   const parsed = parseValue(value);
   const anchorRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const hourListRef = useRef<HTMLDivElement>(null);
-  const minuteListRef = useRef<HTMLDivElement>(null);
-  const position = useAnchoredPosition(open, anchorRef);
+  const listRef = useRef<HTMLDivElement>(null);
+  const position = useAnchoredPosition(mounted, anchorRef);
 
-  // Scroll the currently-picked hour/minute into view every time the
-  // popover opens, rather than always starting the columns at the top.
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      setClosing(false);
+      return;
+    }
+    if (!mounted) return;
+    setClosing(true);
+    const timer = window.setTimeout(() => {
+      setMounted(false);
+      setClosing(false);
+    }, POPOVER_CLOSE_MS);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when `open` itself flips; `mounted` is read for its current value below, not tracked as a trigger
+  }, [open]);
+
+  // Scroll the currently-picked time into view every time the popover
+  // opens, rather than always starting the list at 00:00.
   useEffect(() => {
     if (!open) return;
     const raf = requestAnimationFrame(() => {
-      hourListRef.current
-        ?.querySelector('[aria-selected="true"]')
-        ?.scrollIntoView({ block: "center" });
-      minuteListRef.current
-        ?.querySelector('[aria-selected="true"]')
-        ?.scrollIntoView({ block: "center" });
+      listRef.current?.querySelector('[aria-current="true"]')?.scrollIntoView({ block: "center" });
     });
     return () => cancelAnimationFrame(raf);
   }, [open]);
@@ -129,12 +158,9 @@ export function TimePicker({ value, onChange, label = "Time", className = "" }: 
     };
   }, [open]);
 
-  function selectHour(hour: number) {
-    onChange(`${pad2(hour)}:${pad2(parsed?.minute ?? 0)}`);
-  }
-
-  function selectMinute(minute: number) {
-    onChange(`${pad2(parsed?.hour ?? 0)}:${pad2(minute)}`);
+  function selectTime(time: string) {
+    onChange(time);
+    setOpen(false);
   }
 
   const displayValue = parsed ? formatDisplay(parsed.hour, parsed.minute) : "Select a time";
@@ -158,59 +184,53 @@ export function TimePicker({ value, onChange, label = "Time", className = "" }: 
         </span>
       </button>
 
-      {open &&
+      {mounted &&
         position &&
         createPortal(
           <div
             ref={panelRef}
             aria-label={label}
-            className="fixed z-50 overflow-hidden rounded-2xl border border-tn-border bg-tn-surface"
+            className={`fixed z-50 overflow-hidden rounded-2xl border border-tn-border bg-tn-surface ${closing ? "pointer-events-none" : ""}`}
             style={{
               top: position.top,
               left: position.left,
-              width: 176,
+              width: 152,
+              transformOrigin: "top left",
               boxShadow: "0 20px 45px -15px rgba(20,15,5,0.35)",
+              animation: closing
+                ? `tn-popover-out ${POPOVER_CLOSE_MS}ms ease-in forwards`
+                : `tn-popover-in ${POPOVER_OPEN_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`,
             }}
           >
-            <div className="grid grid-cols-2 divide-x divide-tn-border-soft">
-              <div ref={hourListRef} className="max-h-56 overflow-y-auto py-1.5">
-                {HOURS.map((hour) => {
-                  const isSelected = parsed?.hour === hour;
-                  return (
-                    <button
-                      key={hour}
-                      type="button"
-                      onClick={() => selectHour(hour)}
-                      className={`flex w-full cursor-pointer items-center justify-center border-none bg-transparent py-2 font-sans text-[13px] ${
-                        isSelected
-                          ? "font-semibold text-tn-gold"
-                          : "font-medium text-tn-ink-soft hover:bg-tn-page"
-                      }`}
-                    >
-                      {pad2(hour)}
-                    </button>
-                  );
-                })}
-              </div>
-              <div ref={minuteListRef} className="max-h-56 overflow-y-auto py-1.5">
-                {MINUTES.map((minute) => {
-                  const isSelected = parsed?.minute === minute;
-                  return (
-                    <button
-                      key={minute}
-                      type="button"
-                      onClick={() => selectMinute(minute)}
-                      className={`flex w-full cursor-pointer items-center justify-center border-none bg-transparent py-2 font-sans text-[13px] ${
-                        isSelected
-                          ? "font-semibold text-tn-gold"
-                          : "font-medium text-tn-ink-soft hover:bg-tn-page"
-                      }`}
-                    >
-                      {pad2(minute)}
-                    </button>
-                  );
-                })}
-              </div>
+            <div ref={listRef} className="max-h-64 overflow-y-auto py-1.5">
+              {TIME_OPTIONS.map((time) => {
+                const isSelected = value === time;
+                const [hour = 0, minute = 0] = time.split(":").map(Number);
+                return (
+                  <button
+                    key={time}
+                    type="button"
+                    // aria-current (not aria-selected — role-supports-aria-props
+                    // rejects that on a plain <button>'s implicit role="button")
+                    // flags the picked time for both assistive tech and the
+                    // scroll-into-view effect above, which queries this same attribute.
+                    aria-current={isSelected ? "true" : undefined}
+                    onClick={() => selectTime(time)}
+                    // Fixed h-8 (not padding + line-height) pins every row
+                    // to exactly 32px regardless of "Work Sans"'s own font
+                    // metrics — py-1.5 alone barely shrank the rows because
+                    // the font's line-height was doing most of the work, so
+                    // this locks row height down directly instead of fighting it.
+                    className={`flex h-8 w-full cursor-pointer items-center justify-center border-none font-sans text-[13px] leading-none ${
+                      isSelected
+                        ? "bg-tn-gold-bg-soft font-semibold text-tn-gold"
+                        : "bg-transparent font-medium text-tn-ink-soft hover:bg-tn-page"
+                    }`}
+                  >
+                    {formatDisplay(hour, minute)}
+                  </button>
+                );
+              })}
             </div>
           </div>,
           document.body,

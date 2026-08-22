@@ -103,6 +103,11 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["staff"] });
       queryClient.invalidateQueries({ queryKey: ["staff-performance"] });
+      // See StaffManagementPage's toggleActiveMutation comment — Calendar's
+      // Day view roster is a separate cache entry keyed ["bookings-staff",
+      // locationId], so a newly invited member wouldn't show up there
+      // without this.
+      queryClient.invalidateQueries({ queryKey: ["bookings-staff"] });
       handleClose();
     },
     onError: (err) => {

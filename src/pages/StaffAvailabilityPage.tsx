@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { useOnboardingStore } from "@/auth/onboarding-store";
 import { Button } from "@/components/ui/Button";
 import { StepProgress } from "@/components/ui/StepProgress";
+import { TimePicker } from "@/components/ui/TimePicker";
 import type { AvailabilityDay } from "@/lib/availability-api";
 
 const DAY_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -117,20 +118,24 @@ export function StaffAvailabilityPage() {
               </span>
               {d.isEnabled ? (
                 <div className="flex flex-1 items-center gap-2">
-                  <input
-                    type="time"
-                    aria-label={`${DAY_LABELS[d.dayOfWeek]} start time`}
+                  <TimePicker
+                    label={`${DAY_LABELS[d.dayOfWeek]} start time`}
                     value={d.startTime}
-                    onChange={(e) => updateTime(d.dayOfWeek, "startTime", e.target.value)}
-                    className="rounded-lg border border-tn-input-border bg-tn-surface px-2 py-1 font-sans text-[13px] text-tn-ink outline-none focus:border-2 focus:border-tn-gold"
+                    onChange={(next) => updateTime(d.dayOfWeek, "startTime", next)}
+                    // `!` on width, not just padding/text — TimePicker's own trigger
+                    // button is `w-full` by default, and an un-!'d `w-[132px]` here
+                    // loses that specificity fight (Tailwind resolves a tie between
+                    // two single-class selectors by stylesheet order, not by where
+                    // the class sits in this string) — that's what made this field
+                    // balloon to fill its row instead of staying a compact 132px.
+                    className="!w-[132px] !px-2.5 !py-1.5 !text-[13px]"
                   />
                   <span className="font-sans text-xs text-tn-muted-6">to</span>
-                  <input
-                    type="time"
-                    aria-label={`${DAY_LABELS[d.dayOfWeek]} end time`}
+                  <TimePicker
+                    label={`${DAY_LABELS[d.dayOfWeek]} end time`}
                     value={d.endTime}
-                    onChange={(e) => updateTime(d.dayOfWeek, "endTime", e.target.value)}
-                    className="rounded-lg border border-tn-input-border bg-tn-surface px-2 py-1 font-sans text-[13px] text-tn-ink outline-none focus:border-2 focus:border-tn-gold"
+                    onChange={(next) => updateTime(d.dayOfWeek, "endTime", next)}
+                    className="!w-[132px] !px-2.5 !py-1.5 !text-[13px]" // see the start TimePicker's comment above
                   />
                 </div>
               ) : (

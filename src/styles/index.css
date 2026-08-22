@@ -127,3 +127,33 @@ body {
     opacity: 1;
   }
 }
+
+/*
+ * TimePicker/DatePicker-style anchored popovers — referenced by name via
+ * an inline `animation` style, same "keyframes here, applied inline"
+ * pattern as tn-cal-fade-in above. `-out` needs `forwards` wherever it's
+ * used so the panel stays faded/scaled down for the brief unmount delay
+ * that lets the animation actually finish playing, rather than snapping
+ * back to full opacity for one frame before it disappears.
+ */
+@keyframes tn-popover-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes tn-popover-out {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+}
