@@ -289,6 +289,19 @@ export function AppShell() {
               key={item.to}
               to={item.to}
               end
+              // Calendar-only: clicking this link while already on /calendar is a
+              // same-route navigation — the route doesn't change, so CalendarPage
+              // stays mounted and whatever day/scroll position the user had paged
+              // to (e.g. next week, scrolled away from "now") just sits there.
+              // Stamping a fresh `resetToken` in navigation state on every click
+              // still updates `location.state` (a new history entry, new key)
+              // even when the pathname is unchanged, which is what lets
+              // CalendarPage's own effect (see its `useLocation` usage) notice
+              // the click and jump back to today, exactly like its "Today"
+              // button already does. Other nav items don't need this — their
+              // pages don't carry the same "date you were last looking at"
+              // state that a plain route remount wouldn't already reset.
+              state={item.to === "/calendar" ? { resetToken: Date.now() } : undefined}
               title={collapsed ? item.label : undefined}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-6 py-[11px] font-sans text-[13px] ${

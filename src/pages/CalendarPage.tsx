@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
@@ -11,6 +11,7 @@ import { AddBookingModal } from "@/components/calendar/AddBookingModal";
 import { StaffFilterBar } from "@/components/calendar/StaffFilterBar";
 import { ManageStaffSetsModal } from "@/components/calendar/ManageStaffSetsModal";
 import { useAuthStore } from "@/auth/auth-store";
+import { usePermissions } from "@/auth/use-permissions";
 import {
   listBookings,
   listStaff,
@@ -125,6 +126,16 @@ const DAY_GUTTER_WIDTH_PX = 74;
 // squeezing every column unreadably thin.
 const DAY_COLUMN_WIDTH = "minmax(200px, 320px)";
 
+// The trailing "Invite staff" column — unlike the fixed-ceiling staff
+// columns above, this one is a genuine `1fr` track so it soaks up
+// whatever's left once every staff column has grown to its 320px cap
+// (that's the whole point: a brand-new account with just the owner's
+// column gets one wide, roomy invite prompt rather than a cramped
+// 320px-wide one). Once staff columns fill the container this shrinks to
+// its own 240px floor and sits past the horizontal scroll, same as any
+// other column would.
+const DAY_INVITE_COLUMN_WIDTH = "minmax(240px, 1fr)";
+
 interface AddBookingRequest {
   defaultDate: Date;
   defaultStaffId?: string;
@@ -134,6 +145,9 @@ interface AddBookingRequest {
 /** Matches the mockup's T7 / T7-week / T7-month Calendar frames, plus the T7c/d/e appointment modal — now backed by real igroom-backend data instead of hardcoded arrays. */
 export function CalendarPage() {
   const accessToken = useAuthStore((s) => s.accessToken);
+  const { has: hasPermission } = usePermissions();
+  const canManageStaff = hasPermission("staff.manage");
+  const location = useLocation();
 
   const [view, setView] = useState<View>("day");
   const [cursorDate, setCursorDate] = useState(() => new Date());
@@ -380,33 +394,12 @@ export function CalendarPage() {
    * failing that, every active staff member shows — same three-tier
    * "override > configured default > fallback" shape as the timezone
    * resolution above.
-   *
-   * Both the explicit pick and the default set get reconciled against the
-   * *current* roster first — an id from before someone was deactivated (or
-   * from before they'd claimed their invite, now that listStaffForLocation
-   * requires that too) would otherwise linger in a saved selection forever,
-   * inflating the picker's "Staff: N of M" count past M and outliving the
-   * person it pointed to. Skipped while `staff` is still the empty-loading
-   * sentinel, so a slow first fetch doesn't look like everyone dropped out.
    */
   const effectiveStaffIds = useMemo(() => {
-    const activeIds = new Set(staff.map((s) => s.id));
-    const reconcile = (ids: string[]) =>
-      staff.length > 0 ? ids.filter((id) => activeIds.has(id)) : ids;
-
-    if (selectedStaffIds !== null) {
-      const reconciled = reconcile(selectedStaffIds);
-      if (reconciled.length > 0 || staff.length === 0) return new Set(reconciled);
-      // Every previously-selected id has fallen out of the roster — fall
-      // through to the same default-set/all-active tiers as "no explicit
-      // choice", rather than showing an impossible empty selection.
-    }
+    if (selectedStaffIds !== null) return new Set(selectedStaffIds);
     const defaultSet = staffSets.find((s) => s.isDefault);
-    if (defaultSet) {
-      const reconciled = reconcile(defaultSet.staffUserIds);
-      if (reconciled.length > 0 || staff.length === 0) return new Set(reconciled);
-    }
-    return activeIds;
+    if (defaultSet) return new Set(defaultSet.staffUserIds);
+    return new Set(staff.map((s) => s.id));
   }, [selectedStaffIds, staffSets, staff]);
 
   function goPrev() {
@@ -425,6 +418,25 @@ export function CalendarPage() {
     setNavDirection("fade");
     setCursorDate(new Date());
   }
+  // AppShell's sidebar "Calendar" link stamps a fresh `resetToken` into
+  // navigation state on every click (see its own comment) specifically so
+  // this can tell "the user clicked Calendar again" apart from every other
+  // reason this page re-renders — a click while already on /calendar is a
+  // same-route navigation, so the component stays mounted and cursorDate
+  // wouldn't otherwise reset just because the user meant "take me back to
+  // now". Reusing goToday() here means this gets the exact same "jump to
+  // today" + "let the scroll-to-now effect re-fire" behavior the header's
+  // own Today button already has, instead of a second copy of that logic.
+  const navResetToken = (location.state as { resetToken?: number } | null)?.resetToken;
+  useEffect(() => {
+    // Guarded on the token being present (not just any location.state
+    // change) so a fresh page load — no state at all — doesn't call this
+    // redundantly; harmless either way since cursorDate already starts on
+    // today, but there's no reason to.
+    if (navResetToken === undefined) return;
+    goToday();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only the token itself should retrigger this, not goToday's identity
+  }, [navResetToken]);
   function handleViewChange(next: View) {
     setNavDirection("fade");
     setView(next);
@@ -509,7 +521,10 @@ export function CalendarPage() {
   // pixel-for-pixel aligned — fixed-width columns (see DAY_COLUMN_WIDTH)
   // mean this can genuinely overflow the card's width once there are enough
   // staff, which is what turns on the outer container's horizontal scroll.
-  const dayGridColumns = `${DAY_GUTTER_WIDTH_PX}px repeat(${Math.max(dayColumns.length, 1)}, ${DAY_COLUMN_WIDTH})`;
+  // The trailing invite track only exists for someone who can actually
+  // invite anyone — without staff.manage there's nothing to click, so no
+  // point reserving the space.
+  const dayGridColumns = `${DAY_GUTTER_WIDTH_PX}px repeat(${Math.max(dayColumns.length, 1)}, ${DAY_COLUMN_WIDTH})${canManageStaff ? ` ${DAY_INVITE_COLUMN_WIDTH}` : ""}`;
 
   /** [staffId__slotHHmm] -> booking, floored to the slot it starts in — lets a booking at 1:05 still land in the 1:00 row. */
   const dayBookingsBySlot = useMemo(() => {
@@ -624,18 +639,56 @@ export function CalendarPage() {
     return (minutesFromStart / 30) * DAY_SLOT_HEIGHT_PX;
   }, [view, daySlots, cursorDate, now, timezone]);
 
+  // Arms the scroll-to-now effect below once per Day-view entry/day
+  // switch/timezone/location change — reset here, consumed (and flipped
+  // back on) there, so that effect can tell "haven't landed on `now` yet
+  // for this day" apart from "already landed, don't yank the user's
+  // scroll position back out from under them" without re-running on every
+  // `now` tick or staff refetch.
+  // `selectedLocationId` is in this list for a subtler reason than the
+  // others: the grid section below is keyed on
+  // `${view}-${selectedLocationId}-${cursorDate.toDateString()}` (see its
+  // own comment), and `selectedLocationId` starts as "" and flips to the
+  // account's real default location id the moment the locations query
+  // resolves (a few lines up). That key change unmounts and remounts the
+  // ENTIRE grid section — including the scrollable Day container the
+  // effect below targets — via a fresh DOM node with scrollTop back at 0.
+  // On a fast/cached load, staffQuery could already resolve and this
+  // effect could already run (and mark scrolledToNowRef done) against the
+  // *old*, about-to-be-discarded container before that remount happens,
+  // permanently stranding the fresh one at the top with no further
+  // trigger to retry — exactly the "works on refresh 1, not on refresh 2"
+  // flakiness this was reported as. Resetting here on every
+  // selectedLocationId change closes that window: whichever container is
+  // live when this fires next gets the scroll.
+  const scrolledToNowRef = useRef(false);
+  useEffect(() => {
+    scrolledToNowRef.current = false;
+  }, [view, cursorDate, timezone, selectedLocationId]);
+
   // Lands the current time roughly a third of the way down the visible
   // grid on entering Day view or switching days — same landing spot
   // Google Calendar's Day view opens to — rather than requiring a manual
-  // scroll to find "now". Deliberately NOT re-run on every `now` tick
-  // (see deps below) so it doesn't yank the user's scroll position back
-  // out from under them every 30 seconds while they're looking at it.
+  // scroll to find "now". Gated on `staffQuery.isPending` rather than
+  // firing the instant the scroll container mounts: on a fresh page load
+  // the container renders before staff/bookings resolve, so the grid's
+  // rows (and therefore its real scrollHeight) aren't there yet — scrolling
+  // then just gets silently clamped back to 0 by the browser, and since
+  // this used to depend only on [view, cursorDate, timezone], nothing
+  // re-triggered it once the real content actually arrived, leaving the
+  // view stuck at the top. Re-checking on every `nowLineOffsetPx` change
+  // (which ticks with `now`) is safe because scrolledToNowRef makes every
+  // run after the first a no-op instead of repeatedly resetting scroll.
+  // Also re-checks on `selectedLocationId` itself (not just via the reset
+  // above) so a remount caused by the location defaulting in gets an
+  // immediate retry instead of waiting for the next unrelated `now` tick.
   useEffect(() => {
-    if (view !== "day" || nowLineOffsetPx === null || !dayScrollRef.current) return;
+    if (view !== "day" || scrolledToNowRef.current) return;
+    if (staffQuery.isPending || nowLineOffsetPx === null || !dayScrollRef.current) return;
     const container = dayScrollRef.current;
     container.scrollTop = Math.max(0, nowLineOffsetPx - container.clientHeight / 3);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally excludes nowLineOffsetPx/daySlots so re-renders while viewing don't reset scroll
-  }, [view, cursorDate, timezone]);
+    scrolledToNowRef.current = true;
+  }, [view, staffQuery.isPending, nowLineOffsetPx, selectedLocationId]);
 
   // Clear the row highlight(s) on any day/view change — otherwise a row
   // selected on one day could visually "reappear" selected on another day
@@ -844,24 +897,99 @@ export function CalendarPage() {
                       </div>
                     );
                   })}
+                  {canManageStaff && (
+                    <Link
+                      to="/staff"
+                      className="flex items-center gap-2 border-l border-dashed border-tn-input-border p-3 font-sans text-[13px] font-semibold text-tn-blue no-underline hover:bg-tn-page"
+                    >
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-dashed border-tn-blue text-xs">
+                        +
+                      </span>
+                      Add team member
+                    </Link>
+                  )}
                 </div>
 
                 <div className="relative">
                   {/* Google Calendar-style "now" line — a dot at the hour gutter's right edge plus a line
                       spanning the staff columns, positioned in px (see DAY_SLOT_HEIGHT_PX/nowLineOffsetPx)
                       rather than as a real grid row, so it can sit *between* two rows without disturbing
-                      the booking grid's own layout. */}
+                      the booking grid's own layout. Wrapped in the same dayGridColumns grid the rows/header
+                      use (rather than a plain `inset-x-0` + flex-1 fill, which used to stretch the line all
+                      the way across the invite/"Add team member" track too) and spanned only through the
+                      last real staff track, so — like the past-dulled row background and the invite overlay
+                      itself — the line stops where the actual staff columns end. */}
                   {nowLineOffsetPx !== null && (
                     <div
-                      className="pointer-events-none absolute inset-x-0 z-[5]"
-                      style={{ top: nowLineOffsetPx }}
+                      className="pointer-events-none absolute inset-x-0 z-[5] grid"
+                      style={{ top: nowLineOffsetPx, gridTemplateColumns: dayGridColumns }}
                     >
                       <div
                         className="flex items-center"
-                        style={{ marginLeft: DAY_GUTTER_WIDTH_PX }}
+                        style={{
+                          gridColumn: canManageStaff
+                            ? `1 / ${Math.max(dayColumns.length, 1) + 2}`
+                            : "1 / -1",
+                          marginLeft: DAY_GUTTER_WIDTH_PX,
+                        }}
                       >
                         <span className="h-2.5 w-2.5 shrink-0 -translate-x-1/2 rounded-full bg-tn-danger" />
                         <span className="h-px flex-1 bg-tn-danger" />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* The invite prompt itself — an overlay using the exact same
+                      dayGridColumns template as the header/rows rather than any
+                      measured pixel math, so it lands in the invite track no
+                      matter how wide the staff columns before it have grown.
+                      Matches Day View Merged.dc.html's frame C, which centers
+                      this card (both axes) within its column — but that mockup's
+                      grid is only 5 rows tall, so plain centering lands the card
+                      mid-page there. A real day can run to many more rows than
+                      fit in the `max-h-[640px]` scroll container, so centering
+                      within the *full* (scrollable) column would often push the
+                      card below the fold.
+                      Outer wrapper is `sticky top-0` with `h-0` — zero height so
+                      it takes up no space in flow (an earlier version gave *this*
+                      div the `h-[640px]`, which being `sticky` — still in-flow,
+                      unlike `absolute` — pushed every hour row down by 640px of
+                      blank space). The actual 640px band lives on the *inner*
+                      grid instead, which overflows its zero-height sticky parent
+                      without affecting any sibling's position — the same trick
+                      the header row's stickiness relies on, just with the height
+                      moved down a level. Centering the card inside that inner
+                      band reproduces the mockup's centered look while it stays in
+                      view instead of scrolling away with the hour rows beneath it. */}
+                  {canManageStaff && (
+                    <div className="pointer-events-none sticky top-0 z-[6] h-0">
+                      <div
+                        className="grid h-[640px]"
+                        style={{ gridTemplateColumns: dayGridColumns }}
+                      >
+                        <div
+                          className="pointer-events-auto flex flex-col items-center gap-2 self-center justify-self-center rounded-2xl border border-dashed border-tn-input-border bg-tn-page px-6 py-8 text-center"
+                          // The `repeat(...)` count in dayGridColumns floors at 1 staff
+                          // track even when dayColumns is empty (an all-deselected
+                          // picker) — match that floor here too, or this would target
+                          // one track short of where the invite column actually is.
+                          style={{ gridColumn: Math.max(dayColumns.length, 1) + 2 }}
+                        >
+                          <span className="font-sans text-[14px] font-semibold text-tn-ink">
+                            One column per team member
+                          </span>
+                          <span className="max-w-[260px] font-sans text-xs text-tn-muted-5">
+                            Invite your barbers and each gets a 200px column here. Past five,
+                            columns hold their width and the grid scrolls — the staff picker above
+                            chooses who&rsquo;s in view.
+                          </span>
+                          <Link
+                            to="/staff"
+                            className="mt-1 cursor-pointer rounded-lg border-none bg-tn-dark px-4 py-2.5 font-sans text-[13px] font-semibold text-tn-on-dark no-underline"
+                          >
+                            Invite staff
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -964,6 +1092,26 @@ export function CalendarPage() {
                             </div>
                           );
                         })}
+                        {canManageStaff && (
+                          // The invite/ghost track (see the "One column per team
+                          // member" overlay above) isn't tied to any staff member's
+                          // time or booking state, so it shouldn't pick up the row's
+                          // own `rowBg` (past-dulled / selected) tint. Without an
+                          // explicit cell here, `dayColumns.map` above leaves that
+                          // track's slice of the row empty, and the row div's own
+                          // background — sized to span every `dayGridColumns` track,
+                          // invite track included — shows through. This cell just
+                          // paints over that slice with the neutral default so only
+                          // real staff columns ever look dulled/selected.
+                          // No `border-b` here (unlike the real staff cells) — this
+                          // track has no per-slot content of its own, so the repeating
+                          // hour dividers just read as a broken/half-finished grid;
+                          // it reads cleaner as one continuous blank strip.
+                          <div
+                            className="border-l border-tn-border-soft bg-tn-surface"
+                            style={{ gridColumn: Math.max(dayColumns.length, 1) + 2 }}
+                          />
+                        )}
                       </div>
                     );
                   })}
