@@ -4,6 +4,7 @@ import { useOnboardingStore } from "@/auth/onboarding-store";
 import { useAuthStore } from "@/auth/auth-store";
 import { Button } from "@/components/ui/Button";
 import { Field, formInputClass } from "@/components/ui/FormField";
+import { OtpInput } from "@/components/ui/OtpInput";
 import { StepProgress } from "@/components/ui/StepProgress";
 import { renderGoogleButton } from "@/lib/google-identity";
 import { getMe, loginWithGoogle, confirmMfaLoginChallenge } from "@/lib/accounts-api";
@@ -31,11 +32,6 @@ export function CreateAccountPage() {
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
   const [mfaCode, setMfaCode] = useState("");
   const [mfaSubmitting, setMfaSubmitting] = useState(false);
-  const mfaInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (challengeToken) mfaInputRef.current?.focus();
-  }, [challengeToken]);
 
   /** Shared by the direct "ok" outcome and the 2FA challenge below — a returning owner's Google identity resolved to a real session either way. */
   async function completeReturningOwnerLogin(accessToken: string, refreshToken: string) {
@@ -61,13 +57,17 @@ export function CreateAccountPage() {
     navigate("/redirecting", { state: { to: "/dashboard" } });
   }
 
-  async function handleMfaSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!challengeToken || mfaCode.length !== 6) return;
+  /**
+   * Takes the code directly (rather than a FormEvent) so OtpInput's
+   * onComplete can auto-submit the moment the 6th digit lands, matching
+   * the backoffice app's MfaChallengePage — same as LoginPage.tsx.
+   */
+  async function submitMfaCode(code: string) {
+    if (!challengeToken || code.length !== 6 || mfaSubmitting) return;
     setError(null);
     setMfaSubmitting(true);
     try {
-      const tokens = await confirmMfaLoginChallenge(challengeToken, mfaCode);
+      const tokens = await confirmMfaLoginChallenge(challengeToken, code);
       await completeReturningOwnerLogin(tokens.accessToken, tokens.refreshToken);
     } catch (err) {
       const message =
@@ -75,6 +75,7 @@ export function CreateAccountPage() {
           ? err.message
           : "Something went wrong verifying your code. Try again.";
       setError(message);
+      setMfaCode("");
     } finally {
       setMfaSubmitting(false);
     }
@@ -164,37 +165,39 @@ export function CreateAccountPage() {
 
   if (challengeToken) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-tn-surface px-6 py-12">
-        <form onSubmit={handleMfaSubmit} className="flex w-[420px] flex-col gap-6">
-          <div>
-            <h1 className="m-0 mb-1.5 font-serif text-[28px] font-semibold text-tn-ink">
-              Enter your code
-            </h1>
-            <p className="m-0 font-sans text-[13px] text-tn-muted-5">
+      <div className="flex min-h-screen items-center justify-center bg-tn-page px-4">
+        <div className="flex w-[380px] flex-col gap-6">
+          <div className="flex flex-col items-center gap-1.5 text-center">
+            <p className="m-0 font-serif text-2xl font-semibold text-tn-ink">
+              Enter verification code
+            </p>
+            <p className="m-0 font-sans text-[13px] text-tn-muted-3">
               This Google account already has an iGroom shop — open your authenticator app and enter
-              the 6-digit code to log in.
+              the current code.
             </p>
           </div>
 
-          <Field label="AUTHENTICATOR CODE">
-            <input
-              ref={mfaInputRef}
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
+          <div className="flex flex-col gap-[18px] rounded-2xl border border-tn-border bg-tn-surface p-[26px]">
+            <OtpInput
               value={mfaCode}
-              onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ""))}
-              placeholder="6-digit code"
-              className={formInputClass}
+              onChange={setMfaCode}
+              onComplete={submitMfaCode}
+              disabled={mfaSubmitting}
             />
-          </Field>
+            <Button
+              size="lg"
+              onClick={() => submitMfaCode(mfaCode)}
+              disabled={mfaSubmitting || mfaCode.length !== 6}
+            >
+              {mfaSubmitting ? "Verifying…" : "Verify & sign in"}
+            </Button>
+          </div>
 
-          {error && <p className="m-0 font-sans text-xs text-tn-danger">{error}</p>}
-
-          <Button type="submit" size="lg" disabled={mfaSubmitting || mfaCode.length !== 6}>
-            {mfaSubmitting ? "Verifying…" : "Verify and log in"}
-          </Button>
+          {error && (
+            <p role="alert" className="m-0 text-center font-sans text-sm text-tn-danger">
+              {error}
+            </p>
+          )}
 
           <button
             type="button"
@@ -207,7 +210,7 @@ export function CreateAccountPage() {
           >
             Back
           </button>
-        </form>
+        </div>
       </div>
     );
   }

@@ -1,4 +1,5 @@
 import { useAuthStore } from "@/auth/auth-store";
+import { router } from "@/routes/router";
 import { env } from "./env";
 
 export class ApiError extends Error {
@@ -124,10 +125,15 @@ function refreshTokens(): Promise<TokenPair> {
  * picks up the new one too, and retries the original call exactly once
  * with the new token. If the refresh itself fails (refresh token expired,
  * revoked, or missing — e.g. the owner is truly logged out elsewhere),
- * this clears the session so ProtectedRoute (routes/ProtectedRoute.tsx)
- * redirects to the login screen on the next render, and surfaces the
- * *original* 401 to the caller rather than the internal refresh failure —
- * that's the error the page's own error state was already built to show.
+ * this clears the session and sends the browser straight to /login via
+ * the router's own `navigate` (this module sits outside the component
+ * tree, so it can't use the `useNavigate` hook AppShell's and
+ * ActiveSessionsModal's logout handlers use) — ProtectedRoute
+ * (routes/ProtectedRoute.tsx) redirects anonymous access to /login on its
+ * own too, so this is just a faster, more direct path there rather than
+ * waiting on that fallback. The *original* 401 is still surfaced to the
+ * caller rather than the internal refresh failure — that's the error the
+ * page's own error state was already built to show.
  */
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   try {
@@ -153,6 +159,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
       });
     } catch {
       useAuthStore.getState().logOut();
+      void router.navigate("/login");
       throw err;
     }
   }

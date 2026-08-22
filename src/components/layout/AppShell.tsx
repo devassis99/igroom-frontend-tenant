@@ -250,10 +250,11 @@ export function AppShell() {
     }
   }
 
-  // ProtectedRoute (see routes/ProtectedRoute.tsx) redirects to "/" for
-  // any anonymous visit, but a deliberate logout should land on the
-  // login form specifically, not the marketing landing page — the owner
-  // just proved they have an account.
+  // ProtectedRoute (see routes/ProtectedRoute.tsx) now redirects any
+  // anonymous access to "/login" itself, so this explicit call is
+  // belt-and-suspenders rather than load-bearing — it just gets there
+  // one render sooner instead of waiting on ProtectedRoute's own
+  // redirect once logOut() flips the store's status.
   function handleLogOut() {
     logOut();
     navigate("/login");

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { useAuthStore } from "@/auth/auth-store";
 import { Button } from "@/components/ui/Button";
 import { Field, formInputClass } from "@/components/ui/FormField";
+import { OtpInput } from "@/components/ui/OtpInput";
 import { renderGoogleButton } from "@/lib/google-identity";
 import { getMe, login, loginWithGoogle, confirmMfaLoginChallenge } from "@/lib/accounts-api";
 import { env } from "@/lib/env";
@@ -29,14 +30,6 @@ export function LoginPage() {
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
   const [mfaCode, setMfaCode] = useState("");
   const [mfaSubmitting, setMfaSubmitting] = useState(false);
-  const mfaInputRef = useRef<HTMLInputElement>(null);
-
-  // Replaces an autoFocus prop on the code input (jsx-a11y/no-autofocus
-  // objects to it outright) — fires exactly when the challenge step
-  // appears, same as autoFocus would have.
-  useEffect(() => {
-    if (challengeToken) mfaInputRef.current?.focus();
-  }, [challengeToken]);
 
   /**
    * Shared by both the password and Google paths once a real session
@@ -96,14 +89,19 @@ export function LoginPage() {
     }
   }
 
-  /** The 2FA step, shown instead of the main form once challengeToken is set — same completeLogin hand-off as the two identity checks above. */
-  async function handleMfaSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!challengeToken || mfaCode.length !== 6) return;
+  /**
+   * The 2FA step, shown instead of the main form once challengeToken is
+   * set — same completeLogin hand-off as the two identity checks above.
+   * Takes the code directly (rather than a FormEvent) so OtpInput's
+   * onComplete can auto-submit the moment the 6th digit lands, matching
+   * the backoffice app's MfaChallengePage.
+   */
+  async function submitMfaCode(code: string) {
+    if (!challengeToken || code.length !== 6 || mfaSubmitting) return;
     setError(null);
     setMfaSubmitting(true);
     try {
-      const tokens = await confirmMfaLoginChallenge(challengeToken, mfaCode);
+      const tokens = await confirmMfaLoginChallenge(challengeToken, code);
       await completeLogin(tokens.accessToken, tokens.refreshToken);
     } catch (err) {
       const message =
@@ -111,6 +109,7 @@ export function LoginPage() {
           ? err.message
           : "Something went wrong verifying your code. Try again.";
       setError(message);
+      setMfaCode("");
     } finally {
       setMfaSubmitting(false);
     }
@@ -173,36 +172,38 @@ export function LoginPage() {
 
   if (challengeToken) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-tn-surface px-6 py-12">
-        <form onSubmit={handleMfaSubmit} className="flex w-[420px] flex-col gap-6">
-          <div>
-            <h1 className="m-0 mb-1.5 font-serif text-[28px] font-semibold text-tn-ink">
-              Enter your code
-            </h1>
-            <p className="m-0 font-sans text-[13px] text-tn-muted-5">
-              Open your authenticator app and enter the 6-digit code for iGroom.
+      <div className="flex min-h-screen items-center justify-center bg-tn-page px-4">
+        <div className="flex w-[380px] flex-col gap-6">
+          <div className="flex flex-col items-center gap-1.5 text-center">
+            <p className="m-0 font-serif text-2xl font-semibold text-tn-ink">
+              Enter verification code
+            </p>
+            <p className="m-0 font-sans text-[13px] text-tn-muted-3">
+              Open your authenticator app and enter the current code.
             </p>
           </div>
 
-          <Field label="AUTHENTICATOR CODE">
-            <input
-              ref={mfaInputRef}
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
+          <div className="flex flex-col gap-[18px] rounded-2xl border border-tn-border bg-tn-surface p-[26px]">
+            <OtpInput
               value={mfaCode}
-              onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ""))}
-              placeholder="6-digit code"
-              className={formInputClass}
+              onChange={setMfaCode}
+              onComplete={submitMfaCode}
+              disabled={mfaSubmitting}
             />
-          </Field>
+            <Button
+              size="lg"
+              onClick={() => submitMfaCode(mfaCode)}
+              disabled={mfaSubmitting || mfaCode.length !== 6}
+            >
+              {mfaSubmitting ? "Verifying…" : "Verify & sign in"}
+            </Button>
+          </div>
 
-          {error && <p className="m-0 font-sans text-xs text-tn-danger">{error}</p>}
-
-          <Button type="submit" size="lg" disabled={mfaSubmitting || mfaCode.length !== 6}>
-            {mfaSubmitting ? "Verifying…" : "Verify and log in"}
-          </Button>
+          {error && (
+            <p role="alert" className="m-0 text-center font-sans text-sm text-tn-danger">
+              {error}
+            </p>
+          )}
 
           <button
             type="button"
@@ -215,7 +216,7 @@ export function LoginPage() {
           >
             Back to log in
           </button>
-        </form>
+        </div>
       </div>
     );
   }
