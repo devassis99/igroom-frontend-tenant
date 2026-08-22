@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Field, formInputClass } from "@/components/ui/FormField";
+import { OtpInput } from "@/components/ui/OtpInput";
 import { ApiError } from "@/lib/http";
 import { requestPasswordResetCode, confirmSetPassword } from "@/lib/accounts-api";
 
@@ -128,16 +129,7 @@ export function SetPasswordModal({
 
         {mfaEnabled ? (
           <Field label="AUTHENTICATOR CODE">
-            <input
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              value={totpCode}
-              onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ""))}
-              placeholder="6-digit code"
-              className={formInputClass}
-            />
+            <OtpInput value={totpCode} onChange={setTotpCode} disabled={submitting} />
           </Field>
         ) : (
           <div className="flex flex-col gap-1.5">
