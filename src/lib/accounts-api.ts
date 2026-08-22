@@ -241,3 +241,52 @@ export function disableMfa(accessToken: string, code: string): Promise<void> {
     body: { code },
   });
 }
+
+export interface Session {
+  id: string;
+  /** Raw User-Agent header from when this session's current token was issued — see ActiveSessionsModal.tsx's describeUserAgent for the friendly label. Null for a session issued before this was tracked. */
+  userAgent: string | null;
+  /** When this session's *current* token was issued — refreshes roughly every 15 minutes of active use, so this reads as "last active", not "first signed in". */
+  createdAt: string;
+  /** True for the session this browser is asking from right now. */
+  isCurrent: boolean;
+}
+
+/**
+ * Security page's "Active sessions" row — lists every currently-valid
+ * session for the caller. Passing the caller's own refreshToken (from
+ * auth-store) lets the backend flag which entry is "this device" via
+ * isCurrent, purely so the UI can warn before someone revokes the
+ * session they're looking at it from.
+ */
+export function listSessions(
+  accessToken: string,
+  currentRefreshToken?: string,
+): Promise<{ sessions: Session[] }> {
+  return request<{ sessions: Session[] }>("/accounts/security/sessions", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      ...(currentRefreshToken ? { "X-Refresh-Token": currentRefreshToken } : {}),
+    },
+  });
+}
+
+/** Security page's "Active sessions" row — logs out one specific session (its own "Log out" button). */
+export function revokeSession(accessToken: string, sessionId: string): Promise<void> {
+  return request<void>(`/accounts/security/sessions/${sessionId}/revoke`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+/** Security page's "Active sessions" row — "Log out of all other sessions", keeping the caller's own session alive. */
+export function revokeOtherSessions(
+  accessToken: string,
+  currentRefreshToken: string,
+): Promise<void> {
+  return request<void>("/accounts/security/sessions/revoke-others", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: { currentRefreshToken },
+  });
+}
