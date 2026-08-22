@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { usePermissions } from "@/auth/use-permissions";
 import { useAuthStore } from "@/auth/auth-store";
 import { SetPasswordModal } from "@/components/settings/SetPasswordModal";
+import { TwoFactorSetupModal } from "@/components/settings/TwoFactorSetupModal";
 import { SuccessToast } from "@/components/ui/Toast";
 
 /**
@@ -16,9 +17,12 @@ import { SuccessToast } from "@/components/ui/Toast";
  *
  * Clicking that row opens SetPasswordModal, which asks for an emailed or
  * authenticator code (staffUser.mfaEnabled decides which — see that
- * component) before letting the new password through; the other two rows
- * stay static, matching the mockup (neither has a real flow behind it
- * yet).
+ * component) before letting the new password through. "Two-factor
+ * authentication" opens TwoFactorSetupModal, which enrolls (QR code + a
+ * confirming code) or turns 2FA off (a live code) depending on that same
+ * mfaEnabled flag — once enabled, login itself starts requiring a code
+ * too (see LoginPage.tsx). "Active sessions" stays static, matching the
+ * mockup — no real flow behind it yet.
  */
 export function SecuritySettingsPage() {
   const { staffUser, isLoading } = usePermissions();
@@ -28,6 +32,7 @@ export function SecuritySettingsPage() {
   const mfaEnabled = staffUser?.mfaEnabled ?? false;
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [mfaModalOpen, setMfaModalOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const rows = [
@@ -36,7 +41,11 @@ export function SecuritySettingsPage() {
       detail: hasPassword ? null : "No password set — you sign in with Google",
       onClick: () => setModalOpen(true),
     },
-    { label: "Two-factor authentication", detail: "Not enabled", onClick: undefined },
+    {
+      label: "Two-factor authentication",
+      detail: mfaEnabled ? "Enabled" : "Not enabled",
+      onClick: () => setMfaModalOpen(true),
+    },
     { label: "Active sessions", detail: null, onClick: undefined },
   ];
 
@@ -82,6 +91,25 @@ export function SecuritySettingsPage() {
             // "Set password" until the next full page load.
             queryClient.invalidateQueries({ queryKey: ["me", "permissions"] });
             setToast("Password updated — we've emailed you a confirmation.");
+          }}
+        />
+      )}
+
+      {accessToken && (
+        <TwoFactorSetupModal
+          open={mfaModalOpen}
+          onClose={() => setMfaModalOpen(false)}
+          accessToken={accessToken}
+          mfaEnabled={mfaEnabled}
+          onSuccess={(justEnabled) => {
+            // Same refetch-so-the-row-updates-immediately reasoning as
+            // SetPasswordModal's onSuccess above.
+            queryClient.invalidateQueries({ queryKey: ["me", "permissions"] });
+            setToast(
+              justEnabled
+                ? "Two-factor authentication enabled — we've emailed you a confirmation."
+                : "Two-factor authentication turned off — we've emailed you a confirmation.",
+            );
           }}
         />
       )}

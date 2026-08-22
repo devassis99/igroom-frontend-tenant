@@ -12,8 +12,15 @@ export interface TokenPair {
   refreshToken: string;
 }
 
+/** Returned by /accounts/login and /accounts/google when the account has 2FA enabled — password/Google identity checked out, but a live authenticator code is still needed. See confirmMfaLoginChallenge below. */
+export interface MfaChallengeRequired {
+  status: "mfa_challenge_required";
+  challengeToken: string;
+}
+
 export type GoogleLoginOutcome =
   | { status: "ok"; accessToken: string; refreshToken: string }
+  | MfaChallengeRequired
   | { status: "no_account"; email: string; name?: string };
 
 export function loginWithGoogle(idToken: string): Promise<GoogleLoginOutcome> {
@@ -28,16 +35,36 @@ export interface LoginPayload {
   password: string;
 }
 
+export type LoginOutcome =
+  | { status: "ok"; accessToken: string; refreshToken: string }
+  | MfaChallengeRequired;
+
 /**
  * Email/password sign-in for a returning owner — POST /accounts/login on
  * igroom-backend (accounts.service.ts's login()). Throws ApiError(401,
  * "Invalid email or password") on a bad credential pair, same shape LoginPage
- * surfaces directly under the form.
+ * surfaces directly under the form. Returns a real session directly unless
+ * the account has 2FA enabled, in which case it returns a
+ * mfa_challenge_required outcome instead — see confirmMfaLoginChallenge.
  */
-export function login(payload: LoginPayload): Promise<TokenPair> {
-  return request<TokenPair>("/accounts/login", {
+export function login(payload: LoginPayload): Promise<LoginOutcome> {
+  return request<LoginOutcome>("/accounts/login", {
     method: "POST",
     body: payload,
+  });
+}
+
+/**
+ * Second step of a login for an account with 2FA enabled — trades the
+ * challengeToken from login()/loginWithGoogle()'s mfa_challenge_required
+ * outcome, plus a live authenticator app code, for a real session. Not
+ * authenticated with a bearer token — the challengeToken itself, freshly
+ * issued mid-login, is the credential.
+ */
+export function confirmMfaLoginChallenge(challengeToken: string, code: string): Promise<TokenPair> {
+  return request<TokenPair>("/accounts/mfa/challenge", {
+    method: "POST",
+    body: { challengeToken, code },
   });
 }
 
@@ -173,5 +200,44 @@ export function confirmSetPassword(
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}` },
     body: payload,
+  });
+}
+
+export interface MfaSetupResult {
+  /** Manual-entry fallback if the authenticator app can't scan the QR code. */
+  secret: string;
+  /** data: URL PNG — render directly as an <img src>. */
+  qrCodeDataUrl: string;
+}
+
+/**
+ * Security page's "Two-factor authentication" row, step 1 — generates a
+ * pending TOTP secret and returns a QR code to scan. Doesn't turn 2FA on
+ * yet; call confirmMfaSetup with the first live code to finish. Safe to
+ * call again if the caller abandons setup partway — it just replaces the
+ * pending secret.
+ */
+export function beginMfaSetup(accessToken: string): Promise<MfaSetupResult> {
+  return request<MfaSetupResult>("/accounts/security/mfa/setup", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+/** Security page's "Two-factor authentication" row, step 2 — verifies the first live code and turns 2FA on. */
+export function confirmMfaSetup(accessToken: string, code: string): Promise<void> {
+  return request<void>("/accounts/security/mfa/confirm", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: { code },
+  });
+}
+
+/** Security page's "Two-factor authentication" row when already enabled — verifies a live code and turns 2FA off. */
+export function disableMfa(accessToken: string, code: string): Promise<void> {
+  return request<void>("/accounts/security/mfa/disable", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: { code },
   });
 }

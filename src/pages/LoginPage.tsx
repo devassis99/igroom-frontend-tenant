@@ -4,7 +4,7 @@ import { useAuthStore } from "@/auth/auth-store";
 import { Button } from "@/components/ui/Button";
 import { Field, formInputClass } from "@/components/ui/FormField";
 import { renderGoogleButton } from "@/lib/google-identity";
-import { getMe, login, loginWithGoogle } from "@/lib/accounts-api";
+import { getMe, login, loginWithGoogle, confirmMfaLoginChallenge } from "@/lib/accounts-api";
 import { env } from "@/lib/env";
 import { ApiError } from "@/lib/http";
 
@@ -23,6 +23,20 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [googleProcessing, setGoogleProcessing] = useState(false);
   const googleButtonRef = useRef<HTMLDivElement>(null);
+  // Set once a password/Google identity check succeeds on an account with
+  // 2FA enabled — swaps the form below for a single "enter your
+  // authenticator code" step instead of finishing the login immediately.
+  const [challengeToken, setChallengeToken] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaSubmitting, setMfaSubmitting] = useState(false);
+  const mfaInputRef = useRef<HTMLInputElement>(null);
+
+  // Replaces an autoFocus prop on the code input (jsx-a11y/no-autofocus
+  // objects to it outright) — fires exactly when the challenge step
+  // appears, same as autoFocus would have.
+  useEffect(() => {
+    if (challengeToken) mfaInputRef.current?.focus();
+  }, [challengeToken]);
 
   /**
    * Shared by both the password and Google paths once a real session
@@ -62,8 +76,12 @@ export function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      const tokens = await login({ email: email.trim(), password });
-      await completeLogin(tokens.accessToken, tokens.refreshToken);
+      const outcome = await login({ email: email.trim(), password });
+      if (outcome.status === "mfa_challenge_required") {
+        setChallengeToken(outcome.challengeToken);
+        return;
+      }
+      await completeLogin(outcome.accessToken, outcome.refreshToken);
     } catch (err) {
       // With http.ts now reading the backend's `{ error }` body correctly,
       // this surfaces the real reason — e.g. "Invalid email or password" —
@@ -75,6 +93,26 @@ export function LoginPage() {
       setError(message);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  /** The 2FA step, shown instead of the main form once challengeToken is set — same completeLogin hand-off as the two identity checks above. */
+  async function handleMfaSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!challengeToken || mfaCode.length !== 6) return;
+    setError(null);
+    setMfaSubmitting(true);
+    try {
+      const tokens = await confirmMfaLoginChallenge(challengeToken, mfaCode);
+      await completeLogin(tokens.accessToken, tokens.refreshToken);
+    } catch (err) {
+      const message =
+        err instanceof ApiError || err instanceof Error
+          ? err.message
+          : "Something went wrong verifying your code. Try again.";
+      setError(message);
+    } finally {
+      setMfaSubmitting(false);
     }
   }
 
@@ -95,6 +133,11 @@ export function LoginPage() {
 
         if (outcome.status === "ok") {
           await completeLogin(outcome.accessToken, outcome.refreshToken);
+          return;
+        }
+
+        if (outcome.status === "mfa_challenge_required") {
+          setChallengeToken(outcome.challengeToken);
           return;
         }
 
@@ -127,6 +170,55 @@ export function LoginPage() {
     // references across renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  if (challengeToken) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-tn-surface px-6 py-12">
+        <form onSubmit={handleMfaSubmit} className="flex w-[420px] flex-col gap-6">
+          <div>
+            <h1 className="m-0 mb-1.5 font-serif text-[28px] font-semibold text-tn-ink">
+              Enter your code
+            </h1>
+            <p className="m-0 font-sans text-[13px] text-tn-muted-5">
+              Open your authenticator app and enter the 6-digit code for iGroom.
+            </p>
+          </div>
+
+          <Field label="AUTHENTICATOR CODE">
+            <input
+              ref={mfaInputRef}
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={mfaCode}
+              onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ""))}
+              placeholder="6-digit code"
+              className={formInputClass}
+            />
+          </Field>
+
+          {error && <p className="m-0 font-sans text-xs text-tn-danger">{error}</p>}
+
+          <Button type="submit" size="lg" disabled={mfaSubmitting || mfaCode.length !== 6}>
+            {mfaSubmitting ? "Verifying…" : "Verify and log in"}
+          </Button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setChallengeToken(null);
+              setMfaCode("");
+              setError(null);
+            }}
+            className="cursor-pointer self-center border-none bg-transparent p-0 font-sans text-[13px] font-medium text-tn-muted-5"
+          >
+            Back to log in
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-tn-surface px-6 py-12">

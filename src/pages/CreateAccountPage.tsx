@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Field, formInputClass } from "@/components/ui/FormField";
 import { StepProgress } from "@/components/ui/StepProgress";
 import { renderGoogleButton } from "@/lib/google-identity";
-import { getMe, loginWithGoogle } from "@/lib/accounts-api";
+import { getMe, loginWithGoogle, confirmMfaLoginChallenge } from "@/lib/accounts-api";
 import { env } from "@/lib/env";
 import { ApiError } from "@/lib/http";
 
@@ -25,6 +25,60 @@ export function CreateAccountPage() {
   const [error, setError] = useState<string | null>(null);
   const [googleProcessing, setGoogleProcessing] = useState(false);
   const googleButtonRef = useRef<HTMLDivElement>(null);
+  // Set when a Google identity here turns out to belong to a returning
+  // owner whose account has 2FA enabled — swaps the form below for a
+  // single "enter your authenticator code" step, same as LoginPage.tsx.
+  const [challengeToken, setChallengeToken] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaSubmitting, setMfaSubmitting] = useState(false);
+  const mfaInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (challengeToken) mfaInputRef.current?.focus();
+  }, [challengeToken]);
+
+  /** Shared by the direct "ok" outcome and the 2FA challenge below — a returning owner's Google identity resolved to a real session either way. */
+  async function completeReturningOwnerLogin(accessToken: string, refreshToken: string) {
+    const me = await getMe(accessToken);
+    loginWithSession({
+      owner: {
+        fullName: me.staffUser.name,
+        workEmail: me.staffUser.email,
+        businessName: (me.account?.name as string | undefined) ?? "Your shop",
+        category: (me.account?.category as string | undefined) ?? "",
+        address: (me.account?.address as string | undefined) ?? "",
+        phone: (me.account?.phone as string | undefined) ?? "",
+        planKey: "",
+        planName: "",
+        priceCents: 0,
+        currency: "usd",
+        billingCycle: "monthly",
+        seats: 0,
+      },
+      accessToken,
+      refreshToken,
+    });
+    navigate("/redirecting", { state: { to: "/dashboard" } });
+  }
+
+  async function handleMfaSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!challengeToken || mfaCode.length !== 6) return;
+    setError(null);
+    setMfaSubmitting(true);
+    try {
+      const tokens = await confirmMfaLoginChallenge(challengeToken, mfaCode);
+      await completeReturningOwnerLogin(tokens.accessToken, tokens.refreshToken);
+    } catch (err) {
+      const message =
+        err instanceof ApiError || err instanceof Error
+          ? err.message
+          : "Something went wrong verifying your code. Try again.";
+      setError(message);
+    } finally {
+      setMfaSubmitting(false);
+    }
+  }
 
   // Records "this is the step the visitor is currently on" so a later
   // "Get Started" click from LandingPage resumes here instead of
@@ -51,26 +105,15 @@ export function CreateAccountPage() {
         if (outcome.status === "ok") {
           // A staff account already exists for this Google identity (a
           // returning owner) — log straight in instead of re-running signup.
-          const me = await getMe(outcome.accessToken);
-          loginWithSession({
-            owner: {
-              fullName: me.staffUser.name,
-              workEmail: me.staffUser.email,
-              businessName: (me.account?.name as string | undefined) ?? "Your shop",
-              category: (me.account?.category as string | undefined) ?? "",
-              address: (me.account?.address as string | undefined) ?? "",
-              phone: (me.account?.phone as string | undefined) ?? "",
-              planKey: "",
-              planName: "",
-              priceCents: 0,
-              currency: "usd",
-              billingCycle: "monthly",
-              seats: 0,
-            },
-            accessToken: outcome.accessToken,
-            refreshToken: outcome.refreshToken,
-          });
-          navigate("/redirecting", { state: { to: "/dashboard" } });
+          await completeReturningOwnerLogin(outcome.accessToken, outcome.refreshToken);
+          return;
+        }
+
+        if (outcome.status === "mfa_challenge_required") {
+          // Same returning-owner case as "ok" above, except their account
+          // has 2FA enabled — show the code step instead of finishing
+          // straight away.
+          setChallengeToken(outcome.challengeToken);
           return;
         }
 
@@ -117,6 +160,56 @@ export function CreateAccountPage() {
       return;
     }
     navigate("/signup/business");
+  }
+
+  if (challengeToken) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-tn-surface px-6 py-12">
+        <form onSubmit={handleMfaSubmit} className="flex w-[420px] flex-col gap-6">
+          <div>
+            <h1 className="m-0 mb-1.5 font-serif text-[28px] font-semibold text-tn-ink">
+              Enter your code
+            </h1>
+            <p className="m-0 font-sans text-[13px] text-tn-muted-5">
+              This Google account already has an iGroom shop — open your authenticator app and enter
+              the 6-digit code to log in.
+            </p>
+          </div>
+
+          <Field label="AUTHENTICATOR CODE">
+            <input
+              ref={mfaInputRef}
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={mfaCode}
+              onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ""))}
+              placeholder="6-digit code"
+              className={formInputClass}
+            />
+          </Field>
+
+          {error && <p className="m-0 font-sans text-xs text-tn-danger">{error}</p>}
+
+          <Button type="submit" size="lg" disabled={mfaSubmitting || mfaCode.length !== 6}>
+            {mfaSubmitting ? "Verifying…" : "Verify and log in"}
+          </Button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setChallengeToken(null);
+              setMfaCode("");
+              setError(null);
+            }}
+            className="cursor-pointer self-center border-none bg-transparent p-0 font-sans text-[13px] font-medium text-tn-muted-5"
+          >
+            Back
+          </button>
+        </form>
+      </div>
+    );
   }
 
   return (
