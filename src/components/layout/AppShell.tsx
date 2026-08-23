@@ -1,25 +1,38 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { useAuthStore } from "@/auth/auth-store";
+import { usePermissions } from "@/auth/use-permissions";
+import { requiredPermissionFor } from "@/auth/route-permissions";
 import { IntegrationsModal } from "@/components/integrations/IntegrationsModal";
 import { AccountMenu } from "./AccountMenu";
 import { WhatsNewDrawer } from "./WhatsNewDrawer";
 
 type NavIconComponent = (props: { className?: string }) => ReactNode;
 
-const NAV_ITEMS: Array<{ to: string; label: string; icon: NavIconComponent }> = [
+const NAV_ITEMS: Array<{
+  to: string;
+  label: string;
+  icon: NavIconComponent;
+  /**
+   * staff_permissions.key needed to see this row. Omitted means everyone
+   * signed in gets it. Kept in sync with auth/route-permissions.ts, which
+   * is what actually gates the route — a row listed here without a
+   * matching entry there would be hidden but still reachable by URL.
+   */
+  permission?: string;
+}> = [
   // Label is "Home" even though the URL stays "/dashboard" — see
   // HomePage.tsx's comment on why the mockup's single T6 Owner Dashboard
   // frame is now split into this (onboarding/welcome) and Analytics
   // (reporting) below.
   { to: "/dashboard", label: "Home", icon: HomeIcon },
-  { to: "/calendar", label: "Calendar", icon: CalendarIcon },
-  { to: "/waitlist", label: "Waitlist", icon: WaitlistIcon },
-  { to: "/analytics", label: "Analytics", icon: AnalyticsIcon },
-  { to: "/services", label: "Services", icon: ServicesIcon },
-  { to: "/staff", label: "Staff", icon: StaffIcon },
-  { to: "/customers", label: "Customers", icon: CustomersIcon },
-  { to: "/payments", label: "Payments", icon: PaymentsIcon },
+  { to: "/calendar", label: "Calendar", icon: CalendarIcon, permission: "bookings.view" },
+  { to: "/waitlist", label: "Waitlist", icon: WaitlistIcon, permission: "bookings.view" },
+  { to: "/analytics", label: "Analytics", icon: AnalyticsIcon, permission: "bookings.view" },
+  { to: "/services", label: "Services", icon: ServicesIcon, permission: "services.view" },
+  { to: "/staff", label: "Staff", icon: StaffIcon, permission: "staff.view" },
+  { to: "/customers", label: "Customers", icon: CustomersIcon, permission: "customers.view" },
+  { to: "/payments", label: "Payments", icon: PaymentsIcon, permission: "billing.view" },
 ];
 
 /**
@@ -211,6 +224,18 @@ export function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
   const owner = useAuthStore((s) => s.owner);
+  const { has, isReady } = usePermissions();
+
+  const visibleNavItems = NAV_ITEMS.filter((item) => !item.permission || has(item.permission));
+
+  // The route half of the same rule the sidebar filter applies, so a
+  // hidden menu row isn't still reachable by typing its URL. Waits rather
+  // than denies until permissions are known: on a first-ever load with
+  // nothing cached, "not fetched yet" and "genuinely not allowed" look
+  // identical from here, and guessing wrong locks people out of their own
+  // app for a frame.
+  const requiredPermission = requiredPermissionFor(location.pathname);
+  const routeAllowed = !requiredPermission || !isReady || has(requiredPermission);
   const logOut = useAuthStore((s) => s.logOut);
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const [integrationsOpen, setIntegrationsOpen] = useState(false);
@@ -284,7 +309,7 @@ export function AppShell() {
         </div>
 
         <nav className="flex flex-col gap-0.5">
-          {NAV_ITEMS.map((item) => (
+          {visibleNavItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -423,7 +448,21 @@ export function AppShell() {
       </aside>
 
       <div className="flex-1 overflow-y-auto bg-tn-surface px-10 py-8">
-        <Outlet />
+        {routeAllowed ? (
+          <Outlet />
+        ) : (
+          <div className="flex flex-col items-start gap-2 rounded-2xl border border-tn-border bg-tn-page p-8">
+            <h1 className="m-0 font-sans text-xl font-semibold text-tn-ink">
+              You don't have access to this page
+            </h1>
+            <p className="m-0 font-sans text-sm leading-relaxed text-tn-muted-5">
+              Your role doesn't include the{" "}
+              <code className="font-mono text-xs text-tn-muted-3">{requiredPermission}</code>{" "}
+              permission. Ask whoever owns this account to grant it in Settings &gt; Staff
+              Management &gt; Roles.
+            </p>
+          </div>
+        )}
       </div>
 
       <IntegrationsModal open={integrationsOpen} onClose={() => setIntegrationsOpen(false)} />

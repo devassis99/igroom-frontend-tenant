@@ -18,6 +18,7 @@ import { ApiError } from "@/lib/http";
 export function LoginPage() {
   const navigate = useNavigate();
   const loginWithSession = useAuthStore((s) => s.loginWithSession);
+  const setPermissions = useAuthStore((s) => s.setPermissions);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +58,11 @@ export function LoginPage() {
       accessToken,
       refreshToken,
     });
+    // completeLogin already has /accounts/me in hand, so hand its
+    // permissions straight to the store — otherwise the sidebar renders
+    // once with only its ungated rows and fills in a moment later, on the
+    // very first screen after signing in.
+    setPermissions(me.permissions);
     navigate("/redirecting", { state: { to: "/dashboard" } });
   }
 

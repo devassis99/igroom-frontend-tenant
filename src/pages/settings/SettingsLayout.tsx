@@ -1,29 +1,56 @@
 import type { ReactNode } from "react";
 import { NavLink, Outlet } from "react-router";
+import { usePermissions } from "@/auth/use-permissions";
 
 type NavIconComponent = (props: { className?: string }) => ReactNode;
 
-const GENERAL_ITEMS: Array<{ to: string; label: string; icon: NavIconComponent; end?: boolean }> = [
+interface SettingsNavItem {
+  to: string;
+  label: string;
+  icon: NavIconComponent;
+  end?: boolean;
+  badge?: string;
+  /**
+   * staff_permissions.key needed to see this row. Omitted means everyone
+   * signed in gets it — Business Profile, Availability and Security are
+   * the caller's own settings, not account-wide ones, and Integrations
+   * has no backend to gate against yet. Kept in sync with
+   * auth/route-permissions.ts, which gates the route itself.
+   */
+  permission?: string;
+}
+
+const GENERAL_ITEMS: SettingsNavItem[] = [
   { to: "/settings", label: "Business Profile", icon: BusinessProfileIcon, end: true },
   { to: "/settings/hours", label: "Availability", icon: AvailabilityIcon },
   { to: "/settings/security", label: "Security", icon: SecurityIcon },
 ];
 
-const WORKSPACE_ITEMS: Array<{
-  to: string;
-  label: string;
-  icon: NavIconComponent;
-  badge?: string;
-}> = [
-  { to: "/settings/locations", label: "Locations", icon: LocationsIcon },
-  { to: "/settings/staff", label: "Staff Management", icon: StaffIcon },
+const WORKSPACE_ITEMS: SettingsNavItem[] = [
+  {
+    to: "/settings/locations",
+    label: "Locations",
+    icon: LocationsIcon,
+    permission: "locations.view",
+  },
+  {
+    to: "/settings/staff",
+    label: "Staff Management",
+    icon: StaffIcon,
+    permission: "staff.view",
+  },
   {
     to: "/settings/integrations",
     label: "Integrations",
     icon: IntegrationsIcon,
     badge: "BUSINESS",
   },
-  { to: "/settings/billing", label: "Billing & Plan", icon: BillingIcon },
+  {
+    to: "/settings/billing",
+    label: "Billing & Plan",
+    icon: BillingIcon,
+    permission: "billing.view",
+  },
 ];
 
 // Same outline-glyph family (24x24 viewBox, 1.75 stroke, round caps/joins,
@@ -134,6 +161,13 @@ function navClass(isActive: boolean) {
  * long sidebar with no visible seam between "app nav" and "settings nav".
  */
 export function SettingsLayout() {
+  const { has } = usePermissions();
+  const visible = (items: SettingsNavItem[]) =>
+    items.filter((item) => !item.permission || has(item.permission));
+
+  const generalItems = visible(GENERAL_ITEMS);
+  const workspaceItems = visible(WORKSPACE_ITEMS);
+
   return (
     <div className="-my-8 flex min-h-screen">
       <nav className="-ml-10 flex w-[240px] flex-none flex-col gap-6 border-r border-tn-border bg-tn-table-head py-8">
@@ -143,7 +177,7 @@ export function SettingsLayout() {
             GENERAL
           </p>
           <div className="flex flex-col gap-0.5">
-            {GENERAL_ITEMS.map((item) => (
+            {generalItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
@@ -157,24 +191,30 @@ export function SettingsLayout() {
           </div>
         </div>
 
-        <div>
-          <p className="m-0 mb-2 px-4 font-sans text-[11px] font-semibold tracking-[0.04em] text-tn-faint">
-            WORKSPACE SETTINGS
-          </p>
-          <div className="flex flex-col gap-0.5">
-            {WORKSPACE_ITEMS.map((item) => (
-              <NavLink key={item.to} to={item.to} className={({ isActive }) => navClass(isActive)}>
-                <item.icon className="h-[18px] w-[18px] shrink-0" />
-                <span className="flex-1">{item.label}</span>
-                {item.badge && (
-                  <span className="rounded-full bg-tn-gold-bg px-1.5 py-0.5 font-sans text-[9px] font-semibold text-tn-gold">
-                    {item.badge}
-                  </span>
-                )}
-              </NavLink>
-            ))}
+        {workspaceItems.length > 0 && (
+          <div>
+            <p className="m-0 mb-2 px-4 font-sans text-[11px] font-semibold tracking-[0.04em] text-tn-faint">
+              WORKSPACE SETTINGS
+            </p>
+            <div className="flex flex-col gap-0.5">
+              {workspaceItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) => navClass(isActive)}
+                >
+                  <item.icon className="h-[18px] w-[18px] shrink-0" />
+                  <span className="flex-1">{item.label}</span>
+                  {item.badge && (
+                    <span className="rounded-full bg-tn-gold-bg px-1.5 py-0.5 font-sans text-[9px] font-semibold text-tn-gold">
+                      {item.badge}
+                    </span>
+                  )}
+                </NavLink>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </nav>
 
       <div className="min-w-0 flex-1 py-8 pl-10">

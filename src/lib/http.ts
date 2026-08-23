@@ -1,6 +1,6 @@
 import { useAuthStore } from "@/auth/auth-store";
-import { router } from "@/routes/router";
 import { env } from "./env";
+import { navigateTo } from "./navigation";
 
 export class ApiError extends Error {
   readonly status: number;
@@ -126,9 +126,10 @@ function refreshTokens(): Promise<TokenPair> {
  * with the new token. If the refresh itself fails (refresh token expired,
  * revoked, or missing — e.g. the owner is truly logged out elsewhere),
  * this clears the session and sends the browser straight to /login via
- * the router's own `navigate` (this module sits outside the component
- * tree, so it can't use the `useNavigate` hook AppShell's and
- * ActiveSessionsModal's logout handlers use) — ProtectedRoute
+ * lib/navigation.ts (this module sits outside the component tree, so it
+ * can't use the `useNavigate` hook AppShell's and ActiveSessionsModal's
+ * logout handlers use, and importing the router here would put every
+ * api module in an import cycle) — ProtectedRoute
  * (routes/ProtectedRoute.tsx) redirects anonymous access to /login on its
  * own too, so this is just a faster, more direct path there rather than
  * waiting on that fallback. The *original* 401 is still surfaced to the
@@ -164,6 +165,22 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
       typeof authHeader === "string" &&
       path !== "/accounts/refresh";
 
+    // A support session has no refresh token by design, so there is
+    // nothing to renew: an expired or server-revoked one is simply over.
+    // Sending it to /support-session rather than letting the generic path
+    // below dump it on /login matters — an operator never had a password
+    // for this shop, so a login form is a dead end for them.
+    if (
+      useAuthStore.getState().support &&
+      err instanceof ApiError &&
+      err.status === 401 &&
+      errorCode === "TOKEN_INVALID"
+    ) {
+      useAuthStore.getState().logOut();
+      navigateTo("/support-session");
+      throw err;
+    }
+
     if (!canRetryWithRefresh) throw err;
 
     try {
@@ -176,7 +193,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
       });
     } catch {
       useAuthStore.getState().logOut();
-      void router.navigate("/login");
+      navigateTo("/login");
       throw err;
     }
   }

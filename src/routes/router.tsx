@@ -1,4 +1,5 @@
 import { createBrowserRouter, redirect } from "react-router";
+import { setAppNavigate } from "@/lib/navigation";
 import { ProtectedRoute } from "./ProtectedRoute";
 
 /**
@@ -16,6 +17,14 @@ export const router = createBrowserRouter([
   {
     path: "/login",
     lazy: () => import("@/pages/LoginPage").then((m) => ({ Component: m.default })),
+  },
+  // Where a back-office support link lands (see igroom-backend's
+  // modules/support-sessions). Outside ProtectedRoute because the visitor
+  // has no session yet — the ticket in the URL fragment is what creates
+  // one. With no ticket, this doubles as the "session ended" screen.
+  {
+    path: "/support-session",
+    lazy: () => import("@/pages/SupportSessionPage").then((m) => ({ Component: m.default })),
   },
   // Brief branded loading transition shown after a successful login or at
   // the end of the signup/onboarding funnel, before landing on the real
@@ -172,3 +181,11 @@ export const router = createBrowserRouter([
     lazy: () => import("@/pages/NotFoundPage").then((m) => ({ Component: m.default })),
   },
 ]);
+
+// http.ts redirects on a dead session but lives outside the component
+// tree. Handing it the navigate function here — rather than letting it
+// import this module — is what keeps src/lib free of any dependency on the
+// route tree. See lib/navigation.ts for why that matters.
+setAppNavigate((path) => {
+  void router.navigate(path);
+});

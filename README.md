@@ -118,6 +118,60 @@ and seat-upgrade flow (T12, T12-preview, T12b–T12l).
   ever creates a `localStorage` session in this one browser.
 - Real Stripe Elements/Checkout integration once there's a backend to create PaymentIntents
   against.
-- Role-aware navigation — the Add Member wizard's Role step is fully interactive, but nothing
-  reads the chosen role back to gate what the _current_ signed-in user can see, the way `bo`'s
-  `AppShell` does with `bo_permissions`.
+
+## Permission-driven navigation
+
+Both navs are built from the signed-in user's `staff_permissions` keys, so nobody is shown a
+link to a page they can't open. Before this, a Receptionist saw **Settings > Locations** in the
+menu and got "This action requires the `locations.view` permission" on arrival — the menu was
+promising something the API would refuse.
+
+`src/auth/route-permissions.ts` is the single source of truth. `AppShell`'s root sidebar and
+`SettingsLayout`'s settings sidebar filter their items through it, and `AppShell` gates the
+route itself with the same map — so a hidden menu row and a blocked page can never disagree,
+and typing the URL directly doesn't get you a page the menu wouldn't offer. Adding a gated
+page means one entry there and a `permission` on its nav item; forget the entry and the row is
+hidden but still reachable by URL, which is why the two are documented as a pair.
+
+Each key mirrors the `requireAccountPermission(...)` guard on the endpoint the page actually
+calls, so the menu tells the truth about what will work. Pages with no entry are ungated on
+purpose: **Home** is the landing page everyone needs, **Business Profile**, **Security** and
+**Availability** are the caller's own settings (the backend scopes them to `req.staffUser` with
+no permission check), and **Integrations** has no backend yet. Waitlist, Analytics and Payments
+are judgement calls rather than mirrors, because those pages still render sample data and have
+no endpoint to mirror — Analytics is the shakiest, since it shows revenue while the seeded
+Receptionist role is described as having "no financial access" yet holds `bookings.view`. A
+dedicated `analytics.view` permission is the real fix when that page gets wired up.
+
+Two details worth knowing:
+
+- **This is UX, not enforcement.** Hiding a row doesn't stop a direct API call. The backend's
+  `requireAccountPermission` is the boundary; this just stops the app from advertising doors it
+  knows are locked.
+- **Permissions are mirrored into the persisted auth store.** `usePermissions` treats the
+  `/accounts/me` query as truth but writes each answer into `auth-store`, so a hard reload
+  builds the right nav on the first frame instead of flashing a half-empty sidebar. `LoginPage`
+  seeds them from the `getMe` it already performs, and a support session gets them back in the
+  redeem response. The route guard *waits* rather than denies while nothing is cached yet — on
+  a cold first load "not fetched" and "not allowed" look identical, and guessing wrong locks
+  someone out of their own app.
+
+## Support sessions
+
+`/support-session` is where a back-office support link lands (see igroom-backend's
+`modules/support-sessions`). It reads a single-use ticket from the URL **fragment**, strips
+it from the address bar *before* the network call rather than after, and exchanges it for a
+read-only session. With no ticket in the URL the same route doubles as the "session ended"
+screen — `http.ts` sends an expired or revoked support session there instead of `/login`,
+which would be a dead end for an operator who never had a password for this shop.
+
+While such a session is active, `SupportSessionBar` shows a fixed bar with the shop name, a
+countdown and an End button. That bar is **not** a notice to the shop: it renders off the
+support token, which only ever exists in the tab the operator opened, so a shop owner
+logging in normally never sees it. It's there so the operator can tell a support tab from a
+real login at a glance, and so the first write they try reads as the rule it is rather than
+as a bug in the shop's account.
+
+Writes are refused by the API, not disabled in the UI. Graying out every mutating control
+across the app would be a large, risky diff for a cosmetic gain — the bar states the
+constraint, and an attempted write returns a clear 403 explaining it.

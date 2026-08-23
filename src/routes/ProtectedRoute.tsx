@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from "react-router";
 import { useAuthStore } from "@/auth/auth-store";
 import { LoadingScreen } from "@/components/layout/LoadingScreen";
+import { SupportSessionBar } from "@/components/layout/SupportSessionBar";
 
 /**
  * Gates the authenticated app on a mock session created at the end of the
@@ -28,7 +29,17 @@ export function ProtectedRoute() {
   if (status === "unknown") return <LoadingScreen />;
   if (status === "anonymous") return <Navigate to="/login" replace />;
 
-  return <Outlet />;
+  // SupportSessionBar renders null unless this tab holds a support token,
+  // so a normal shop-owner session is completely unaffected. It sits here
+  // rather than inside AppShell so it covers every authenticated route
+  // without touching that component's layout — it's fixed-position and
+  // adds nothing to the flow.
+  return (
+    <>
+      <Outlet />
+      <SupportSessionBar />
+    </>
+  );
 }
 
 export default ProtectedRoute;
