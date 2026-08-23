@@ -46,9 +46,21 @@ function authHeaders(accessToken: string): HeadersInit {
   return { Authorization: `Bearer ${accessToken}` };
 }
 
-/** T9's full menu, sorted by the current drag order then name. */
-export function listServices(accessToken: string): Promise<{ services: Service[] }> {
-  return request("/services", { headers: authHeaders(accessToken) });
+/**
+ * T9's full menu, sorted by the current drag order then name.
+ *
+ * `locationId` is optional and defaults server-side to the caller's own
+ * location — which is what T9 itself wants. Staff Management passes one
+ * explicitly because a member being edited can belong to a different
+ * location than the owner doing the editing, and the Services tab has to
+ * show *that* location's menu.
+ */
+export function listServices(
+  accessToken: string,
+  locationId?: string,
+): Promise<{ services: Service[] }> {
+  const query = locationId ? `?locationId=${encodeURIComponent(locationId)}` : "";
+  return request(`/services${query}`, { headers: authHeaders(accessToken) });
 }
 
 export interface ServiceInput {

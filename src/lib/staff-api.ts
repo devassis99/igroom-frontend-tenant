@@ -34,6 +34,15 @@ export interface StaffMember {
   commissionRate: number | null;
   /** 0.0-5.0, or null if an owner hasn't set one yet — there's no customer-review module to compute this from. Feeds T10's roster cards and Rating column. */
   rating: number | null;
+  /** Customer-facing title ("Senior Barber") — distinct from roleName, which is the internal permission role. */
+  displayTitle: string | null;
+  bio: string | null;
+  /** Short tag chips. Always an array — the backend maps a null column to []. */
+  specialties: string[];
+  yearsExperience: number | null;
+  avatarUrl: string | null;
+  /** Services this member can perform. Always an array; ids are services at this member's own location. */
+  serviceIds: string[];
 }
 
 /** One StaffMember plus this-calendar-month performance, computed from real bookings/availability — see staff.service.ts's getStaffPerformance. Null fields mean "not enough data yet" (no saved schedule, no bookings, no commissionRate set), rendered as "—" rather than a misleading 0. */
@@ -79,6 +88,8 @@ export interface InviteStaffInput {
   email: string;
   roleId: string;
   locationId: string;
+  /** The wizard's Services step. Omit to assign nothing yet. */
+  serviceIds?: string[];
 }
 
 /**
@@ -103,6 +114,19 @@ export interface StaffUpdateInput {
   commissionRate?: number | null;
   /** 0.0-5.0, or null to clear a previously-set rating. */
   rating?: number | null;
+  /** Marketplace Barber Profile fields. Null clears a value; omitting leaves it untouched. */
+  displayTitle?: string | null;
+  bio?: string | null;
+  specialties?: string[] | null;
+  yearsExperience?: number | null;
+  avatarUrl?: string | null;
+  /**
+   * Complete replacement set, not a delta — send every id that should end
+   * up assigned. Omitting leaves assignments untouched; [] clears them.
+   * Changing locationId without sending this clears them too, since the
+   * old ids belong to the previous location's menu.
+   */
+  serviceIds?: string[];
 }
 
 /** The T12g ✎ "opens the profile edit" affordance — name, role, location, plus (also used from T10's Staff page) commission rate and rating. */

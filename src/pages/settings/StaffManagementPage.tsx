@@ -483,7 +483,24 @@ export function StaffManagementPage() {
                         disabled={isSelf || !canManageStaff}
                         className="cursor-pointer border-none bg-transparent p-0 font-sans text-tn-muted-5 disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        ⋮
+                        {/*
+                          Deliberately NOT the ⌫ the Roles table below
+                          uses: that one really does delete, this only
+                          flips staff_users.isActive. Staff are never
+                          hard-deleted (see staff-users.ts, and
+                          bookings.staffUserId's RESTRICT) so a trash icon
+                          here would promise something no endpoint can do.
+                          ⊘ removes them from the roster, ↺ puts them
+                          back — the icon changes with the direction the
+                          click will go, so it never reads as a one-way
+                          destructive action.
+
+                          Both are plain text glyphs (U+2298 / U+21BA)
+                          with no emoji presentation, so they inherit
+                          text-tn-muted-5 like ✎ does instead of rendering
+                          as a full-colour emoji next to it.
+                        */}
+                        {member.isActive ? "⊘" : "↺"}
                       </button>
                     </span>
                   </div>
@@ -492,7 +509,9 @@ export function StaffManagementPage() {
             </div>
 
             <p className="m-0 font-sans text-xs text-tn-muted-6">
-              ✎ opens the profile edit. ⋮ activates or deactivates this member.
+              ✎ opens the profile edit. ⊘ removes a member from the active roster; ↺ brings a
+              deactivated one back. Staff are deactivated rather than deleted so their past bookings
+              keep the right name on them.
             </p>
           </>
         ) : (
@@ -581,7 +600,16 @@ export function StaffManagementPage() {
                           disabled={role.memberCount > 0}
                           className="cursor-pointer border-none bg-transparent p-0 font-sans text-tn-muted-5 disabled:cursor-not-allowed disabled:opacity-40"
                         >
-                          🗑
+                          {/*
+                            ⌫ (U+232B) rather than 🗑: this file's other
+                            glyphs (✎, ×, ✓) are all plain text that
+                            inherit text-tn-muted-5, and the trash can has
+                            no monochrome codepoint — it always renders as
+                            a full-colour emoji. × isn't free either; it's
+                            this app's modal-close glyph, so reusing it
+                            for a destructive action would blur the two.
+                          */}
+                          ⌫
                         </button>
                       </>
                     )}
@@ -592,7 +620,7 @@ export function StaffManagementPage() {
 
             {canManageRoles && (
               <p className="m-0 font-sans text-xs text-tn-muted-6">
-                ✎ edits this role. 🗑 deletes it (once nobody's assigned to it).
+                ✎ edits this role. ⌫ deletes it (once nobody&rsquo;s assigned to it).
               </p>
             )}
           </>

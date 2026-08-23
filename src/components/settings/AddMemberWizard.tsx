@@ -10,7 +10,7 @@ import { useAuthStore } from "@/auth/auth-store";
 import { listLocations } from "@/lib/locations-api";
 import { listRoles } from "@/lib/roles-api";
 import { inviteStaff } from "@/lib/staff-api";
-import { SERVICES } from "@/lib/sample-data";
+import { listServices } from "@/lib/services-api";
 
 interface AddMemberWizardProps {
   open: boolean;
@@ -30,12 +30,21 @@ const WEEK = [
 ];
 
 /**
- * Matches the mockup's T12h–T12l "Add New Member" 5-step wizard. Only
- * Profile's name/email/location and Role are real — those are the fields
- * staff.service.ts's inviteStaff actually persists. Services/Schedule/
- * Options stay exactly as visual as they were before (no staff↔services
- * assignment table or per-member schedule exists on the backend yet); they
- * still render and respond to input, just aren't sent anywhere on submit.
+ * Matches the mockup's T12h–T12l "Add New Member" 5-step wizard.
+ *
+ * Profile's name/email/location, Role, and now Services are all real —
+ * inviteStaff persists the first three and writes the staff_services
+ * rows for the fourth. Services used to render checkboxes off
+ * sample-data and silently drop them on submit, which was worse than
+ * omitting the step: an owner could deliberately assign a new hire's
+ * services, hit Save, and get nothing.
+ *
+ * Schedule and Options are still purely visual — there's no owner-scoped
+ * per-member schedule endpoint (staff_availability is written by the
+ * member themselves through /availability/me) and nothing backs the
+ * Options toggles at all. They're left in place rather than hidden
+ * because the mockup's flow expects them, but nothing they collect is
+ * sent anywhere; wire or drop them before this ships to real shops.
  *
  * Roles are the account's own custom staff_roles (see roles-api.ts) —
  * fetched live rather than a fixed 4-item list, so a role a shop owner
@@ -52,9 +61,9 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [locationId, setLocationId] = useState("");
-  const [assignedServices, setAssignedServices] = useState<Set<string>>(
-    () => new Set(SERVICES.slice(0, 3).map((s) => s.id)),
-  );
+  // Starts empty — the old "first three services" default came from
+  // sample-data and would now silently assign real services nobody picked.
+  const [assignedServices, setAssignedServices] = useState<Set<string>>(() => new Set());
   const [roleId, setRoleId] = useState("");
   const [allowNoPayment, setAllowNoPayment] = useState(true);
   const [allowMultiService, setAllowMultiService] = useState(true);
@@ -74,6 +83,16 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
     enabled: !!accessToken && open,
   });
   const roles = rolesQuery.data?.roles ?? [];
+
+  // Keyed by the chosen location — a service belongs to exactly one
+  // location, so changing location in step 0 has to re-fetch the menu
+  // (and clear whatever was ticked from the previous one).
+  const servicesQuery = useQuery({
+    queryKey: ["services", locationId],
+    queryFn: () => listServices(accessToken ?? "", locationId),
+    enabled: !!accessToken && open && locationId !== "",
+  });
+  const services = servicesQuery.data?.services ?? [];
 
   // Default to the account's primary location the moment the list loads,
   // so a shop with just one location never has to touch this field.
@@ -99,6 +118,7 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
         email,
         roleId,
         locationId,
+        serviceIds: [...assignedServices],
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["staff"] });
@@ -124,7 +144,16 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
     setEmail("");
     setLocationId("");
     setRoleId("");
+    setAssignedServices(new Set());
     setFormError(null);
+  }
+
+  function handleLocationChange(nextLocationId: string) {
+    setLocationId(nextLocationId);
+    // Ticked ids belong to the old location's menu and would be rejected
+    // by inviteStaff's assertServicesAssignable — drop them rather than
+    // failing the invite at the last step.
+    setAssignedServices(new Set());
   }
 
   function toggleService(id: string) {
@@ -225,7 +254,7 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
             <Field label="LOCATION">
               <select
                 value={locationId}
-                onChange={(e) => setLocationId(e.target.value)}
+                onChange={(e) => handleLocationChange(e.target.value)}
                 className={formSelectClass}
               >
                 {locations.length === 0 && <option value="">Loading locations…</option>}
@@ -250,32 +279,54 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
         )}
 
         {step === 1 && (
-          <div className="flex flex-col overflow-hidden rounded-xl border border-tn-border">
-            <div className="grid grid-cols-[2fr_1fr_1fr_0.8fr] bg-tn-table-head px-4 py-2.5 font-sans text-xs font-semibold text-tn-muted-5">
-              <span>SERVICE</span>
-              <span>COST</span>
-              <span>DURATION</span>
-              <span>ASSIGNED</span>
-            </div>
-            {SERVICES.map((s, i) => (
-              <label
-                key={s.id}
-                className={`grid grid-cols-[2fr_1fr_1fr_0.8fr] items-center px-4 py-3 ${
-                  i < SERVICES.length - 1 ? "border-b border-tn-border-soft" : ""
-                }`}
-              >
-                <span className="font-sans text-[13px] text-tn-ink">{s.name}</span>
-                <span className="font-sans text-[13px] text-tn-muted-3">${s.price.toFixed(2)}</span>
-                <span className="font-sans text-[13px] text-tn-muted-3">{s.duration}</span>
-                <input
-                  type="checkbox"
-                  checked={assignedServices.has(s.id)}
-                  onChange={() => toggleService(s.id)}
-                  className="accent-tn-gold"
-                />
-              </label>
-            ))}
-          </div>
+          <>
+            {servicesQuery.isPending && (
+              <p className="m-0 font-sans text-sm text-tn-muted-5">Loading services…</p>
+            )}
+            {servicesQuery.isError && (
+              <p className="m-0 font-sans text-sm text-tn-danger">
+                Couldn&rsquo;t load this location&rsquo;s services — go back and try again.
+              </p>
+            )}
+            {servicesQuery.isSuccess && services.length === 0 && (
+              <p className="m-0 font-sans text-sm text-tn-muted-5">
+                No services exist at this location yet. You can invite this member now and assign
+                services later from Staff Management.
+              </p>
+            )}
+            {services.length > 0 && (
+              <div className="flex max-h-80 flex-col overflow-y-auto rounded-xl border border-tn-border">
+                <div className="grid grid-cols-[2fr_1fr_1fr_0.8fr] bg-tn-table-head px-4 py-2.5 font-sans text-xs font-semibold text-tn-muted-5">
+                  <span>SERVICE</span>
+                  <span>COST</span>
+                  <span>DURATION</span>
+                  <span>ASSIGNED</span>
+                </div>
+                {services.map((service, i) => (
+                  <label
+                    key={service.id}
+                    className={`grid cursor-pointer grid-cols-[2fr_1fr_1fr_0.8fr] items-center px-4 py-3 ${
+                      i < services.length - 1 ? "border-b border-tn-border-soft" : ""
+                    }`}
+                  >
+                    <span className="font-sans text-[13px] text-tn-ink">{service.name}</span>
+                    <span className="font-sans text-[13px] text-tn-muted-3">
+                      ${(service.priceCents / 100).toFixed(2)}
+                    </span>
+                    <span className="font-sans text-[13px] text-tn-muted-3">
+                      {service.durationMinutes} min
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={assignedServices.has(service.id)}
+                      onChange={() => toggleService(service.id)}
+                      className="accent-tn-gold"
+                    />
+                  </label>
+                ))}
+              </div>
+            )}
+          </>
         )}
 
         {step === 2 && (

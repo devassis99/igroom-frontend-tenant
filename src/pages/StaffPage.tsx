@@ -80,6 +80,15 @@ export function StaffPage() {
     queryFn: () => getStaffPerformance(accessToken ?? ""),
     enabled: !!accessToken,
   });
+  // getStaffPerformance (staff.service.ts, backend) already excludes
+  // still-invited rows (no passwordHash/googleSub, never logged in) at
+  // the query level — this page is that endpoint's only caller, and an
+  // invited row has nothing to report: 0 bookings, 0 hours, "—"
+  // everywhere. So `staff` here (and the seat-usage count below, which
+  // reads its length) is already "active, claimed team only". Invited
+  // members still show up in Settings > Staff Management, with their own
+  // "Invited" badge — that's the page for managing the roster itself,
+  // not reporting on it.
   const staff = performanceQuery.data?.staff ?? EMPTY_STAFF;
   const team = performanceQuery.data?.team;
 
