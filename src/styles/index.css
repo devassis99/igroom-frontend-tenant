@@ -129,6 +129,80 @@ body {
 }
 
 /*
+ * Modal.tsx's backdrop and panel. Keyframes rather than a transition
+ * between two React states, for the same reason the popovers below use
+ * them: an animation plays from its own `from` value the moment the
+ * element is inserted, so it doesn't depend on the browser having painted
+ * a "closed" state first. A transition does, and getting that ordering
+ * right from React means guessing at frames — a guess that holds in
+ * isolation and stops holding once something heavy (the Leaflet map in the
+ * Locations sheet) mounts in the same commit.
+ *
+ * The `-out` halves need `forwards` so the panel stays where the animation
+ * left it for the brief unmount delay, instead of snapping back to open
+ * for a frame — same note as tn-popover-out.
+ */
+@keyframes tn-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes tn-backdrop-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* The side sheet (Locations' Add/Edit) — in from the right edge, back out to it. */
+@keyframes tn-sheet-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes tn-sheet-out {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* The centred modal — rises and settles rather than sliding. */
+@keyframes tn-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes tn-modal-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+}
+
+/*
  * TimePicker/DatePicker-style anchored popovers — referenced by name via
  * an inline `animation` style, same "keyframes here, applied inline"
  * pattern as tn-cal-fade-in above. `-out` needs `forwards` wherever it's

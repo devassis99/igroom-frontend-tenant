@@ -5,6 +5,8 @@ interface TimezonePickerProps {
   value: string;
   onChange: (timezone: string) => void;
   label?: string;
+  /** What the button reads when `value` is empty — for the optional timezone fields, where "not set" is a real answer. */
+  placeholder?: string;
 }
 
 const PANEL_WIDTH = 300;
@@ -160,7 +162,12 @@ function useAnchoredPosition(open: boolean, anchorRef: RefObject<HTMLElement | n
  * getBoundingClientRect(), same reasoning as LocationFilterPopover.tsx /
  * StaffFilterPopover.tsx.
  */
-export function TimezonePicker({ value, onChange, label = "Timezone" }: TimezonePickerProps) {
+export function TimezonePicker({
+  value,
+  onChange,
+  label = "Timezone",
+  placeholder = "Not set",
+}: TimezonePickerProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const anchorRef = useRef<HTMLButtonElement>(null);
@@ -241,7 +248,9 @@ export function TimezonePicker({ value, onChange, label = "Timezone" }: Timezone
           <GlobeIcon />
         </span>
         <span className="max-w-[220px] truncate">
-          {friendlyLabel(value)} ({utcOffsetLabel(value)}, {currentTimeIn(value)})
+          {value
+            ? `${friendlyLabel(value)} (${utcOffsetLabel(value)}, ${currentTimeIn(value)})`
+            : placeholder}
         </span>
         <ChevronIcon open={open} />
       </button>

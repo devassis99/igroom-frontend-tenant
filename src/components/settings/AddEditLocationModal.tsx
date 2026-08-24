@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Toggle } from "@/components/ui/Toggle";
 import { Field, formInputClass } from "@/components/ui/FormField";
 import { PhoneInput, isPhoneValid } from "@/components/ui/PhoneInput";
+import { TimezonePicker } from "@/components/ui/TimezonePicker";
 import { useAuthStore } from "@/auth/auth-store";
 import { LocationMapPicker } from "@/components/settings/LocationMapPicker";
 import {
@@ -46,33 +47,48 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);
   const [reversing, setReversing] = useState(false);
+  /** Which open this form's fields were seeded for — a location id, or "new". See the seeding block below. */
+  const [seededFor, setSeededFor] = useState<string | null>(null);
 
   const isEditing = location !== null;
 
   // Reset to the freshly-clicked location (or a blank form for "+ Add
   // Location") every time the modal opens — it stays mounted between
   // opens, so without this it'd show whatever was last edited.
-  useEffect(() => {
-    if (!open) return;
-    if (location) {
-      setForm({
-        name: location.name,
-        address: location.address,
-        phone: location.phone ?? "",
-        timezone: location.timezone ?? "",
-      });
-      setActive(location.status === "active");
-      setLatitude(location.latitude);
-      setLongitude(location.longitude);
-    } else {
-      setForm(EMPTY_FORM);
-      setActive(true);
-      setLatitude(null);
-      setLongitude(null);
-    }
+  //
+  // Done during render rather than from an effect, which matters here
+  // beyond tidiness: LocationMapPicker builds its Leaflet map from the
+  // first latitude/longitude it sees and never re-centres on later prop
+  // changes except through an imperative setView. Seeding after mount
+  // meant Edit created the map at the default US-wide view and then flew
+  // it to the pin at zoom 15 — a whole fresh tile grid being requested and
+  // laid out in exactly the frames the sheet is supposed to be sliding in.
+  // Adjusting state during render is React's documented answer to "props
+  // changed, reset state"; the re-render happens before any child sees the
+  // stale values, so the map is simply created in the right place.
+  const openKey = open ? (location?.id ?? "new") : null;
+  if (openKey === null) {
+    // Cleared on close so reopening the *same* location seeds again,
+    // matching the old effect's [open, location] dependency.
+    if (seededFor !== null) setSeededFor(null);
+  } else if (openKey !== seededFor) {
+    setSeededFor(openKey);
+    setForm(
+      location
+        ? {
+            name: location.name,
+            address: location.address,
+            phone: location.phone ?? "",
+            timezone: location.timezone ?? "",
+          }
+        : EMPTY_FORM,
+    );
+    setActive(location ? location.status === "active" : true);
+    setLatitude(location?.latitude ?? null);
+    setLongitude(location?.longitude ?? null);
     setFormError(null);
     setLocateError(null);
-  }, [open, location]);
+  }
 
   // Bumped on every pin move so a slow reverse-geocode response from a
   // stale drag can't clobber the address field after a newer one already
@@ -256,13 +272,21 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
             />
           </Field>
 
+          {/*
+            A picker, not a text field. This value is read straight back
+            into Intl.DateTimeFormat server-side (shared/scheduling.ts), so
+            a typo like "PKT" or a stray trailing space isn't a cosmetic
+            problem — it used to throw a RangeError inside the Locations
+            page's capacity pass and come back as a 500 for the whole list.
+            Offering only real IANA ids removes the class of bug at the
+            source; the API rejects bad values too, and the scheduling code
+            falls back to UTC for rows written before either existed.
+          */}
           <Field label="TIMEZONE (OPTIONAL)">
-            <input
-              type="text"
+            <TimezonePicker
               value={form.timezone ?? ""}
-              onChange={(e) => setForm((f) => ({ ...f, timezone: e.target.value }))}
-              placeholder="America/Chicago"
-              className={formInputClass}
+              onChange={(timezone) => setForm((f) => ({ ...f, timezone }))}
+              placeholder="Not set — bookings read in UTC"
             />
           </Field>
 

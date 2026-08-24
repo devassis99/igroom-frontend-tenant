@@ -16,33 +16,36 @@ interface ModalProps {
   variant?: "center" | "sheet";
 }
 
-/** Matches the backdrop-fade + panel-rise duration below — keep these two in sync. */
-const TRANSITION_MS = 180;
+/** How long the keyframe animations below run — keep in sync with the tn-sheet / tn-modal keyframe pairs in index.css. */
+const ANIMATION_MS = 180;
 
 /**
  * Same portal-to-body pattern as igroom-frontend-bo's Modal.tsx — rendering
  * in place would center "fixed inset-0" relative to AppShell's scrollable
  * content div instead of the actual viewport.
  *
- * Stays mounted for one extra tick on both ends of `open` so the
- * backdrop-fade/panel-rise transition actually gets to run: mounting
- * `open`+"entering" in the same paint would let the browser coalesce the
- * two states and skip straight to the end value, and unmounting the
- * instant `open` goes false would cut the close animation off before it's
- * visible.
+ * Stays mounted for ANIMATION_MS after `open` goes false so the closing
+ * animation gets to play; unmounting immediately would cut it off.
+ *
+ * The open/close animations are CSS keyframes (index.css's tn-sheet-in /
+ * tn-modal-in and their -out pairs), not a transition between two React
+ * states. A transition only fires if the browser painted the closed state
+ * before the open one is applied, which from React means scheduling the
+ * flip a frame or two later and hoping that holds. It does hold in
+ * isolation — and stops holding as soon as something heavy mounts in the
+ * same commit, which is exactly what the Locations sheet does with its
+ * Leaflet map. A keyframe animation plays from its own `from` value the
+ * moment the element is inserted, so there is nothing to get wrong.
  */
 export function Modal({ open, onClose, children, width = 440, variant = "center" }: ModalProps) {
   const [rendered, setRendered] = useState(open);
-  const [entered, setEntered] = useState(false);
 
   useEffect(() => {
     if (open) {
       setRendered(true);
-      const raf = requestAnimationFrame(() => setEntered(true));
-      return () => cancelAnimationFrame(raf);
+      return;
     }
-    setEntered(false);
-    const timeout = setTimeout(() => setRendered(false), TRANSITION_MS);
+    const timeout = setTimeout(() => setRendered(false), ANIMATION_MS);
     return () => clearTimeout(timeout);
   }, [open]);
 
@@ -58,13 +61,19 @@ export function Modal({ open, onClose, children, width = 440, variant = "center"
   if (!rendered) return null;
 
   const isSheet = variant === "sheet";
+  const panelIn = isSheet ? "tn-sheet-in" : "tn-modal-in";
+  const panelOut = isSheet ? "tn-sheet-out" : "tn-modal-out";
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-50 flex bg-tn-backdrop backdrop-blur-[6px] transition-opacity ease-out ${
+      className={`fixed inset-0 z-50 flex bg-tn-backdrop backdrop-blur-[6px] ${
         isSheet ? "justify-end" : "items-center justify-center p-8"
       }`}
-      style={{ transitionDuration: `${TRANSITION_MS}ms`, opacity: entered ? 1 : 0 }}
+      style={{
+        animation: open
+          ? `tn-backdrop-in ${ANIMATION_MS}ms ease-out`
+          : `tn-backdrop-out ${ANIMATION_MS}ms ease-in forwards`,
+      }}
       onClick={onClose}
       role="presentation"
     >
@@ -79,19 +88,17 @@ export function Modal({ open, onClose, children, width = 440, variant = "center"
           boxShadow: isSheet
             ? "-24px 0 60px -30px rgba(20,15,5,0.45)"
             : "0 30px 70px -20px rgba(20,15,5,0.5)",
-          transitionDuration: `${TRANSITION_MS}ms`,
-          // A sheet slides rather than rises, and stays opaque throughout:
-          // fading a full-height panel in place reads as a flicker at this
-          // size, where a 440px card in the middle of the screen doesn't.
-          opacity: isSheet ? 1 : entered ? 1 : 0,
-          transform: isSheet
-            ? `translateX(${entered ? "0" : "100%"})`
-            : entered
-              ? "translateY(0) scale(1)"
-              : "translateY(10px) scale(0.97)",
+          animation: open
+            ? `${panelIn} ${ANIMATION_MS}ms ease-out`
+            : `${panelOut} ${ANIMATION_MS}ms ease-in forwards`,
         }}
-        className={`flex flex-col overflow-y-auto bg-tn-surface transition-[opacity,transform] ease-out ${
-          isSheet ? "h-full max-w-full rounded-l-2xl" : "max-h-full rounded-2xl"
+        // A sheet is flush with the viewport edges it meets — its top,
+        // bottom and right are the window, so rounding only the left
+        // corners reads as a card that has drifted off-screen rather than
+        // a panel attached to the side. The centred variant still rounds:
+        // it's a card, floating clear of every edge.
+        className={`flex flex-col overflow-y-auto bg-tn-surface ${
+          isSheet ? "h-full max-w-full" : "max-h-full rounded-2xl"
         }`}
       >
         {children}
