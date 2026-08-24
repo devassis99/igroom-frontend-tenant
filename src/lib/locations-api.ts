@@ -26,6 +26,16 @@ export interface AccountLocation {
   bookingsToday: number;
   /** Sum of priceCents across today's non-cancelled bookings. */
   revenueTodayCents: number;
+  /** A few staff for the row's avatar stack — `staffCount` is still the real total. */
+  staffPreview: { id: string; name: string }[];
+  /** Takings per day for the last 7 days, oldest first, zero-filled so the sparkline has a bar per day. */
+  revenueSeries: { date: string; cents: number }[];
+  /** Half-hour slots booked today. */
+  slotsBooked: number;
+  /** Half-hour slots the roster's working hours actually offer today. Zero means nobody has hours set. */
+  slotsCapacity: number;
+  /** No staff, or none with hours — this location can't take a booking yet. */
+  needsSetup: boolean;
   createdAt: string;
 }
 

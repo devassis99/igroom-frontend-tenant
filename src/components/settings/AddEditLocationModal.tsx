@@ -179,7 +179,10 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
   }
 
   return (
-    <Modal open={open} onClose={onClose} width={440}>
+    // A side sheet rather than a centred card: adding or editing a
+    // location is done against the list — you want the other sites still
+    // visible to compare hours and copy settings from.
+    <Modal open={open} onClose={onClose} width={460} variant="sheet">
       <form onSubmit={handleSubmit}>
         <div className="flex items-center justify-between px-6 pt-6">
           <h2 className="m-0 font-sans text-lg font-semibold text-tn-ink">

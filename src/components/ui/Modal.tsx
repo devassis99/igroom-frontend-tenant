@@ -7,6 +7,13 @@ interface ModalProps {
   children: ReactNode;
   /** Wider modals (e.g. the Staff Management wizard) opt into this instead of the 440px default. */
   width?: number;
+  /**
+   * "sheet" slides in from the right edge, full height, instead of rising
+   * in the centre. Used by Locations so the list stays on screen while you
+   * add or edit a site — you can see the row you're changing and the ones
+   * you're copying settings from.
+   */
+  variant?: "center" | "sheet";
 }
 
 /** Matches the backdrop-fade + panel-rise duration below — keep these two in sync. */
@@ -24,7 +31,7 @@ const TRANSITION_MS = 180;
  * instant `open` goes false would cut the close animation off before it's
  * visible.
  */
-export function Modal({ open, onClose, children, width = 440 }: ModalProps) {
+export function Modal({ open, onClose, children, width = 440, variant = "center" }: ModalProps) {
   const [rendered, setRendered] = useState(open);
   const [entered, setEntered] = useState(false);
 
@@ -50,9 +57,13 @@ export function Modal({ open, onClose, children, width = 440 }: ModalProps) {
 
   if (!rendered) return null;
 
+  const isSheet = variant === "sheet";
+
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-tn-backdrop p-8 backdrop-blur-[6px] transition-opacity ease-out"
+      className={`fixed inset-0 z-50 flex bg-tn-backdrop backdrop-blur-[6px] transition-opacity ease-out ${
+        isSheet ? "justify-end" : "items-center justify-center p-8"
+      }`}
       style={{ transitionDuration: `${TRANSITION_MS}ms`, opacity: entered ? 1 : 0 }}
       onClick={onClose}
       role="presentation"
@@ -65,12 +76,23 @@ export function Modal({ open, onClose, children, width = 440 }: ModalProps) {
         onClick={(e) => e.stopPropagation()}
         style={{
           width,
-          boxShadow: "0 30px 70px -20px rgba(20,15,5,0.5)",
+          boxShadow: isSheet
+            ? "-24px 0 60px -30px rgba(20,15,5,0.45)"
+            : "0 30px 70px -20px rgba(20,15,5,0.5)",
           transitionDuration: `${TRANSITION_MS}ms`,
-          opacity: entered ? 1 : 0,
-          transform: entered ? "translateY(0) scale(1)" : "translateY(10px) scale(0.97)",
+          // A sheet slides rather than rises, and stays opaque throughout:
+          // fading a full-height panel in place reads as a flicker at this
+          // size, where a 440px card in the middle of the screen doesn't.
+          opacity: isSheet ? 1 : entered ? 1 : 0,
+          transform: isSheet
+            ? `translateX(${entered ? "0" : "100%"})`
+            : entered
+              ? "translateY(0) scale(1)"
+              : "translateY(10px) scale(0.97)",
         }}
-        className="flex max-h-full flex-col overflow-y-auto rounded-2xl bg-tn-surface transition-[opacity,transform] ease-out"
+        className={`flex flex-col overflow-y-auto bg-tn-surface transition-[opacity,transform] ease-out ${
+          isSheet ? "h-full max-w-full rounded-l-2xl" : "max-h-full rounded-2xl"
+        }`}
       >
         {children}
       </div>
