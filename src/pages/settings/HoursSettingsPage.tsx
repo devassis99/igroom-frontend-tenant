@@ -383,13 +383,14 @@ export function HoursSettingsPage() {
                   aria-checked={isOn}
                   aria-label={`Toggle ${DAY_LABELS[dayOfWeek]}`}
                   onClick={() => toggleDay(dayOfWeek)}
-                  className={`relative mt-0.5 h-[22px] w-9 flex-none cursor-pointer rounded-full border-none ${
+                  className={`relative mt-0.5 h-[22px] w-9 flex-none cursor-pointer rounded-full border-none transition-colors ${
                     isOn ? "bg-tn-gold" : "bg-tn-border-softer"
                   }`}
                 >
+                  {/* See ui/Toggle.tsx on why `left-0.5` matters here. */}
                   <span
-                    className={`absolute top-0.5 h-[18px] w-[18px] rounded-full bg-tn-surface ${
-                      isOn ? "translate-x-[18px]" : "translate-x-0.5"
+                    className={`absolute top-0.5 left-0.5 h-[18px] w-[18px] rounded-full bg-tn-surface transition-transform ${
+                      isOn ? "translate-x-[14px]" : "translate-x-0"
                     }`}
                   />
                 </button>
