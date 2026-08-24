@@ -113,6 +113,8 @@ export interface CreateBookingPayload {
   startAt: string;
   status?: "confirmed" | "walk_in";
   notes?: string;
+  /** Set only after the owner has confirmed an out-of-hours slot — the server refuses one otherwise. Never bypasses the double-booking check. */
+  allowOutsideShift?: boolean;
 }
 
 export function createBooking(

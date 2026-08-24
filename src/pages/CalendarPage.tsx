@@ -376,6 +376,17 @@ export function CalendarPage() {
     for (const shift of shiftsQuery.data?.shifts ?? []) map.set(shift.staffUserId, shift);
     return map;
   }, [shiftsQuery.data]);
+  /**
+   * Whether the grid's height can be trusted not to change again — shifts
+   * now decide how many rows the Day view has (see daySlots), so scrolling
+   * to "now" before they land would aim at an offset that moves the moment
+   * rows are added above it.
+   *
+   * A disabled query (no staff, or not on Day view) reports isPending
+   * forever with fetchStatus "idle", so that has to count as settled or
+   * the scroll would never fire at all.
+   */
+  const shiftsSettled = !shiftsQuery.isPending || shiftsQuery.fetchStatus === "idle";
 
   // Today's booking count per staff id (cancelled ones don't count as "a
   // booking to plan around") — backs the picker's "N booked" line and its
@@ -464,15 +475,45 @@ export function CalendarPage() {
         : formatMonthNavLabel(cursorDate);
 
   /**
-   * The grid defaults to business hours (9am–7pm), but a booking outside
-   * that window must still be visible — otherwise it silently vanishes
-   * from Day view while still showing up fine in Week/Month (which have
-   * no hour restriction at all). So the bounds expand to cover whatever
-   * bookings actually exist on the visible day.
+   * The grid spans business hours (9am–7pm) widened to fit two things: the
+   * hours the people on screen actually work, and any booking that falls
+   * outside all of it.
+   *
+   * The shift half is why a barber rostered midnight-to-midnight gets a
+   * full 24 rows instead of the 9–7 window their schedule plainly
+   * contradicts. 9am–7pm survives as a floor rather than a default, so a
+   * short 10–2 shift still renders as a recognisable working day instead
+   * of collapsing to four rows.
+   *
+   * The booking half is load-bearing and predates the shift half: an
+   * appointment outside the window — including one placed through Add
+   * Booking's "Book anyway" override — must still be visible here, or it
+   * silently vanishes from Day view while showing up fine in Week and
+   * Month, which have no hour restriction at all.
+   *
+   * Shift times are compared as written, in the grid's display timezone,
+   * matching isSlotOutsideShift's greying below. Both are wrong by the
+   * offset if someone views a shop through a different timezone than the
+   * schedule was authored in; fixing that belongs in one place, with that
+   * function.
    */
   const daySlots = useMemo(() => {
     let minHour = 9;
     let maxHour = 19;
+
+    for (const shift of shiftsByStaffId.values()) {
+      if (shift.isOff) continue;
+      for (const range of shift.ranges) {
+        const [startHour] = range.startTime.split(":").map(Number);
+        const [endHour, endMinute] = range.endTime.split(":").map(Number);
+        minHour = Math.min(minHour, startHour ?? 0);
+        // A shift ending 23:45 needs the 23:00 row drawn, so round the end
+        // hour up before clamping to the end of the day.
+        const endHourCeil = (endMinute ?? 0) > 0 ? (endHour ?? 0) + 1 : (endHour ?? 0);
+        maxHour = Math.max(maxHour, Math.min(endHourCeil, 24));
+      }
+    }
+
     for (const booking of bookings) {
       const start = new Date(booking.startAt);
       if (!isSameDay(start, cursorDate)) continue; // overlaps in from the prior day — not this day's row range
@@ -484,7 +525,7 @@ export function CalendarPage() {
       maxHour = Math.max(maxHour, Math.min(endHourCeil, 24));
     }
     return getDaySlots(cursorDate, minHour, Math.max(maxHour, minHour + 1), 30, timezone);
-  }, [cursorDate, bookings, timezone]);
+  }, [cursorDate, bookings, timezone, shiftsByStaffId]);
 
   /**
    * Columns for the Day view. Bookings only ever come back from the API
@@ -686,11 +727,12 @@ export function CalendarPage() {
   // the right place.
   useLayoutEffect(() => {
     if (view !== "day" || scrolledToNowRef.current) return;
-    if (staffQuery.isPending || nowLineOffsetPx === null || !dayScrollRef.current) return;
+    if (staffQuery.isPending || !shiftsSettled) return;
+    if (nowLineOffsetPx === null || !dayScrollRef.current) return;
     const container = dayScrollRef.current;
     container.scrollTop = Math.max(0, nowLineOffsetPx - container.clientHeight / 3);
     scrolledToNowRef.current = true;
-  }, [view, staffQuery.isPending, nowLineOffsetPx, selectedLocationId]);
+  }, [view, staffQuery.isPending, shiftsSettled, nowLineOffsetPx, selectedLocationId]);
 
   // Clear the row highlight(s) on any day/view change — otherwise a row
   // selected on one day could visually "reappear" selected on another day

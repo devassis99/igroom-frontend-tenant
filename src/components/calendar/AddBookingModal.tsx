@@ -8,6 +8,7 @@ import { DatePicker } from "@/components/ui/DatePicker";
 import { TimePicker } from "@/components/ui/TimePicker";
 import { PhoneInput, isPhoneValid } from "@/components/ui/PhoneInput";
 import { createBooking, type BookingsStaffMember } from "@/lib/bookings-api";
+import { ApiError } from "@/lib/http";
 import { listServices } from "@/lib/services-api";
 import { zonedTimeToUtc } from "@/lib/calendar-dates";
 
@@ -73,6 +74,10 @@ export function AddBookingModal({
   const [isWalkIn, setIsWalkIn] = useState(false);
   const [notes, setNotes] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  // The server's own words for why this slot is out of hours. Held apart
+  // from formError because this one is answerable: the owner can go
+  // ahead anyway, which a plain red line gives them no way to do.
+  const [outsideShiftWarning, setOutsideShiftWarning] = useState<string | null>(null);
 
   // Real, account-configured services (T9's menu) rather than free text —
   // same source Services page itself reads from, so what's pickable here
@@ -122,7 +127,7 @@ export function AddBookingModal({
   }
 
   const mutation = useMutation({
-    mutationFn: () => {
+    mutationFn: (allowOutsideShift?: boolean) => {
       const [year, month, day] = dateValue.split("-").map(Number);
       const [hour, minute] = timeValue.split(":").map(Number);
       const startAt =
@@ -140,6 +145,7 @@ export function AddBookingModal({
         startAt: startAt.toISOString(),
         status: isWalkIn ? "walk_in" : "confirmed",
         notes: notes.trim() || undefined,
+        allowOutsideShift,
       });
     },
     onSuccess: () => {
@@ -147,6 +153,17 @@ export function AddBookingModal({
       onClose();
     },
     onError: (err) => {
+      // The server decides whether a slot is out of hours and flags it with
+      // a code, so this doesn't re-derive the schedule client-side and risk
+      // the two disagreeing. Anything else is a plain failure.
+      const code =
+        err instanceof ApiError && err.body && typeof err.body === "object"
+          ? (err.body as { code?: unknown }).code
+          : undefined;
+      if (code === "OUTSIDE_SHIFT") {
+        setOutsideShiftWarning(err.message);
+        return;
+      }
       setFormError(err instanceof Error ? err.message : "Couldn't create the booking — try again.");
     },
   });
@@ -157,6 +174,7 @@ export function AddBookingModal({
       return;
     }
     setFormError(null);
+    setOutsideShiftWarning(null);
     setStep(step - 1);
   }
 
@@ -179,11 +197,12 @@ export function AddBookingModal({
     }
 
     setFormError(null);
+    setOutsideShiftWarning(null);
     if (step < STEPS.length - 1) {
       setStep(step + 1);
       return;
     }
-    mutation.mutate();
+    mutation.mutate(undefined);
   }
 
   return (
@@ -359,6 +378,34 @@ export function AddBookingModal({
         )}
 
         {formError && <p className="m-0 font-sans text-xs text-tn-danger">{formError}</p>}
+
+        {outsideShiftWarning && (
+          <div className="flex flex-col gap-2 rounded-xl border border-tn-gold bg-tn-gold-bg p-3">
+            <p className="m-0 font-sans text-xs text-tn-ink-soft">{outsideShiftWarning}</p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => setOutsideShiftWarning(null)}
+                disabled={mutation.isPending}
+              >
+                Pick another time
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  setOutsideShiftWarning(null);
+                  mutation.mutate(true);
+                }}
+                disabled={mutation.isPending}
+              >
+                Book anyway
+              </Button>
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-2.5 border-t border-tn-border-soft pt-3">
           <Button
