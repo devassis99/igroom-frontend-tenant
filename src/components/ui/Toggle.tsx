@@ -18,8 +18,13 @@ export function Toggle({ checked, onChange, label, disabled = false }: TogglePro
         aria-label={label}
         onClick={() => onChange(!checked)}
         disabled={disabled}
+        // Green for "on", not the app's gold accent: gold is used all over
+        // this UI for emphasis (badges, active nav, chart lines), so a gold
+        // switch reads as "highlighted" rather than "enabled". tn-success
+        // is the palette's existing on/healthy colour and is the one thing
+        // here that means switched-on at a glance.
         className={`relative h-[22px] w-9 flex-none rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-          checked ? "bg-tn-gold" : "bg-tn-border-softer"
+          checked ? "bg-tn-success" : "bg-tn-border-softer"
         }`}
       >
         {/*

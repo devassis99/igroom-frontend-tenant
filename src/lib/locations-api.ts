@@ -108,3 +108,131 @@ export function reverseGeocodeLocation(
     headers: authHeaders(accessToken),
   });
 }
+
+// --- The location detail pane's tabs ---------------------------------------
+
+export interface LocationHoursDay {
+  /** 0 = Sunday .. 6 = Saturday, matching Date#getDay(). */
+  dayOfWeek: number;
+  isClosed: boolean;
+  /** "HH:MM", null when closed. */
+  openTime: string | null;
+  closeTime: string | null;
+}
+
+/** Always seven days, Sunday first — a missing row server-side means closed, filled in for you. */
+export function listLocationHours(
+  accessToken: string,
+  locationId: string,
+): Promise<{ days: LocationHoursDay[] }> {
+  return request(`/locations/${locationId}/hours`, { headers: authHeaders(accessToken) });
+}
+
+/** Whole-week replace: the editor saves all seven days together, so a partial write would leave a shop half-open. */
+export function setLocationHours(
+  accessToken: string,
+  locationId: string,
+  days: LocationHoursDay[],
+): Promise<{ days: LocationHoursDay[] }> {
+  return request(`/locations/${locationId}/hours`, {
+    method: "PUT",
+    body: { days },
+    headers: authHeaders(accessToken),
+  });
+}
+
+export interface LocationStaffMember {
+  id: string;
+  name: string;
+  email: string;
+  displayTitle: string | null;
+  avatarUrl: string | null;
+  isActive: boolean;
+  roleName: string | null;
+  /** False means nobody can book them here yet — no working hours set. */
+  hasHours: boolean;
+}
+
+export function listLocationStaff(
+  accessToken: string,
+  locationId: string,
+): Promise<{ staff: LocationStaffMember[] }> {
+  return request(`/locations/${locationId}/staff`, { headers: authHeaders(accessToken) });
+}
+
+export interface LocationPayment {
+  bookingId: string;
+  startAt: string;
+  customerName: string;
+  serviceName: string;
+  type: "full" | "deposit" | null;
+  status: "requires_payment" | "paid" | "failed" | "refunded" | null;
+  capturedCents: number;
+  remainingCents: number;
+}
+
+/**
+ * Money that has actually moved at this location. Transfers to the shop's
+ * own bank aren't modelled anywhere in the backend, so this is takings and
+ * what's still owed — not a payout schedule. See getLocationPayouts.
+ */
+export interface LocationPayouts {
+  windowDays: number;
+  totals: {
+    bookedCents: number;
+    capturedCents: number;
+    refundedCents: number;
+    outstandingCents: number;
+  };
+  payments: LocationPayment[];
+}
+
+export function getLocationPayouts(
+  accessToken: string,
+  locationId: string,
+): Promise<LocationPayouts> {
+  return request(`/locations/${locationId}/payouts`, { headers: authHeaders(accessToken) });
+}
+
+/** One row of the Services & pricing tab — every catalogue service, ticked or not. */
+export interface LocationCatalogueEntry {
+  serviceId: string;
+  name: string;
+  categoryId: string | null;
+  categoryName: string | null;
+  isEnabled: boolean;
+  offered: boolean;
+  cataloguePriceCents: number;
+  catalogueDurationMinutes: number;
+  priceCentsOverride: number | null;
+  durationMinutesOverride: number | null;
+  /** Resolved: the override if set, otherwise the catalogue's figure. */
+  priceCents: number;
+  durationMinutes: number;
+}
+
+export function listLocationServices(
+  accessToken: string,
+  locationId: string,
+): Promise<{ services: LocationCatalogueEntry[] }> {
+  return request(`/locations/${locationId}/services`, { headers: authHeaders(accessToken) });
+}
+
+export interface LocationServiceInput {
+  serviceId: string;
+  priceCents?: number | null;
+  durationMinutes?: number | null;
+}
+
+/** The complete set of services this location offers — same whole-set replace as setServiceLocations. */
+export function setLocationServices(
+  accessToken: string,
+  locationId: string,
+  services: LocationServiceInput[],
+): Promise<{ services: LocationCatalogueEntry[] }> {
+  return request(`/locations/${locationId}/services`, {
+    method: "PUT",
+    body: { services },
+    headers: authHeaders(accessToken),
+  });
+}

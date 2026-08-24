@@ -1378,6 +1378,7 @@ export function CalendarPage() {
         defaultStaffId={addRequest?.defaultStaffId}
         defaultTime={addRequest?.defaultTime}
         timezone={timezone}
+        locationId={selectedLocationId || undefined}
       />
 
       <ManageStaffSetsModal

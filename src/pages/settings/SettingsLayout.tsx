@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { NavLink, Outlet } from "react-router";
+import { useState, type ReactNode } from "react";
+import { NavLink, Outlet, useOutletContext } from "react-router";
 import { usePermissions } from "@/auth/use-permissions";
 
 type NavIconComponent = (props: { className?: string }) => ReactNode;
@@ -160,8 +160,26 @@ function navClass(isActive: boolean) {
  * background — with a border to match, the two otherwise blend into one
  * long sidebar with no visible seam between "app nav" and "settings nav".
  */
+/**
+ * What a settings page can ask the chrome around it to do.
+ *
+ * Only one thing so far: the Locations page collapses this nav to an icon
+ * rail when a location is selected, because its detail pane wants the
+ * width and the nav is not what you are looking at while you are inside
+ * one shop. Read with useSettingsChrome() below.
+ */
+export interface SettingsChrome {
+  setNavCollapsed: (collapsed: boolean) => void;
+}
+
+/** Typed accessor for the Outlet context above — pages call this rather than useOutletContext directly. */
+export function useSettingsChrome(): SettingsChrome {
+  return useOutletContext<SettingsChrome>();
+}
+
 export function SettingsLayout() {
   const { has } = usePermissions();
+  const [navCollapsed, setNavCollapsed] = useState(false);
   const visible = (items: SettingsNavItem[]) =>
     items.filter((item) => !item.permission || has(item.permission));
 
@@ -170,22 +188,37 @@ export function SettingsLayout() {
 
   return (
     <div className="-my-8 flex min-h-screen">
-      <nav className="-ml-10 flex w-[240px] flex-none flex-col gap-6 border-r border-tn-border bg-tn-table-head py-8">
-        <p className="m-0 px-4 font-serif text-[22px] font-semibold text-tn-ink">Settings</p>
+      <nav
+        className={`-ml-10 flex flex-none flex-col gap-6 border-r border-tn-border bg-tn-table-head py-8 transition-[width] duration-200 ease-in-out ${
+          navCollapsed ? "w-[76px] overflow-hidden" : "w-[240px]"
+        }`}
+      >
+        <p
+          className={`m-0 font-serif font-semibold text-tn-ink ${
+            navCollapsed ? "px-0 text-center text-lg" : "px-4 text-[22px]"
+          }`}
+        >
+          {navCollapsed ? "iG" : "Settings"}
+        </p>
         <div>
-          <p className="m-0 mb-2 px-4 font-sans text-[11px] font-semibold tracking-[0.04em] text-tn-faint">
-            GENERAL
-          </p>
+          {!navCollapsed && (
+            <p className="m-0 mb-2 px-4 font-sans text-[11px] font-semibold tracking-[0.04em] text-tn-faint">
+              GENERAL
+            </p>
+          )}
           <div className="flex flex-col gap-0.5">
             {generalItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 end={item.end}
-                className={({ isActive }) => navClass(isActive)}
+                title={navCollapsed ? item.label : undefined}
+                className={({ isActive }) =>
+                  `${navClass(isActive)} ${navCollapsed ? "justify-center" : ""}`
+                }
               >
                 <item.icon className="h-[18px] w-[18px] shrink-0" />
-                <span>{item.label}</span>
+                {!navCollapsed && <span>{item.label}</span>}
               </NavLink>
             ))}
           </div>
@@ -193,19 +226,24 @@ export function SettingsLayout() {
 
         {workspaceItems.length > 0 && (
           <div>
-            <p className="m-0 mb-2 px-4 font-sans text-[11px] font-semibold tracking-[0.04em] text-tn-faint">
-              WORKSPACE SETTINGS
-            </p>
+            {!navCollapsed && (
+              <p className="m-0 mb-2 px-4 font-sans text-[11px] font-semibold tracking-[0.04em] text-tn-faint">
+                WORKSPACE SETTINGS
+              </p>
+            )}
             <div className="flex flex-col gap-0.5">
               {workspaceItems.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  className={({ isActive }) => navClass(isActive)}
+                  title={navCollapsed ? item.label : undefined}
+                  className={({ isActive }) =>
+                    `${navClass(isActive)} ${navCollapsed ? "justify-center" : ""}`
+                  }
                 >
                   <item.icon className="h-[18px] w-[18px] shrink-0" />
-                  <span className="flex-1">{item.label}</span>
-                  {item.badge && (
+                  {!navCollapsed && <span className="flex-1">{item.label}</span>}
+                  {!navCollapsed && item.badge && (
                     <span className="rounded-full bg-tn-gold-bg px-1.5 py-0.5 font-sans text-[9px] font-semibold text-tn-gold">
                       {item.badge}
                     </span>
@@ -218,7 +256,7 @@ export function SettingsLayout() {
       </nav>
 
       <div className="min-w-0 flex-1 py-8 pl-10">
-        <Outlet />
+        <Outlet context={{ setNavCollapsed } satisfies SettingsChrome} />
       </div>
     </div>
   );

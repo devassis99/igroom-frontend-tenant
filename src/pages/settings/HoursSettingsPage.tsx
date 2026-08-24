@@ -407,8 +407,9 @@ export function HoursSettingsPage() {
                   aria-checked={isOn}
                   aria-label={`Toggle ${DAY_LABELS[dayOfWeek]}`}
                   onClick={() => toggleDay(dayOfWeek)}
+                  // Matches ui/Toggle.tsx — see the colour note there.
                   className={`relative mt-0.5 h-[22px] w-9 flex-none cursor-pointer rounded-full border-none transition-colors ${
-                    isOn ? "bg-tn-gold" : "bg-tn-border-softer"
+                    isOn ? "bg-tn-success" : "bg-tn-border-softer"
                   }`}
                 >
                   {/* See ui/Toggle.tsx on why `left-0.5` matters here. */}

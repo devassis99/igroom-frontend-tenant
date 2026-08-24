@@ -30,6 +30,13 @@ interface AddBookingModalProps {
    * browser-local behavior (e.g. any other future caller of this modal).
    */
   timezone?: string;
+  /**
+   * Which shop this booking is for. The service menu is account-level now
+   * (services + location_services), so without this the picker would offer
+   * treatments this location doesn't do — and quote the catalogue price
+   * rather than the one this site charges.
+   */
+  locationId?: string;
 }
 
 function toDateInputValue(date: Date): string {
@@ -61,6 +68,7 @@ export function AddBookingModal({
   defaultStaffId,
   defaultTime,
   timezone,
+  locationId,
 }: AddBookingModalProps) {
   const queryClient = useQueryClient();
   const [step, setStep] = useState(0);
@@ -84,8 +92,8 @@ export function AddBookingModal({
   // always matches what actually exists. Only fetched while the modal's
   // open, matching AddMemberWizard.tsx's locations/roles queries.
   const servicesQuery = useQuery({
-    queryKey: ["services"],
-    queryFn: () => listServices(accessToken),
+    queryKey: ["services", locationId ?? "all"],
+    queryFn: () => listServices(accessToken, locationId),
     enabled: open,
   });
   const services = servicesQuery.data?.services.filter((s) => s.isEnabled) ?? [];

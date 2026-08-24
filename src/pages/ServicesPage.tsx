@@ -5,7 +5,10 @@ import { StatusPill } from "@/components/ui/StatusPill";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { ServiceModal } from "@/components/services/ServiceModal";
 import { CategoriesModal } from "@/components/services/CategoriesModal";
+import { ServiceLocationsModal } from "@/components/services/ServiceLocationsModal";
 import { useAuthStore } from "@/auth/auth-store";
+import { usePermissions } from "@/auth/use-permissions";
+import { listLocations } from "@/lib/locations-api";
 import {
   deleteService,
   listCategories,
@@ -32,6 +35,23 @@ function formatDuration(minutes: number): string {
 
 function formatPrice(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
+}
+
+/**
+ * How the LOCATIONS cell reads. "Nowhere" is called out rather than shown
+ * as "0" because it's the one state that means the service can't be
+ * booked at all — a catalogue entry nobody sells.
+ */
+function locationsLabel(service: Service, totalLocations: number): string {
+  const count = service.locations.length;
+  if (count === 0) return "Nowhere";
+  if (totalLocations > 0 && count === totalLocations) {
+    return totalLocations === 1
+      ? (service.locations[0]?.locationName ?? "1 location")
+      : "All locations";
+  }
+  if (count === 1) return service.locations[0]!.locationName;
+  return `${service.locations[0]!.locationName} +${count - 1}`;
 }
 
 /** RFC 4180-ish — good enough for names/categories that might contain commas or quotes. */
@@ -66,17 +86,20 @@ function downloadServicesCsv(rows: Service[]) {
   URL.revokeObjectURL(url);
 }
 
-const GRID_COLUMNS = "40px 1.8fr 1fr 1fr 1.3fr 1fr 1fr 40px";
+const GRID_COLUMNS = "40px 1.7fr 0.9fr 0.8fr 1.2fr 0.9fr 1.1fr 0.9fr 40px";
 
 /** Matches the mockup's T9 Services table + T9b Add/Edit Service modal, now backed by real igroom-backend data (see services-api.ts) instead of a static list. */
 export function ServicesPage() {
   const accessToken = useAuthStore((s) => s.accessToken);
   const queryClient = useQueryClient();
+  const { has: hasPermission } = usePermissions();
+  const canManageServices = hasPermission("services.manage");
 
   const [search, setSearch] = useState("");
   const [modalService, setModalService] = useState<Service | null | undefined>(undefined);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Service | null>(null);
+  const [locationsService, setLocationsService] = useState<Service | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
 
   const servicesQuery = useQuery({
@@ -85,6 +108,15 @@ export function ServicesPage() {
     enabled: !!accessToken,
   });
   const services = servicesQuery.data?.services ?? EMPTY_SERVICES;
+
+  // Only for the LOCATIONS cell's "All locations" wording — the modal
+  // reads the same cached query when it opens.
+  const locationsQuery = useQuery({
+    queryKey: ["locations"],
+    queryFn: () => listLocations(accessToken ?? ""),
+    enabled: !!accessToken,
+  });
+  const locationCount = locationsQuery.data?.locations.length ?? 0;
 
   const categoriesQuery = useQuery({
     queryKey: ["service-categories"],
@@ -209,6 +241,7 @@ export function ServicesPage() {
           <span>PRICE</span>
           <span>TAX</span>
           <span>CATEGORY</span>
+          <span>LOCATIONS</span>
           <span>STATUS</span>
           <span />
         </div>
@@ -265,6 +298,21 @@ export function ServicesPage() {
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
+                setLocationsService(service);
+              }}
+              title="Choose which locations offer this"
+              className={`w-fit cursor-pointer rounded-full border px-2.5 py-1 font-sans text-[11px] font-medium ${
+                service.locations.length === 0
+                  ? "border-tn-gold-soft bg-tn-gold-bg text-tn-gold"
+                  : "border-tn-input-border bg-transparent text-tn-ink-soft hover:bg-tn-page"
+              }`}
+            >
+              {locationsLabel(service, locationCount)}
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
                 toggleMutation.mutate({ id: service.id, isEnabled: !service.isEnabled });
               }}
               disabled={toggleMutation.isPending}
@@ -290,6 +338,13 @@ export function ServicesPage() {
           </div>
         ))}
       </div>
+
+      <ServiceLocationsModal
+        service={locationsService}
+        onClose={() => setLocationsService(null)}
+        accessToken={accessToken ?? ""}
+        canManage={canManageServices}
+      />
 
       <ServiceModal
         open={modalService !== undefined}
