@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { AddOverrideModal } from "@/components/availability/AddOverrideModal";
 import { SuccessToast } from "@/components/ui/Toast";
+import { CopyTimesPopover } from "@/components/ui/CopyTimesPopover";
 import { LocationFilterPopover } from "@/components/ui/LocationFilterPopover";
 import { StaffFilterPopover } from "@/components/ui/StaffFilterPopover";
 import { TimezonePicker } from "@/components/ui/TimezonePicker";
@@ -156,9 +157,19 @@ export function HoursSettingsPage() {
 
   const staffOptions = useMemo(() => {
     const all = staffQuery.data?.staff ?? [];
+    // Only people who can actually hold a schedule. listStaff() backs the
+    // Staff Management table, so it deliberately returns deactivated rows
+    // and invites nobody has claimed yet — both need to be manageable
+    // there. Neither can sign in, though, so offering to set working hours
+    // for them puts someone on the rota who can't work it, and the
+    // calendar (which filters on the same isActive + credentials pair in
+    // bookings.service.ts's listStaffForLocation) would never show them.
+    // The effect below re-points the selection if the current pick drops
+    // out of this list.
+    const schedulable = all.filter((s) => s.isActive && s.claimed);
     return selectedLocationId === "all"
-      ? all
-      : all.filter((s) => s.locationId === selectedLocationId);
+      ? schedulable
+      : schedulable.filter((s) => s.locationId === selectedLocationId);
   }, [staffQuery.data, selectedLocationId]);
 
   const selectedStaffMember = staffOptions.find((s) => s.id === selectedStaffUserId);
@@ -303,13 +314,25 @@ export function HoursSettingsPage() {
     }));
   }
 
-  /** The screenshot's small "duplicate" icon per day — copies this day's ranges onto every other day, client-side only until Save Changes is pressed. */
-  function copyToAllDays(dayOfWeek: number) {
-    const ranges = weekly[dayOfWeek] ?? [];
+  /**
+   * Copies one day's ranges onto the days picked in CopyTimesPopover —
+   * client-side only until Save Changes is pressed.
+   *
+   * Ranges are cloned per target rather than shared, so editing Tuesday's
+   * copy afterwards doesn't silently rewrite Wednesday's too.
+   *
+   * This replaces the old copy-to-every-other-day button. Overwriting six
+   * days on a single click was destructive with no undo: a shop with
+   * different weekend hours lost them the moment anyone copied a weekday,
+   * and the only way back was retyping them.
+   */
+  function copyTimesTo(sourceDay: number, targetDays: number[]) {
+    const ranges = weekly[sourceDay] ?? [];
     setWeekly((prev) => {
       const next = { ...prev };
-      for (let d = 0; d < 7; d++) {
-        if (d !== dayOfWeek) next[d] = ranges.map((r) => ({ ...r }));
+      for (const day of targetDays) {
+        if (day === sourceDay) continue;
+        next[day] = ranges.map((r) => ({ ...r }));
       }
       return next;
     });
@@ -345,6 +368,7 @@ export function HoursSettingsPage() {
               onChange={setSelectedStaffUserId}
               selfId={staffUser?.id}
               label="Filter by member"
+              emptyLabel="Nobody here has signed in yet — a member can be scheduled once they've claimed their invite."
             />
           </div>
         )}
@@ -448,15 +472,12 @@ export function HoursSettingsPage() {
                               </button>
                             )}
                             {index === 0 && (
-                              <button
-                                type="button"
-                                onClick={() => copyToAllDays(dayOfWeek)}
-                                title="Copy these hours to every other day"
-                                aria-label={`Copy ${DAY_LABELS[dayOfWeek]}'s hours to every other day`}
-                                className="cursor-pointer rounded-md border-none bg-transparent px-1 font-sans text-xs text-tn-muted-5 hover:text-tn-ink"
-                              >
-                                ⧉
-                              </button>
+                              <CopyTimesPopover
+                                sourceDay={dayOfWeek}
+                                dayLabels={DAY_LABELS}
+                                displayOrder={DISPLAY_ORDER}
+                                onApply={(targetDays) => copyTimesTo(dayOfWeek, targetDays)}
+                              />
                             )}
                           </div>
                           {conflicts && (

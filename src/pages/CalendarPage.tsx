@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
@@ -271,7 +271,10 @@ export function CalendarPage() {
   const staffQuery = useQuery({
     queryKey: ["bookings-staff", selectedLocationId],
     queryFn: () => listStaff(accessToken ?? "", selectedLocationId || undefined),
-    enabled: !!accessToken,
+    // Waits for the location list: firing while selectedLocationId is still
+    // "" fetches every location, then immediately refetches for the real
+    // one — two round trips for one page open.
+    enabled: !!accessToken && !locationsQuery.isPending,
     placeholderData: keepPreviousData,
   });
   const staff = staffQuery.data?.staff ?? EMPTY_STAFF;
@@ -286,7 +289,7 @@ export function CalendarPage() {
       ),
     // The List view has its own paged query (AppointmentListView) instead
     // of this date-range one — no need to fetch both while it's active.
-    enabled: !!accessToken && view !== "list",
+    enabled: !!accessToken && view !== "list" && !locationsQuery.isPending,
     // The previous range's bookings stay on screen (fading/sliding out
     // under the transition below) while the new range loads, instead of
     // the grid flashing empty for a beat on every date/view/location
@@ -300,7 +303,7 @@ export function CalendarPage() {
   const staffSetsQuery = useQuery({
     queryKey: ["bookings-staff-sets", selectedLocationId],
     queryFn: () => listStaffSets(accessToken ?? "", selectedLocationId || undefined),
-    enabled: !!accessToken,
+    enabled: !!accessToken && !locationsQuery.isPending,
   });
   const staffSets = staffSetsQuery.data?.staffSets ?? EMPTY_STAFF_SETS;
 
@@ -645,22 +648,15 @@ export function CalendarPage() {
   // for this day" apart from "already landed, don't yank the user's
   // scroll position back out from under them" without re-running on every
   // `now` tick or staff refetch.
-  // `selectedLocationId` is in this list for a subtler reason than the
-  // others: the grid section below is keyed on
-  // `${view}-${selectedLocationId}-${cursorDate.toDateString()}` (see its
-  // own comment), and `selectedLocationId` starts as "" and flips to the
-  // account's real default location id the moment the locations query
-  // resolves (a few lines up). That key change unmounts and remounts the
-  // ENTIRE grid section — including the scrollable Day container the
-  // effect below targets — via a fresh DOM node with scrollTop back at 0.
-  // On a fast/cached load, staffQuery could already resolve and this
-  // effect could already run (and mark scrolledToNowRef done) against the
-  // *old*, about-to-be-discarded container before that remount happens,
-  // permanently stranding the fresh one at the top with no further
-  // trigger to retry — exactly the "works on refresh 1, not on refresh 2"
-  // flakiness this was reported as. Resetting here on every
-  // selectedLocationId change closes that window: whichever container is
-  // live when this fires next gets the scroll.
+  // `selectedLocationId` earns its place here too: switching location
+  // swaps the whole set of columns, so landing on `now` again is right,
+  // and it covers the location defaulting in on first load (it starts as
+  // "" and flips to the account's primary the moment the list resolves) —
+  // the scroll below is gated on staffQuery, which only starts fetching
+  // once that id exists, so this reset is what re-arms it afterwards.
+  //
+  // The grid below is deliberately no longer keyed on selectedLocationId,
+  // so that flip no longer remounts the scroll container underneath this.
   const scrolledToNowRef = useRef(false);
   useEffect(() => {
     scrolledToNowRef.current = false;
@@ -682,7 +678,13 @@ export function CalendarPage() {
   // Also re-checks on `selectedLocationId` itself (not just via the reset
   // above) so a remount caused by the location defaulting in gets an
   // immediate retry instead of waiting for the next unrelated `now` tick.
-  useEffect(() => {
+  //
+  // useLayoutEffect, not useEffect: a plain effect runs *after* the browser
+  // has painted, so the grid is drawn at scrollTop 0 and then yanked down
+  // to "now" a frame later — visible as a jump every time the page opens.
+  // Running before paint means the first frame the user sees is already in
+  // the right place.
+  useLayoutEffect(() => {
     if (view !== "day" || scrolledToNowRef.current) return;
     if (staffQuery.isPending || nowLineOffsetPx === null || !dayScrollRef.current) return;
     const container = dayScrollRef.current;
@@ -797,10 +799,20 @@ export function CalendarPage() {
         </p>
       )}
 
-      <div
-        key={`${view}-${selectedLocationId}-${cursorDate.toDateString()}`}
-        style={{ animation: gridAnimation }}
-      >
+      {/*
+        Keyed to remount (and so replay the entrance animation, and reset
+        scroll) whenever the view or the day changes.
+
+        selectedLocationId is deliberately NOT part of this. It starts as ""
+        and flips to the account's primary location the moment the list
+        lands, so including it meant every page open mounted the whole
+        grid, threw it away, and replayed the animation on the replacement
+        — read as the calendar rendering twice. Switching location no
+        longer replays the animation, which is the better behaviour anyway;
+        the scroll-to-now reset below still watches selectedLocationId, so
+        a location switch still lands on the current time.
+      */}
+      <div key={`${view}-${cursorDate.toDateString()}`} style={{ animation: gridAnimation }}>
         {view === "day" && !staffQuery.isPending && staff.length === 0 && (
           /* Brand-new account — no staff has been added at this location at all yet, so the
              grid below has nothing to show and no one to assign a booking to. Replaces the

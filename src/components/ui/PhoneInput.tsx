@@ -1,4 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type RefObject,
+} from "react";
 import { createPortal } from "react-dom";
 
 interface PhoneInputProps {
@@ -9,7 +16,7 @@ interface PhoneInputProps {
   className?: string;
 }
 
-interface CountryDef {
+export interface CountryDef {
   iso2: string;
   name: string;
   dialCode: string;
@@ -83,9 +90,15 @@ const COUNTRIES: CountryDef[] = [
 const DEFAULT_COUNTRY = COUNTRIES.find((c) => c.iso2 === "US")!;
 // Longest dial code first, so "+1..." doesn't shadow-match a
 // three-digit code that happens to start with the same leading digit.
-const COUNTRIES_BY_DIAL_CODE_DESC = [...COUNTRIES].sort(
-  (a, b) => b.dialCode.length - a.dialCode.length,
-);
+// DEFAULT_COUNTRY wins any tie: the US and Canada both use "+1", and a
+// plain length sort left Canada first, so every saved US number came back
+// from the database showing a Canadian flag.
+const COUNTRIES_BY_DIAL_CODE_DESC = [...COUNTRIES].sort((a, b) => {
+  if (b.dialCode.length !== a.dialCode.length) return b.dialCode.length - a.dialCode.length;
+  if (a.iso2 === DEFAULT_COUNTRY.iso2) return -1;
+  if (b.iso2 === DEFAULT_COUNTRY.iso2) return 1;
+  return 0;
+});
 
 const GAP = 6;
 
@@ -99,22 +112,238 @@ function digitsOnly(s: string): string {
   return s.replace(/\D/g, "");
 }
 
-/** Splits a stored "+<dial code> <national>" value into its country + raw national text — falls back to DEFAULT_COUNTRY for a value with no recognizable "+<code>" prefix (legacy data saved before this component existed, or a fresh empty field). */
-export function parsePhoneValue(value: string): { country: CountryDef; national: string } {
-  const trimmed = value.trim();
-  if (trimmed.startsWith("+")) {
-    const rest = trimmed.slice(1);
-    const match = COUNTRIES_BY_DIAL_CODE_DESC.find((c) => rest.startsWith(c.dialCode));
-    if (match) {
-      return { country: match, national: rest.slice(match.dialCode.length).trim() };
-    }
-  }
-  return { country: DEFAULT_COUNTRY, national: trimmed };
+/**
+ * Strips the invisible characters that ride along with a number copied out
+ * of a contacts app or a right-to-left document, and folds the full-width
+ * "\uFF0B" onto ASCII "+". Without this, a value that *looks* international
+ * fails the startsWith("+") test below and is treated as a national number
+ * — dial code and all, which is how a country code ends up displayed inside
+ * the national box.
+ */
+function normalizePhoneText(value: string): string {
+  return value
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, "")
+    .replace(/^\uFF0B/, "+")
+    .trim();
 }
 
-function combine(country: CountryDef, national: string): string {
-  if (!national.trim()) return "";
-  return `+${country.dialCode} ${national.trim()}`;
+/** Drops the first `count` digits along with any punctuation among them, keeping the rest exactly as the user wrote it. */
+function dropLeadingDigits(text: string, count: number): string {
+  let dropped = 0;
+  let i = 0;
+  for (; i < text.length && dropped < count; i++) {
+    if (/\d/.test(text[i]!)) dropped++;
+  }
+  return text.slice(i).trim();
+}
+
+/**
+ * A number written with its country code but no "+" ("1 (343) 631-8566").
+ * Only strips when the string is too long to be a national number already
+ * AND the leftover is exactly the length that country expects — so a
+ * genuine national number that merely starts with the dial-code digit is
+ * left alone.
+ */
+function stripUnprefixedDialCode(country: CountryDef, text: string): string {
+  const digits = digitsOnly(text);
+  const [min, max] = country.digits;
+  if (digits.length >= min && digits.length <= max) return text;
+  if (!digits.startsWith(country.dialCode)) return text;
+  const remaining = digits.length - country.dialCode.length;
+  if (remaining < min || remaining > max) return text;
+  return dropLeadingDigits(text, country.dialCode.length);
+}
+
+/**
+ * The national-number grouping each country writes its own numbers in.
+ *
+ * "#" is a digit slot; every other character is a literal the field
+ * inserts as you type. Listed shortest-form first where a country has more
+ * than one length (Brazil's 10- and 11-digit forms, say) — pickMask takes
+ * the first one that can still hold what has been typed.
+ *
+ * These are display conventions, not validation. isPhoneValid still
+ * decides acceptability by digit count, and formatNational keeps any
+ * digits a mask can't hold rather than dropping them — so a grouping
+ * that's wrong for some region is a cosmetic bug, never lost data.
+ */
+const NATIONAL_MASKS: Record<string, string[]> = {
+  DZ: ["### ## ## ##"],
+  AR: ["## #### ####"],
+  AU: ["### ### ###"],
+  BH: ["#### ####"],
+  BD: ["####-######"],
+  BR: ["(##) ####-####", "(##) #####-####"],
+  CA: ["(###) ###-####"],
+  CL: ["# #### ####"],
+  CN: ["### #### ####"],
+  CO: ["### ### ####"],
+  EG: ["### ### ####"],
+  FR: ["# ## ## ## ##"],
+  DE: ["### #######", "### ########"],
+  GR: ["### ### ####"],
+  IN: ["##### #####"],
+  ID: ["###-####-##", "###-####-###", "###-####-####", "###-####-#####"],
+  IE: ["## ### ####"],
+  IL: ["#-###-####", "##-###-####"],
+  IT: ["### ### ###", "### ### ####"],
+  JP: ["##-####-####"],
+  JO: ["# #### ####"],
+  KE: ["### ######"],
+  KW: ["#### ####"],
+  LB: ["# ### ###", "## ### ###"],
+  MY: ["##-### ####", "##-#### ####"],
+  MX: ["## #### ####"],
+  MA: ["### ## ## ##"],
+  NL: ["# ## ## ## ##"],
+  NZ: ["## ### ###", "## ### ####"],
+  NG: ["### ### ####"],
+  NO: ["### ## ###"],
+  OM: ["#### ####"],
+  PK: ["### #######"],
+  PE: ["### ### ###"],
+  PH: ["### ### ####"],
+  PL: ["### ### ###"],
+  PT: ["### ### ###"],
+  QA: ["#### ####"],
+  RU: ["### ###-##-##"],
+  SA: ["## ### ####"],
+  SG: ["#### ####"],
+  ZA: ["## ### ####"],
+  KR: ["##-###-####", "##-####-####"],
+  ES: ["### ## ## ##"],
+  SE: ["##-### ## #", "##-### ## ##", "##-### ## ###"],
+  CH: ["## ### ## ##"],
+  TH: ["##-###-####"],
+  TN: ["## ### ###"],
+  TR: ["### ### ## ##"],
+  UA: ["## ### ## ##"],
+  AE: ["## ### ####"],
+  GB: ["#### ######"],
+  US: ["(###) ###-####"],
+  VN: ["### ### ###", "### ### ####"],
+};
+
+function maskCapacity(mask: string): number {
+  return (mask.match(/#/g) ?? []).length;
+}
+
+/** Grouping for a country with no mask of its own, so the field never falls back to an unbroken run of digits. */
+function fallbackMask(count: number): string {
+  if (count <= 6) return "### ###";
+  if (count <= 8) return "#### ####";
+  if (count <= 9) return "### ### ###";
+  return "### ### ####";
+}
+
+function pickMask(iso2: string, digitCount: number): string {
+  const masks = NATIONAL_MASKS[iso2];
+  if (!masks || masks.length === 0) return fallbackMask(digitCount);
+  return masks.find((m) => maskCapacity(m) >= digitCount) ?? masks[masks.length - 1]!;
+}
+
+/**
+ * Lays `digits` into the country's mask, stopping where the digits run out
+ * so a half-typed number shows neither empty placeholders nor a trailing
+ * separator. Digits past the mask's capacity are appended rather than
+ * discarded — the field must never silently eat what someone typed, even
+ * when the result is going to fail validation anyway.
+ */
+export function formatNational(iso2: string, digits: string): string {
+  if (!digits) return "";
+  const mask = pickMask(iso2, digits.length);
+  let out = "";
+  let d = 0;
+  for (const ch of mask) {
+    if (d >= digits.length) break;
+    if (ch === "#") {
+      out += digits[d++];
+    } else {
+      out += ch;
+    }
+  }
+  if (d < digits.length) out += digits.slice(d);
+  return out;
+}
+
+/** How many digits sit at or before `caret` — the one position that survives reformatting, since separators move around. */
+export function digitsBeforeCaret(text: string, caret: number): number {
+  return digitsOnly(text.slice(0, caret)).length;
+}
+
+/** The offset in `formatted` just after its `n`th digit. */
+export function caretAfterDigit(formatted: string, n: number): number {
+  if (n <= 0) return 0;
+  let seen = 0;
+  for (let i = 0; i < formatted.length; i++) {
+    if (/\d/.test(formatted[i]!)) {
+      seen++;
+      if (seen === n) return i + 1;
+    }
+  }
+  return formatted.length;
+}
+
+export interface ParsedPhone {
+  country: CountryDef;
+  national: string;
+  /** True when the value carried an explicit "+<known dial code>", so the country is the value's own rather than merely the default. */
+  hadExplicitCode: boolean;
+}
+
+/**
+ * Splits a stored "+<dial code> <national>" value into its country and the
+ * raw national text — falling back to DEFAULT_COUNTRY when there's no
+ * recognisable "+<code>" prefix (legacy data, or a fresh empty field).
+ *
+ * Peels repeatedly rather than once. One pass is enough for clean data, but
+ * combine() used to write "+1 +1 (343) 631-8566" whenever a complete number
+ * reached the national box, so values shaped like that are already stored.
+ * A single pass would hand the inner "+1" straight back to the input and
+ * reproduce the bug on every edit. The outermost code wins — that is the
+ * one the country picker last set.
+ */
+export function parsePhoneValue(
+  value: string,
+  /** Which country's numbering plan to assume for a value with no "+" prefix. The picker's current selection when there is one — otherwise an 11-digit Chinese number would be read against the US plan and lose its leading 1. */
+  fallbackCountry: CountryDef = DEFAULT_COUNTRY,
+): ParsedPhone {
+  let rest = normalizePhoneText(value);
+  let country: CountryDef | null = null;
+
+  while (rest.startsWith("+")) {
+    const withoutPlus = rest.slice(1).trim();
+    const match = COUNTRIES_BY_DIAL_CODE_DESC.find((c) => withoutPlus.startsWith(c.dialCode));
+    if (!match) {
+      // A "+" carrying a dial code we don't list. Keep the digits but drop
+      // the "+": leaving it would put a country code back into the national
+      // box, and combine() would emit "+1 +999 ..." on the next keystroke.
+      return {
+        country: country ?? fallbackCountry,
+        national: withoutPlus,
+        hadExplicitCode: country !== null,
+      };
+    }
+    country ??= match;
+    rest = dropLeadingDigits(withoutPlus, match.dialCode.length);
+  }
+
+  if (country) return { country, national: rest, hadExplicitCode: true };
+  return {
+    country: fallbackCountry,
+    national: stripUnprefixedDialCode(fallbackCountry, rest),
+    hadExplicitCode: false,
+  };
+}
+
+export function combine(country: CountryDef, national: string): string {
+  // Re-parse the national box before joining. Pasting a complete number
+  // into it is the obvious thing for someone to do, and without this the
+  // stored value becomes "+1 +1 (343) 631-8566" — which is exactly how the
+  // duplicated code got on screen.
+  const cleaned = parsePhoneValue(national, country).national;
+  if (!cleaned.trim()) return "";
+  return `+${country.dialCode} ${cleaned.trim()}`;
 }
 
 /** true for "" (phone is optional everywhere it's used) or a national number whose digit count falls in the selected country's expected range — a sanity check, not full numbering-plan validation. */
@@ -179,7 +408,8 @@ export function PhoneInput({
   placeholder = "555 555 0182",
   className = "",
 }: PhoneInputProps) {
-  const national = parsePhoneValue(value).national;
+  const parsedValue = parsePhoneValue(value);
+  const national = formatNational(parsedValue.country.iso2, digitsOnly(parsedValue.national));
   // The selected country is tracked as its own piece of state rather than
   // re-derived from `value` on every render. Deriving it purely from
   // `value` broke picking a country while the number was still empty:
@@ -197,6 +427,12 @@ export function PhoneInput({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [touched, setTouched] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  // Where to put the caret once the reformatted value has rendered. The
+  // value round-trips through the parent, so the DOM node's own caret is
+  // long gone by then — without this, every keystroke in the middle of a
+  // number would fling the caret to the end.
+  const pendingCaret = useRef<number | null>(null);
   const anchorRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -206,6 +442,16 @@ export function PhoneInput({
     if (value === lastEmitted.current) return;
     setCountry(parsePhoneValue(value).country);
   }, [value]);
+
+  // Deliberately has no dependency array: it must run after whichever
+  // render actually applied the new value, and only does anything when a
+  // caret position is waiting.
+  useLayoutEffect(() => {
+    if (pendingCaret.current === null || !inputRef.current) return;
+    const at = pendingCaret.current;
+    pendingCaret.current = null;
+    inputRef.current.setSelectionRange(at, at);
+  });
 
   useEffect(() => {
     if (open) {
@@ -245,15 +491,47 @@ export function PhoneInput({
 
   function selectCountry(next: CountryDef) {
     setCountry(next);
-    const combined = combine(next, national);
+    // Re-group the digits under the new country's mask — the text in the box
+    // is currently laid out for the old one, and leaving it would show a
+    // French number wearing US parentheses.
+    const combined = combine(next, formatNational(next.iso2, digitsOnly(national)));
     lastEmitted.current = combined;
     onChange(combined);
     setOpen(false);
   }
 
-  function handleNationalChange(nextNational: string) {
+  function handleNationalChange(event: ChangeEvent<HTMLInputElement>) {
     setTouched(true);
-    const combined = combine(country, nextNational);
+    const raw = event.target.value;
+    const caret = event.target.selectionStart ?? raw.length;
+    const deleting = raw.length < national.length;
+
+    // Pasting a complete international number into the box moves the picker
+    // to match it, rather than silently filing those digits under whatever
+    // country happened to be selected. combine() strips the pasted code
+    // either way; this is what stops "+92 300..." being saved as a US number.
+    const parsed = parsePhoneValue(raw, country);
+    const nextCountry = parsed.hadExplicitCode ? parsed.country : country;
+    if (parsed.hadExplicitCode && parsed.country.iso2 !== country.iso2) {
+      setCountry(parsed.country);
+    }
+
+    let digits = digitsOnly(parsed.national);
+    let digitCaret = digitsBeforeCaret(raw, caret);
+
+    // Backspacing over a separator deletes no digit, so the mask would put
+    // that separator straight back and the caret would sit there unable to
+    // move. Take the digit in front of it instead, which is what the
+    // keystroke was plainly for.
+    if (deleting && digits.length === digitsOnly(national).length && digitCaret > 0) {
+      digits = digits.slice(0, digitCaret - 1) + digits.slice(digitCaret);
+      digitCaret -= 1;
+    }
+
+    const formatted = formatNational(nextCountry.iso2, digits);
+    pendingCaret.current = caretAfterDigit(formatted, digitCaret);
+
+    const combined = combine(nextCountry, formatted);
     lastEmitted.current = combined;
     onChange(combined);
   }
@@ -289,9 +567,12 @@ export function PhoneInput({
           <ChevronIcon open={open} />
         </button>
         <input
+          ref={inputRef}
           type="tel"
+          inputMode="tel"
+          autoComplete="tel-national"
           value={national}
-          onChange={(e) => handleNationalChange(e.target.value)}
+          onChange={handleNationalChange}
           onBlur={() => setTouched(true)}
           placeholder={placeholder}
           className="w-full min-w-0 flex-1 rounded-r-xl border-none bg-transparent px-3 py-3 font-sans text-sm text-tn-ink outline-none placeholder:text-tn-placeholder"

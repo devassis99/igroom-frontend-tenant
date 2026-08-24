@@ -14,6 +14,8 @@ interface StaffFilterPopoverProps {
   /** Id of the signed-in staff user — their own row gets a "(me)" suffix, matching the old <select>'s option label. */
   selfId?: string;
   label?: string;
+  /** Shown when `staff` itself is empty. Callers that filter their roster should say why nobody is listed — this component only knows that the list came in empty, not what was filtered out. */
+  emptyLabel?: string;
 }
 
 const PANEL_WIDTH = 260;
@@ -148,6 +150,7 @@ export function StaffFilterPopover({
   onChange,
   selfId,
   label = "Filter by member",
+  emptyLabel = "No members to show",
 }: StaffFilterPopoverProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -294,7 +297,10 @@ export function StaffFilterPopover({
 
               {filteredStaff.length === 0 && (
                 <p className="m-0 px-4 py-3 font-sans text-[13px] text-tn-muted-5">
-                  No members match "{query}"
+                  {/* An empty roster and a search that matched nothing are
+                      different problems, and "No members match" with an
+                      empty query reads as a bug. */}
+                  {query.trim() ? `No members match "${query}"` : emptyLabel}
                 </p>
               )}
             </div>
