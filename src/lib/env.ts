@@ -38,6 +38,14 @@ const envSchema = z.object({
    * at all once it's stuck to a shop window.
    */
   VITE_BOOKING_BASE_URL: z.string().url().optional(),
+  // Mapbox *public* token (pk....) — safe in a browser bundle, but scope
+  // it to this app's URLs in the Mapbox dashboard, since anyone can read
+  // it from the page and bill map loads against your account. Used only
+  // for tiles; address lookup goes through igroom-backend, which holds
+  // its own token (see locations.service.ts).
+  VITE_MAPBOX_ACCESS_TOKEN: z
+    .string()
+    .min(1, "VITE_MAPBOX_ACCESS_TOKEN is required to render maps"),
 });
 
 const parsed = envSchema.safeParse(import.meta.env);

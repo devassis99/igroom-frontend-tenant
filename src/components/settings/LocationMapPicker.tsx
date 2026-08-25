@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { env } from "@/lib/env";
 
 /**
  * Geographic center of the contiguous US — the default view before an
@@ -97,9 +98,23 @@ export function LocationMapPicker({
         style={{ height: "100%", width: "100%" }}
         scrollWheelZoom={false}
       >
+        {/*
+          Mapbox raster tiles, not tile.openstreetmap.org. The OSM
+          Foundation's tile policy is explicit that commercial services
+          "may no longer be able to serve your paying customers if access
+          is withdrawn", with no SLA — fine for a hobby map, not something
+          to build a product on.
+
+          512px tiles with zoomOffset -1 so Leaflet's 256px-tile zoom
+          levels still line up; @2x keeps it sharp on retina. Attribution
+          is not decoration: Mapbox's terms require their notice and
+          OpenStreetMap's alongside it.
+        */}
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url={`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/512/{z}/{x}/{y}@2x?access_token=${env.VITE_MAPBOX_ACCESS_TOKEN}`}
+          tileSize={512}
+          zoomOffset={-1}
         />
         <ClickToPlace onChange={onChange} />
         <RecenterOnChange latitude={latitude} longitude={longitude} />

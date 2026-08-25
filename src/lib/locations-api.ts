@@ -88,13 +88,45 @@ export interface GeocodeResult {
   displayName: string;
 }
 
-/** Backs the map picker's "Locate from address" button — see locations.service.ts's geocodeAddress for why this goes through the backend instead of calling Nominatim straight from the browser. */
-export function geocodeLocation(
+export interface PlaceSuggestion {
+  /** Mapbox's opaque id — only resolvable within the same session token that produced it. */
+  id: string;
+  displayName: string;
+}
+
+/**
+ * Type-ahead place search, proxied through igroom-backend (which holds
+ * the Mapbox token). Two steps: this returns candidates without
+ * coordinates, then retrievePlace resolves the chosen one — both sharing
+ * a `sessionToken` so Mapbox bills the whole type-ahead once rather than
+ * per keystroke.
+ *
+ * `proximity` biases results toward wherever the map already is; without
+ * it, searching "lahore" ranks a village in Ireland alongside the city.
+ */
+export function searchPlaces(
   accessToken: string,
   query: string,
-): Promise<{ results: GeocodeResult[] }> {
-  const params = new URLSearchParams({ q: query });
+  sessionToken: string,
+  proximity?: { latitude: number; longitude: number },
+): Promise<{ results: PlaceSuggestion[] }> {
+  const params = new URLSearchParams({ q: query, sessionToken });
+  if (proximity) {
+    params.set("proximity", `${proximity.latitude},${proximity.longitude}`);
+  }
   return request(`/locations/geocode?${params.toString()}`, { headers: authHeaders(accessToken) });
+}
+
+/** Step two — resolves a chosen suggestion to coordinates. Must reuse the session token the suggestions came from. */
+export function retrievePlace(
+  accessToken: string,
+  id: string,
+  sessionToken: string,
+): Promise<GeocodeResult> {
+  const params = new URLSearchParams({ id, sessionToken });
+  return request(`/locations/geocode/retrieve?${params.toString()}`, {
+    headers: authHeaders(accessToken),
+  });
 }
 
 /** The other direction of geocodeLocation above — dropping/dragging the map pin calls this to fill the ADDRESS field back in, so the two stay in sync no matter which one the owner touches first. */

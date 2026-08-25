@@ -231,3 +231,26 @@ body {
     transform: scale(0.96) translateY(-4px);
   }
 }
+
+/*
+ * Keep Leaflet's internal stacking inside its own box.
+ *
+ * leaflet.css assigns high z-indexes globally — .leaflet-pane is 400 and
+ * the zoom/attribution controls (.leaflet-top/.leaflet-bottom) are 1000.
+ * Modal.tsx's overlay is z-50, so a map sitting on the page behind an
+ * open modal or sheet painted straight over it: the Locations page's
+ * detail map appeared on top of the Add Location drawer.
+ *
+ * Raising the modal above 1000 would only work until the next library
+ * with an opinion about z-index. Making .leaflet-container a stacking
+ * context is the real fix — 400 and 1000 then resolve *within* the map
+ * instead of competing with the rest of the page, and Leaflet's own
+ * layering (tiles under markers under popups under controls) is
+ * unaffected. Leaflet already sets position: relative here, so z-index: 0
+ * is enough to establish it; isolation is a belt-and-braces guard in case
+ * that ever changes.
+ */
+.leaflet-container {
+  z-index: 0;
+  isolation: isolate;
+}

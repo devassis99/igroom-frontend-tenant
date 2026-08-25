@@ -8,13 +8,14 @@ import { PhoneInput, isPhoneValid } from "@/components/ui/PhoneInput";
 import { TimezonePicker } from "@/components/ui/TimezonePicker";
 import { useAuthStore } from "@/auth/auth-store";
 import { LocationMapPicker } from "@/components/settings/LocationMapPicker";
+import { MapSearchField } from "@/components/settings/MapSearchField";
 import {
   createLocation,
   updateLocation,
-  geocodeLocation,
   reverseGeocodeLocation,
   type AccountLocation,
   type LocationInput,
+  type GeocodeResult,
 } from "@/lib/locations-api";
 
 interface AddEditLocationModalProps {
@@ -44,9 +45,11 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
   const [formError, setFormError] = useState<string | null>(null);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
-  const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);
   const [reversing, setReversing] = useState(false);
+  const [geolocating, setGeolocating] = useState(false);
+  /** Reverse-geocoded address for the current pin, offered as a suggestion rather than written straight into the form. */
+  const [pinAddress, setPinAddress] = useState<string | null>(null);
   /** Which open this form's fields were seeded for — a location id, or "new". See the seeding block below. */
   const [seededFor, setSeededFor] = useState<string | null>(null);
 
@@ -106,7 +109,15 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
     try {
       const { displayName } = await reverseGeocodeLocation(accessToken ?? "", lat, lng);
       if (seq === reverseGeocodeSeq.current) {
-        setForm((f) => ({ ...f, address: displayName }));
+        // Offered, not applied. Reverse geocoding returns whatever the
+        // provider has nearest the pin — often an administrative area
+        // rather than a street — so it's a suggestion the owner can take,
+        // never a silent replacement for what they wrote.
+        if (form.address.trim()) {
+          setPinAddress(displayName);
+        } else {
+          setForm((f) => ({ ...f, address: displayName }));
+        }
       }
     } catch {
       // Reverse lookup failing shouldn't block placing the pin — the owner
@@ -116,34 +127,77 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
     }
   }
 
-  async function handleLocateFromAddress() {
-    if (!form.address.trim()) {
-      setLocateError("Enter an address first.");
+  /**
+   * "Use my location" — the pattern every maps app has, and the fastest
+   * path when an owner is adding the shop while standing in it.
+   *
+   * Resolves to the same place a map click does: move the pin, then offer
+   * the nearest address as a suggestion. Accuracy varies wildly (real GPS
+   * on a phone, a coarse IP-derived guess on desktop), so this positions
+   * the pin for the owner to drag rather than pretending to be exact.
+   *
+   * getCurrentPosition only resolves in a secure context — https, or
+   * localhost in development. Over plain http on a LAN address the
+   * browser refuses outright with an error indistinguishable from the
+   * owner denying permission, hence the explicit check.
+   */
+  function handleUseMyLocation() {
+    if (!("geolocation" in navigator)) {
+      setLocateError("This browser can't share a location — drop the pin by hand instead.");
       return;
     }
-    // Invalidate any in-flight reverse-geocode from a prior pin move — the
-    // address the owner just typed is now the source of truth, a late
-    // reverse-lookup response shouldn't overwrite it a moment later.
-    reverseGeocodeSeq.current++;
-    setLocating(true);
-    setLocateError(null);
-    try {
-      const { results } = await geocodeLocation(accessToken ?? "", form.address.trim());
-      const [best] = results;
-      if (!best) {
-        setLocateError(
-          "Couldn't find that address — try adding a city and state, or drop the pin by hand.",
-        );
-        return;
-      }
-      setLatitude(best.latitude);
-      setLongitude(best.longitude);
-    } catch (err) {
+    if (!window.isSecureContext) {
       setLocateError(
-        err instanceof Error ? err.message : "Couldn't look up that address — try again.",
+        "Location sharing needs a secure (https) connection — drop the pin by hand instead.",
       );
-    } finally {
-      setLocating(false);
+      return;
+    }
+
+    setGeolocating(true);
+    setLocateError(null);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setGeolocating(false);
+        // Same handler the map's own click/drag uses, so the pin and the
+        // address suggestion stay in sync through one code path.
+        void handleMapChange(position.coords.latitude, position.coords.longitude);
+      },
+      (error) => {
+        setGeolocating(false);
+        // Distinct messages per case: "denied" needs a browser-settings
+        // fix, the others are worth simply retrying, and conflating them
+        // leaves the owner with no idea which situation they're in.
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocateError(
+            "Location access was blocked. Allow it in your browser's site settings, or drop the pin by hand.",
+          );
+        } else if (error.code === error.TIMEOUT) {
+          setLocateError("Locating took too long — try again, or drop the pin by hand.");
+        } else {
+          setLocateError("Couldn't determine your location — drop the pin by hand.");
+        }
+      },
+      // maximumAge: 0 — an owner standing in a new shop must not be handed
+      // a cached fix from wherever they last used this browser.
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 0 },
+    );
+  }
+
+  /**
+   * A search result was picked. Moves the pin only — the ADDRESS field is
+   * the owner's to write. The one exception is a genuinely empty address
+   * on a brand-new location: there's nothing to overwrite, and prefilling
+   * saves retyping what they just searched for.
+   */
+  function handleSearchSelected(result: GeocodeResult) {
+    reverseGeocodeSeq.current++;
+    setReversing(false);
+    setLatitude(result.latitude);
+    setLongitude(result.longitude);
+    setLocateError(null);
+    setPinAddress(null);
+    if (!form.address.trim()) {
+      setForm((f) => ({ ...f, address: result.displayName }));
     }
   }
 
@@ -225,6 +279,13 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
             />
           </Field>
 
+          {/*
+            Two fields, deliberately. ADDRESS is what gets stored and what
+            a customer reads; the search box below only moves the pin. They
+            used to be one control, which meant every pin nudge or picked
+            suggestion overwrote the owner's address with the geocoder's
+            own phrasing.
+          */}
           <Field label="ADDRESS">
             <input
               type="text"
@@ -237,6 +298,12 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
 
           <Field label="LOCATION ON MAP (OPTIONAL)">
             <div className="flex flex-col gap-2">
+              <MapSearchField
+                onSelect={handleSearchSelected}
+                proximity={
+                  latitude != null && longitude != null ? { latitude, longitude } : undefined
+                }
+              />
               <LocationMapPicker
                 latitude={latitude}
                 longitude={longitude}
@@ -255,12 +322,32 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
                   variant="secondary"
                   size="sm"
                   className="shrink-0"
-                  onClick={handleLocateFromAddress}
-                  disabled={locating}
+                  onClick={handleUseMyLocation}
+                  disabled={geolocating}
+                  title="Drop the pin where you are right now"
                 >
-                  {locating ? "Locating…" : "Locate from address"}
+                  {geolocating ? "Locating…" : "◎ Use my location"}
                 </Button>
               </div>
+              {pinAddress && pinAddress !== form.address && (
+                <div className="flex items-center gap-2 rounded-lg bg-tn-page px-3 py-2">
+                  <span className="flex-1 font-sans text-xs text-tn-muted-4">
+                    Nearest address here: {pinAddress}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => {
+                      setForm((f) => ({ ...f, address: pinAddress }));
+                      setPinAddress(null);
+                    }}
+                  >
+                    Use it
+                  </Button>
+                </div>
+              )}
               {locateError && <p className="m-0 font-sans text-xs text-tn-danger">{locateError}</p>}
             </div>
           </Field>

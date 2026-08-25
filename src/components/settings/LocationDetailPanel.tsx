@@ -6,6 +6,7 @@ import { Field, formInputClass } from "@/components/ui/FormField";
 import { PhoneInput, isPhoneValid } from "@/components/ui/PhoneInput";
 import { TimezonePicker } from "@/components/ui/TimezonePicker";
 import { LocationMapPicker } from "@/components/settings/LocationMapPicker";
+import { MapSearchField } from "@/components/settings/MapSearchField";
 import { LocationHoursTab } from "@/components/settings/location-tabs/LocationHoursTab";
 import { LocationStaffTab } from "@/components/settings/location-tabs/LocationStaffTab";
 import { LocationServicesTab } from "@/components/settings/location-tabs/LocationServicesTab";
@@ -13,8 +14,8 @@ import { LocationPayoutsTab } from "@/components/settings/location-tabs/Location
 import { useAuthStore } from "@/auth/auth-store";
 import { env } from "@/lib/env";
 import {
-  geocodeLocation,
   reverseGeocodeLocation,
+  type GeocodeResult,
   updateLocation,
   type AccountLocation,
 } from "@/lib/locations-api";
@@ -145,7 +146,9 @@ function DetailsTab({
   const [longitude, setLongitude] = useState(location.longitude);
   const [active, setActive] = useState(location.status === "active");
   const [error, setError] = useState<string | null>(null);
-  const [locating, setLocating] = useState(false);
+  const [geolocating, setGeolocating] = useState(false);
+  /** Reverse-geocoded address for the current pin, offered as a suggestion rather than written into ADDRESS. */
+  const [pinAddress, setPinAddress] = useState<string | null>(null);
   const pinRequest = useRef(0);
 
   // Re-seeded whenever the selected location changes — the panel stays
@@ -180,37 +183,74 @@ function DetailsTab({
       setError(err instanceof Error ? err.message : "Couldn't save this location"),
   });
 
-  async function locateFromAddress() {
-    if (!address.trim()) return;
-    setLocating(true);
-    try {
-      const { results } = await geocodeLocation(accessToken, address.trim());
-      const first = results[0];
-      if (first) {
-        setLatitude(first.latitude);
-        setLongitude(first.longitude);
-      } else {
-        setError("Couldn't find that address on the map — drop the pin by hand instead.");
-      }
-    } catch {
-      setError("Address lookup failed — drop the pin by hand instead.");
-    } finally {
-      setLocating(false);
-    }
+  /**
+   * A map-search result was picked. Moves the pin only — ADDRESS is the
+   * owner's to write, and this panel always has one already (a saved
+   * location can't exist without it), so there's never a blank worth
+   * prefilling here.
+   */
+  function onSearchSelected(result: GeocodeResult) {
+    pinRequest.current++;
+    setLatitude(result.latitude);
+    setLongitude(result.longitude);
+    setPinAddress(null);
+    setError(null);
   }
 
-  /** Dragging the pin rewrites the address, newest response wins — same guard as the Add sheet. */
+  /**
+   * Dragging the pin *offers* the nearest address rather than writing it
+   * — newest response wins, same guard as the Add sheet. It used to
+   * overwrite ADDRESS outright, which is how a shop on Valencia Town Main
+   * Boulevard ended up stored as "Lahore, Punjab, Pakistan": accurate for
+   * the pin, no use to a customer trying to find the door.
+   */
   async function onPinMoved(nextLat: number, nextLng: number) {
     setLatitude(nextLat);
     setLongitude(nextLng);
     const request = ++pinRequest.current;
     try {
       const { displayName } = await reverseGeocodeLocation(accessToken, nextLat, nextLng);
-      if (request === pinRequest.current) setAddress(displayName);
+      if (request === pinRequest.current) setPinAddress(displayName);
     } catch {
       // A failed reverse lookup just leaves the address as typed — the pin
       // still moved, which is the part the owner asked for.
     }
+  }
+
+  /**
+   * Same "use my location" affordance as the Add sheet — see that file
+   * for why the secure-context check and the per-code messages matter.
+   */
+  function useMyLocation() {
+    if (!("geolocation" in navigator)) {
+      setError("This browser can't share a location — drop the pin by hand instead.");
+      return;
+    }
+    if (!window.isSecureContext) {
+      setError("Location sharing needs a secure (https) connection — drop the pin by hand.");
+      return;
+    }
+    setGeolocating(true);
+    setError(null);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setGeolocating(false);
+        void onPinMoved(position.coords.latitude, position.coords.longitude);
+      },
+      (geoError) => {
+        setGeolocating(false);
+        if (geoError.code === geoError.PERMISSION_DENIED) {
+          setError(
+            "Location access was blocked. Allow it in your browser's site settings, or drop the pin by hand.",
+          );
+        } else if (geoError.code === geoError.TIMEOUT) {
+          setError("Locating took too long — try again, or drop the pin by hand.");
+        } else {
+          setError("Couldn't determine your location — drop the pin by hand.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 0 },
+    );
   }
 
   const canSave =
@@ -248,7 +288,11 @@ function DetailsTab({
             </div>
           </div>
 
-          <Field label="ADDRESS & MAP PIN">
+          {/*
+            Two fields on purpose. ADDRESS is what's stored and what a
+            customer reads; the search box below only moves the pin.
+          */}
+          <Field label="ADDRESS">
             <input
               type="text"
               value={address}
@@ -258,13 +302,50 @@ function DetailsTab({
             />
           </Field>
 
+          <Field label="FIND ON MAP">
+            <MapSearchField
+              onSelect={onSearchSelected}
+              disabled={!canManage}
+              proximity={
+                latitude != null && longitude != null ? { latitude, longitude } : undefined
+              }
+            />
+          </Field>
+
           <LocationMapPicker latitude={latitude} longitude={longitude} onChange={onPinMoved} />
+
+          {pinAddress && pinAddress !== address && (
+            <div className="flex items-center gap-2 rounded-lg bg-tn-page px-3 py-2">
+              <span className="flex-1 font-sans text-xs text-tn-muted-4">
+                Nearest address here: {pinAddress}
+              </span>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="shrink-0"
+                disabled={!canManage}
+                onClick={() => {
+                  setAddress(pinAddress);
+                  setPinAddress(null);
+                }}
+              >
+                Use it
+              </Button>
+            </div>
+          )}
+
           <div className="flex items-center justify-between gap-3">
             <span className="font-sans text-xs text-tn-muted-5">
-              Click the map or drag the pin — the address updates to match.
+              Click the map or drag the pin to move it. The address above stays as you wrote it.
             </span>
-            <Button variant="secondary" size="sm" onClick={locateFromAddress} disabled={locating}>
-              {locating ? "Locating…" : "Locate from address"}
+            <Button
+              variant="secondary"
+              size="sm"
+              className="shrink-0"
+              onClick={useMyLocation}
+              disabled={!canManage || geolocating}
+            >
+              {geolocating ? "Locating…" : "◎ Use my location"}
             </Button>
           </div>
 
