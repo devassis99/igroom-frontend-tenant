@@ -150,6 +150,13 @@ export interface LocationStaffMember {
   displayTitle: string | null;
   avatarUrl: string | null;
   isActive: boolean;
+  /**
+   * False until this member has signed in at least once — an unclaimed
+   * invite. Distinct from isActive, which is true from the moment the
+   * invite is created, so it does NOT tell an invite apart from a working
+   * member.
+   */
+  claimed: boolean;
   roleName: string | null;
   /** False means nobody can book them here yet — no working hours set. */
   hasHours: boolean;

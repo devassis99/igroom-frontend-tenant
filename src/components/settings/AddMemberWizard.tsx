@@ -2,15 +2,16 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { Field, formInputClass, formSelectClass } from "@/components/ui/FormField";
+import { Field, formInputClass } from "@/components/ui/FormField";
 import { WizardTabs } from "@/components/ui/WizardTabs";
 import { Toggle } from "@/components/ui/Toggle";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { useAuthStore } from "@/auth/auth-store";
 import { listLocations } from "@/lib/locations-api";
 import { listRoles } from "@/lib/roles-api";
-import { inviteStaff } from "@/lib/staff-api";
-import { listServices } from "@/lib/services-api";
+import { inviteStaff, type ServiceIdsByLocation } from "@/lib/staff-api";
+import { LocationMultiSelect } from "@/components/settings/LocationMultiSelect";
+import { LocationServicesPicker } from "@/components/settings/LocationServicesPicker";
 
 interface AddMemberWizardProps {
   open: boolean;
@@ -60,10 +61,12 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [locationId, setLocationId] = useState("");
+  const [locationIds, setLocationIds] = useState<string[]>([]);
   // Starts empty — the old "first three services" default came from
   // sample-data and would now silently assign real services nobody picked.
-  const [assignedServices, setAssignedServices] = useState<Set<string>>(() => new Set());
+  // Keyed by location: the same person can do different work at different
+  // shops, and each shop has its own menu.
+  const [assignedServices, setAssignedServices] = useState<ServiceIdsByLocation>({});
   const [roleId, setRoleId] = useState("");
   const [allowNoPayment, setAllowNoPayment] = useState(true);
   const [allowMultiService, setAllowMultiService] = useState(true);
@@ -84,22 +87,20 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
   });
   const roles = rolesQuery.data?.roles ?? [];
 
-  // Keyed by the chosen location — a service belongs to exactly one
-  // location, so changing location in step 0 has to re-fetch the menu
-  // (and clear whatever was ticked from the previous one).
-  const servicesQuery = useQuery({
-    queryKey: ["services", locationId],
-    queryFn: () => listServices(accessToken ?? "", locationId),
-    enabled: !!accessToken && open && locationId !== "",
-  });
-  const services = servicesQuery.data?.services ?? [];
+  // Every ticked location, in the account's own order, for the Services
+  // step below — which fetches each shop's menu itself.
+  const selectedLocations = locations
+    .filter((loc) => locationIds.includes(loc.id))
+    .map((loc) => ({ id: loc.id, name: loc.name }));
 
   // Default to the account's primary location the moment the list loads,
-  // so a shop with just one location never has to touch this field.
+  // so a shop with just one location never has to touch this field. Only
+  // the primary: the rest are a deliberate choice, and silently putting a
+  // new hire on every branch is not a default anyone asked for.
   useEffect(() => {
-    if (locationId || locations.length === 0) return;
-    setLocationId(locations.find((l) => l.isPrimary)?.id ?? locations[0]!.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when the list itself changes, not when locationId is cleared by handleClose below
+    if (locationIds.length > 0 || locations.length === 0) return;
+    setLocationIds([(locations.find((l) => l.isPrimary) ?? locations[0]!).id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when the list itself changes, not when locationIds is cleared by handleClose below
   }, [locations]);
 
   // Default to the first non-Owner role (a brand-new member is almost
@@ -117,8 +118,8 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
         name: `${firstName} ${lastName}`.trim(),
         email,
         roleId,
-        locationId,
-        serviceIds: [...assignedServices],
+        locationIds,
+        serviceIdsByLocation: assignedServices,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["staff"] });
@@ -142,27 +143,21 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
     setLastName("");
     setPhone("");
     setEmail("");
-    setLocationId("");
+    setLocationIds([]);
     setRoleId("");
-    setAssignedServices(new Set());
+    setAssignedServices({});
     setFormError(null);
   }
 
-  function handleLocationChange(nextLocationId: string) {
-    setLocationId(nextLocationId);
-    // Ticked ids belong to the old location's menu and would be rejected
-    // by inviteStaff's assertServicesAssignable — drop them rather than
-    // failing the invite at the last step.
-    setAssignedServices(new Set());
-  }
-
-  function toggleService(id: string) {
-    setAssignedServices((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  function handleLocationsChange(nextLocationIds: string[]) {
+    setLocationIds(nextLocationIds);
+    // Assignments at a shop that's just been unticked would be rejected by
+    // inviteStaff's assertServicesAssignable — drop them here rather than
+    // failing the invite at the last step. Assignments at the shops still
+    // ticked are kept, so unticking one doesn't wipe the others.
+    setAssignedServices((prev) =>
+      Object.fromEntries(Object.entries(prev).filter(([id]) => nextLocationIds.includes(id))),
+    );
   }
 
   function goNext() {
@@ -175,8 +170,9 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
       setFormError("Add at least a first name and email before sending the invite.");
       return;
     }
-    if (!locationId) {
-      setFormError("Pick a location for this member.");
+    if (locationIds.length === 0) {
+      setStep(0);
+      setFormError("Pick at least one location for this member.");
       return;
     }
     if (!roleId) {
@@ -189,7 +185,12 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
   }
 
   return (
-    <Modal open={open} onClose={handleClose} width={560}>
+    // A side sheet rather than a centred card, same as the Locations
+    // add/edit sheet: this is a five-step form that is taller than a
+    // centred card can be without scrolling inside a floating box, and
+    // keeping the roster visible behind it means you can still see who is
+    // already on the team while adding someone to it.
+    <Modal open={open} onClose={handleClose} width={560} variant="sheet">
       <div className="flex items-center justify-between px-6 pt-6">
         <h2 className="m-0 font-sans text-lg font-semibold text-tn-ink">Add New Member</h2>
         <button
@@ -251,20 +252,17 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
                 className={formInputClass}
               />
             </Field>
-            <Field label="LOCATION">
-              <select
-                value={locationId}
-                onChange={(e) => handleLocationChange(e.target.value)}
-                className={formSelectClass}
-              >
-                {locations.length === 0 && <option value="">Loading locations…</option>}
-                {locations.map((loc) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name}
-                  </option>
-                ))}
-              </select>
+            <Field label="LOCATIONS">
+              <LocationMultiSelect
+                locations={locations}
+                value={locationIds}
+                onChange={handleLocationsChange}
+                loading={locationsQuery.isPending}
+              />
             </Field>
+            <p className="m-0 font-sans text-xs text-tn-muted-5">
+              Tick every shop this member works at — they can be booked at all of them.
+            </p>
             <p className="m-0 font-sans text-xs text-tn-muted-5">
               No email gets sent — tell {firstName || "them"} out-of-band to sign in with Google
               using this exact address once you&rsquo;ve sent the invite.
@@ -279,54 +277,11 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
         )}
 
         {step === 1 && (
-          <>
-            {servicesQuery.isPending && (
-              <p className="m-0 font-sans text-sm text-tn-muted-5">Loading services…</p>
-            )}
-            {servicesQuery.isError && (
-              <p className="m-0 font-sans text-sm text-tn-danger">
-                Couldn&rsquo;t load this location&rsquo;s services — go back and try again.
-              </p>
-            )}
-            {servicesQuery.isSuccess && services.length === 0 && (
-              <p className="m-0 font-sans text-sm text-tn-muted-5">
-                No services exist at this location yet. You can invite this member now and assign
-                services later from Staff Management.
-              </p>
-            )}
-            {services.length > 0 && (
-              <div className="flex max-h-80 flex-col overflow-y-auto rounded-xl border border-tn-border">
-                <div className="grid grid-cols-[2fr_1fr_1fr_0.8fr] bg-tn-table-head px-4 py-2.5 font-sans text-xs font-semibold text-tn-muted-5">
-                  <span>SERVICE</span>
-                  <span>COST</span>
-                  <span>DURATION</span>
-                  <span>ASSIGNED</span>
-                </div>
-                {services.map((service, i) => (
-                  <label
-                    key={service.id}
-                    className={`grid cursor-pointer grid-cols-[2fr_1fr_1fr_0.8fr] items-center px-4 py-3 ${
-                      i < services.length - 1 ? "border-b border-tn-border-soft" : ""
-                    }`}
-                  >
-                    <span className="font-sans text-[13px] text-tn-ink">{service.name}</span>
-                    <span className="font-sans text-[13px] text-tn-muted-3">
-                      ${(service.priceCents / 100).toFixed(2)}
-                    </span>
-                    <span className="font-sans text-[13px] text-tn-muted-3">
-                      {service.durationMinutes} min
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={assignedServices.has(service.id)}
-                      onChange={() => toggleService(service.id)}
-                      className="accent-tn-gold"
-                    />
-                  </label>
-                ))}
-              </div>
-            )}
-          </>
+          <LocationServicesPicker
+            locations={selectedLocations}
+            value={assignedServices}
+            onChange={setAssignedServices}
+          />
         )}
 
         {step === 2 && (

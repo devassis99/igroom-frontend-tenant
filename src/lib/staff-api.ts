@@ -11,15 +11,28 @@ import { request } from "./http";
  *
  * Roles are no longer a fixed 4-value enum — see roles-api.ts. A member's
  * role is just roleId (a staff_roles.id), with roleName denormalized onto
- * every response the same way locationName already was.
+ * every response the same way location names are.
+ *
+ * A member works at *many* locations (`locations` below, plural), and
+ * their service assignments are per-location — "Ali does beard trims" is
+ * only true at the shops that offer beard trims and that he actually
+ * works at. See the backend's db/schema/staff-locations.ts.
  */
+
+/** One shop a member works at. Name denormalized so a table never needs a second round trip to label a row. */
+export interface StaffMemberLocation {
+  id: string;
+  name: string;
+}
+
+/** Assigned service ids keyed by the location the assignment applies at. A location with nothing ticked is simply absent. */
+export type ServiceIdsByLocation = Record<string, string[]>;
 
 export interface StaffMember {
   id: string;
   accountId: string;
-  locationId: string;
-  /** Denormalized so the table never needs a second round trip just to label a row. */
-  locationName: string;
+  /** Every shop this member works at, ordered by name. Always at least one. */
+  locations: StaffMemberLocation[];
   name: string;
   email: string;
   roleId: string | null;
@@ -41,8 +54,8 @@ export interface StaffMember {
   specialties: string[];
   yearsExperience: number | null;
   avatarUrl: string | null;
-  /** Services this member can perform. Always an array; ids are services at this member's own location. */
-  serviceIds: string[];
+  /** Services this member can perform, per location. Always an object — the backend maps "nothing assigned" to {}. */
+  serviceIdsByLocation: ServiceIdsByLocation;
 }
 
 /** One StaffMember plus this-calendar-month performance, computed from real bookings/availability — see staff.service.ts's getStaffPerformance. Null fields mean "not enough data yet" (no saved schedule, no bookings, no commissionRate set), rendered as "—" rather than a misleading 0. */
@@ -87,9 +100,10 @@ export interface InviteStaffInput {
   name: string;
   email: string;
   roleId: string;
-  locationId: string;
-  /** The wizard's Services step. Omit to assign nothing yet. */
-  serviceIds?: string[];
+  /** Every shop this member works at. At least one — a member attached to nothing can't be booked anywhere. */
+  locationIds: string[];
+  /** The wizard's Services step, per location. Omit to assign nothing yet. */
+  serviceIdsByLocation?: ServiceIdsByLocation;
 }
 
 /**
@@ -109,7 +123,8 @@ export function inviteStaff(
 export interface StaffUpdateInput {
   name?: string;
   roleId?: string;
-  locationId?: string;
+  /** Complete replacement set of the shops this member works at. Omitting leaves them alone. */
+  locationIds?: string[];
   /** Percent, 0-100, or null to clear a previously-set rate. */
   commissionRate?: number | null;
   /** 0.0-5.0, or null to clear a previously-set rating. */
@@ -122,11 +137,12 @@ export interface StaffUpdateInput {
   avatarUrl?: string | null;
   /**
    * Complete replacement set, not a delta — send every id that should end
-   * up assigned. Omitting leaves assignments untouched; [] clears them.
-   * Changing locationId without sending this clears them too, since the
-   * old ids belong to the previous location's menu.
+   * up assigned, keyed by the location it applies at. Omitting leaves
+   * assignments untouched; {} clears them. Taking a member off a location
+   * drops that location's assignments even without this, since a service
+   * assigned at a shop they've left can't be displayed or undone.
    */
-  serviceIds?: string[];
+  serviceIdsByLocation?: ServiceIdsByLocation;
 }
 
 /** The T12g ✎ "opens the profile edit" affordance — name, role, location, plus (also used from T10's Staff page) commission rate and rating. */

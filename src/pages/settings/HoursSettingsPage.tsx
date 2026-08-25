@@ -73,18 +73,32 @@ export function HoursSettingsPage() {
     const schedulable = all.filter((s) => s.isActive && s.claimed);
     return selectedLocationId === "all"
       ? schedulable
-      : schedulable.filter((s) => s.locationId === selectedLocationId);
+      : schedulable.filter((s) => s.locations.some((loc) => loc.id === selectedLocationId));
   }, [staffQuery.data, selectedLocationId]);
 
   const selectedStaffMember = staffOptions.find((s) => s.id === selectedStaffUserId);
-  // staffOptions (and so selectedStaffMember) is only populated for a
-  // manager — staffQuery above is manager-gated. A self-viewing
-  // non-manager always has selectedStaffUserId === their own id, so fall
-  // back to staffUser.locationId (already on hand from GET /accounts/me)
-  // rather than leaving this permanently null for the common "Barber
-  // checking their own hours" case.
+  /**
+   * Which shop's timezone the editor should fall back to.
+   *
+   * A member can work at several now, so there is no single "their
+   * location" any more. When the location filter names one, that's the
+   * answer — you're looking at this person *at that shop*. Otherwise take
+   * the first of theirs, which is stable (the API orders by name) and only
+   * ever a fallback: a schedule that has been saved carries its own
+   * timezone, and this is consulted only when it hasn't.
+   *
+   * staffOptions (and so selectedStaffMember) is only populated for a
+   * manager — staffQuery above is manager-gated — so a self-viewing
+   * non-manager falls back to their own first location from
+   * GET /accounts/me.
+   */
+  const memberLocationIds = selectedStaffMember
+    ? selectedStaffMember.locations.map((loc) => loc.id)
+    : (staffUser?.locationIds ?? []);
   const viewingLocationId =
-    selectedStaffMember?.locationId ?? (canManage ? null : staffUser?.locationId);
+    selectedLocationId !== "all" && memberLocationIds.includes(selectedLocationId)
+      ? selectedLocationId
+      : (memberLocationIds[0] ?? null);
   const locationTimezone = viewingLocationId
     ? (locationsQuery.data?.locations.find((l) => l.id === viewingLocationId)?.timezone ?? null)
     : null;

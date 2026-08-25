@@ -7,8 +7,9 @@ import { Field, formInputClass, formSelectClass } from "@/components/ui/FormFiel
 import { useAuthStore } from "@/auth/auth-store";
 import { listLocations } from "@/lib/locations-api";
 import { listRoles } from "@/lib/roles-api";
-import { listServices } from "@/lib/services-api";
-import { updateStaff, type StaffMember } from "@/lib/staff-api";
+import { updateStaff, type ServiceIdsByLocation, type StaffMember } from "@/lib/staff-api";
+import { LocationMultiSelect } from "@/components/settings/LocationMultiSelect";
+import { LocationServicesPicker } from "@/components/settings/LocationServicesPicker";
 
 interface EditMemberModalProps {
   /** null closes the modal — same "undefined/null open state doubles as the value" pattern as ServicesPage's ServiceModal. */
@@ -51,7 +52,7 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
   const [tab, setTab] = useState(0);
   const [name, setName] = useState("");
   const [roleId, setRoleId] = useState("");
-  const [locationId, setLocationId] = useState("");
+  const [locationIds, setLocationIds] = useState<string[]>([]);
   // Kept as strings (not number | null) so the input can sit genuinely
   // empty rather than snapping to 0 — submit converts "" to null.
   const [commissionRate, setCommissionRate] = useState("");
@@ -63,7 +64,7 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
   // plain text[] of short tags either way (see staff-users.ts).
   const [specialtiesText, setSpecialtiesText] = useState("");
   const [yearsExperience, setYearsExperience] = useState("");
-  const [serviceIds, setServiceIds] = useState<string[]>([]);
+  const [serviceIdsByLocation, setServiceIdsByLocation] = useState<ServiceIdsByLocation>({});
   const [formError, setFormError] = useState<string | null>(null);
 
   const locationsQuery = useQuery({
@@ -80,15 +81,13 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
   });
   const roles = rolesQuery.data?.roles ?? [];
 
-  // Keyed by the *form's* current locationId, not the member's saved one,
-  // so switching location in the Profile tab immediately re-fetches the
-  // right menu instead of showing the old location's services.
-  const servicesQuery = useQuery({
-    queryKey: ["services", locationId],
-    queryFn: () => listServices(accessToken ?? "", locationId),
-    enabled: !!accessToken && member !== null && locationId !== "",
-  });
-  const services = servicesQuery.data?.services ?? [];
+  // Driven by the *form's* current selection, not the member's saved
+  // one, so ticking a shop in the Profile tab immediately offers its menu
+  // on the Services tab. LocationServicesPicker fetches each shop's own
+  // services itself.
+  const selectedLocations = locations
+    .filter((loc) => locationIds.includes(loc.id))
+    .map((loc) => ({ id: loc.id, name: loc.name }));
 
   // Reset the form to the freshly-clicked member every time a new one opens
   // — this component stays mounted (AppShell-style) between opens, so
@@ -98,14 +97,14 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
     setTab(0);
     setName(member.name);
     setRoleId(member.roleId ?? "");
-    setLocationId(member.locationId);
+    setLocationIds(member.locations.map((loc) => loc.id));
     setCommissionRate(member.commissionRate === null ? "" : String(member.commissionRate));
     setRating(member.rating === null ? "" : String(member.rating));
     setDisplayTitle(member.displayTitle ?? "");
     setBio(member.bio ?? "");
     setSpecialtiesText(member.specialties.join(", "));
     setYearsExperience(member.yearsExperience === null ? "" : String(member.yearsExperience));
-    setServiceIds(member.serviceIds);
+    setServiceIdsByLocation(member.serviceIdsByLocation);
     setFormError(null);
   }, [member]);
 
@@ -119,7 +118,7 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
       return updateStaff(accessToken ?? "", member.id, {
         name,
         roleId,
-        locationId,
+        locationIds,
         commissionRate: commissionRate.trim() === "" ? null : Number(commissionRate),
         rating: rating.trim() === "" ? null : Number(rating),
         displayTitle: displayTitle.trim() === "" ? null : displayTitle.trim(),
@@ -127,7 +126,7 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
         specialties,
         yearsExperience: yearsExperience.trim() === "" ? null : Number(yearsExperience),
         // Always sent as the complete set — see StaffUpdateInput's comment.
-        serviceIds,
+        serviceIdsByLocation,
       });
     },
     onSuccess: () => {
@@ -149,19 +148,20 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
   // disabling it here is just so clicking it doesn't end in a surprising
   // 403 for the one role you're most likely to click your own row for.
   const isSelf = member !== null && owner !== null && member.email === owner.workEmail;
-  const movedLocation = member !== null && locationId !== member.locationId;
+  /** Shops this member is being taken off — their assignments there go with them. */
+  const removedLocations =
+    member === null ? [] : member.locations.filter((loc) => !locationIds.includes(loc.id));
 
-  function toggleService(id: string) {
-    setServiceIds((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
-  }
-
-  function handleLocationChange(nextLocationId: string) {
-    setLocationId(nextLocationId);
-    // Assignments are location-scoped, so the previous location's picks
-    // can't carry over — the backend clears them on a move anyway (see
-    // staff.service.ts's updateStaff), and dropping them here keeps the
-    // Services tab honest about what's about to be saved.
-    setServiceIds([]);
+  function handleLocationsChange(nextLocationIds: string[]) {
+    setLocationIds(nextLocationIds);
+    // Assignments name the shop they apply at, so unticking one drops just
+    // that shop's picks and leaves the rest alone — the backend prunes the
+    // same way (see staff.service.ts's replaceStaffLocations), and dropping
+    // them here keeps the Services tab honest about what's about to be
+    // saved.
+    setServiceIdsByLocation((prev) =>
+      Object.fromEntries(Object.entries(prev).filter(([id]) => nextLocationIds.includes(id))),
+    );
   }
 
   function handleSubmit(e: FormEvent) {
@@ -200,7 +200,10 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
   }
 
   return (
-    <Modal open={member !== null} onClose={onClose} width={560}>
+    // A sheet, matching Add New Member — the two are the same form on
+    // the same entity, and having one slide in from the edge while the
+    // other rose from the centre read as two unrelated screens.
+    <Modal open={member !== null} onClose={onClose} width={560} variant="sheet">
       <form onSubmit={handleSubmit}>
         <div className="flex items-center justify-between px-6 pt-6">
           <h2 className="m-0 font-sans text-lg font-semibold text-tn-ink">Edit Member</h2>
@@ -230,23 +233,19 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
                 />
               </Field>
 
-              <Field label="LOCATION">
-                <select
-                  value={locationId}
-                  onChange={(e) => handleLocationChange(e.target.value)}
-                  className={formSelectClass}
-                >
-                  {locations.map((loc) => (
-                    <option key={loc.id} value={loc.id}>
-                      {loc.name}
-                    </option>
-                  ))}
-                </select>
+              <Field label="LOCATIONS">
+                <LocationMultiSelect
+                  locations={locations}
+                  value={locationIds}
+                  onChange={handleLocationsChange}
+                  loading={locationsQuery.isPending}
+                />
               </Field>
-              {movedLocation && (
+              {removedLocations.length > 0 && (
                 <p className="m-0 -mt-2 font-sans text-xs text-tn-muted-5">
-                  Moving locations clears this member&rsquo;s assigned services — pick their new
-                  ones on the Services tab before saving.
+                  Saving removes this member from{" "}
+                  {removedLocations.map((loc) => loc.name).join(", ")} and clears the services they
+                  were assigned there. Their other shops are untouched.
                 </p>
               )}
 
@@ -303,48 +302,14 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
           {tab === 1 && (
             <>
               <p className="m-0 font-sans text-xs text-tn-muted-5">
-                Which services this member can be booked for at{" "}
-                {locations.find((l) => l.id === locationId)?.name ?? "their location"}.
+                Which services this member can be booked for, at each shop they work at. The menu
+                differs per shop, so the picks do too.
               </p>
-              {servicesQuery.isPending && (
-                <p className="m-0 font-sans text-sm text-tn-muted-5">Loading services…</p>
-              )}
-              {servicesQuery.isError && (
-                <p className="m-0 font-sans text-sm text-tn-danger">
-                  Couldn&rsquo;t load services — close and try again.
-                </p>
-              )}
-              {servicesQuery.isSuccess && services.length === 0 && (
-                <p className="m-0 font-sans text-sm text-tn-muted-5">
-                  No services exist at this location yet — add some on the Services page first.
-                </p>
-              )}
-              {services.length > 0 && (
-                <div className="flex max-h-72 flex-col gap-1 overflow-y-auto">
-                  {services.map((service) => (
-                    <label
-                      key={service.id}
-                      className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1 py-2 hover:bg-tn-border-soft/40"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={serviceIds.includes(service.id)}
-                        onChange={() => toggleService(service.id)}
-                        className="size-4 accent-tn-gold"
-                      />
-                      <span className="font-sans text-sm text-tn-ink">{service.name}</span>
-                      <span className="ml-auto font-sans text-xs text-tn-muted-5">
-                        {service.durationMinutes} min
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              )}
-              {services.length > 0 && (
-                <p className="m-0 font-sans text-xs text-tn-muted-5">
-                  {serviceIds.length} of {services.length} selected.
-                </p>
-              )}
+              <LocationServicesPicker
+                locations={selectedLocations}
+                value={serviceIdsByLocation}
+                onChange={setServiceIdsByLocation}
+              />
             </>
           )}
 

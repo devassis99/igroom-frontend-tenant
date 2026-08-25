@@ -71,7 +71,11 @@ export function AddCustomerModal({ open, onClose }: AddCustomerModalProps) {
   }
 
   return (
-    <Modal open={open} onClose={handleClose}>
+    // A side sheet, matching the Locations and Add/Edit Member forms:
+    // every "create this record" form in the app now arrives from the same
+    // edge, and the customer list stays visible behind it so you can see
+    // whether someone is already on file before adding them again.
+    <Modal open={open} onClose={handleClose} width={460} variant="sheet">
       <form onSubmit={handleSubmit}>
         <div className="flex items-center justify-between px-6 pt-6">
           <h2 className="m-0 font-sans text-lg font-semibold text-tn-ink">Add Customer</h2>

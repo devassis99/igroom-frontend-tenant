@@ -19,7 +19,7 @@ export interface RedeemedSupportSession {
   staffUser: {
     id: string;
     accountId: string;
-    locationId: string;
+    locationIds: string[];
     name: string;
     email: string;
     roleId: string | null;

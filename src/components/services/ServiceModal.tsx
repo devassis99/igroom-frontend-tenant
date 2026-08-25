@@ -123,7 +123,13 @@ export function ServiceModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} width={520}>
+    // A side sheet, same as the Locations, Member and Customer forms —
+    // this is the longest of them (name, description, category, tax,
+    // duration, price and three toggles), so a centred card had to scroll
+    // inside a box that was already floating. Full height suits it, and
+    // the services list stays visible behind for naming and pricing
+    // against what's already there.
+    <Modal open={open} onClose={onClose} width={520} variant="sheet">
       <form onSubmit={handleSubmit}>
         <div className="flex items-center justify-between px-6 pt-6">
           <h2 className="m-0 font-sans text-xl font-semibold text-tn-ink">

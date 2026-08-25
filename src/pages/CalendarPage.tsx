@@ -270,7 +270,7 @@ export function CalendarPage() {
 
   const staffQuery = useQuery({
     queryKey: ["bookings-staff", selectedLocationId],
-    queryFn: () => listStaff(accessToken ?? "", selectedLocationId || undefined),
+    queryFn: () => listStaff(accessToken ?? "", selectedLocationId),
     // Waits for the location list: firing while selectedLocationId is still
     // "" fetches every location, then immediately refetches for the real
     // one — two round trips for one page open.
@@ -285,7 +285,7 @@ export function CalendarPage() {
       listBookings(
         accessToken ?? "",
         { start: range.start.toISOString(), end: range.end.toISOString() },
-        selectedLocationId || undefined,
+        selectedLocationId,
       ),
     // The List view has its own paged query (AppointmentListView) instead
     // of this date-range one — no need to fetch both while it's active.
@@ -302,7 +302,7 @@ export function CalendarPage() {
 
   const staffSetsQuery = useQuery({
     queryKey: ["bookings-staff-sets", selectedLocationId],
-    queryFn: () => listStaffSets(accessToken ?? "", selectedLocationId || undefined),
+    queryFn: () => listStaffSets(accessToken ?? "", selectedLocationId),
     enabled: !!accessToken && !locationsQuery.isPending,
   });
   const staffSets = staffSetsQuery.data?.staffSets ?? EMPTY_STAFF_SETS;
@@ -311,27 +311,30 @@ export function CalendarPage() {
     queryClient.invalidateQueries({ queryKey: ["bookings-staff-sets", selectedLocationId] });
   }
 
+  // Every one of these carries selectedLocationId now. A staff set
+  // belongs to a shop, and the server no longer infers which one from the
+  // caller — see bookings-api.ts's header.
   const createStaffSetMutation = useMutation({
     mutationFn: (input: { name: string; staffUserIds: string[]; isShared: boolean }) =>
-      createStaffSet(accessToken ?? "", input),
+      createStaffSet(accessToken ?? "", { ...input, locationId: selectedLocationId }),
     onSuccess: invalidateStaffSets,
   });
   const updateStaffSetMutation = useMutation({
-    mutationFn: ({ id, patch }: { id: string; patch: StaffSetUpdatePayload }) =>
-      updateStaffSet(accessToken ?? "", id, patch),
+    mutationFn: ({ id, patch }: { id: string; patch: Omit<StaffSetUpdatePayload, "locationId"> }) =>
+      updateStaffSet(accessToken ?? "", id, { ...patch, locationId: selectedLocationId }),
     onSuccess: invalidateStaffSets,
   });
   const deleteStaffSetMutation = useMutation({
-    mutationFn: (id: string) => deleteStaffSet(accessToken ?? "", id),
+    mutationFn: (id: string) => deleteStaffSet(accessToken ?? "", id, selectedLocationId),
     onSuccess: invalidateStaffSets,
   });
   const reorderStaffSetsMutation = useMutation({
-    mutationFn: (ids: string[]) => reorderStaffSets(accessToken ?? "", ids),
+    mutationFn: (ids: string[]) => reorderStaffSets(accessToken ?? "", ids, selectedLocationId),
     onSuccess: invalidateStaffSets,
   });
   const setDefaultStaffSetMutation = useMutation({
     mutationFn: ({ id, isDefault }: { id: string; isDefault: boolean }) =>
-      setDefaultStaffSet(accessToken ?? "", id, isDefault),
+      setDefaultStaffSet(accessToken ?? "", id, isDefault, selectedLocationId),
     onSuccess: invalidateStaffSets,
   });
 
@@ -366,7 +369,7 @@ export function CalendarPage() {
         accessToken ?? "",
         dayYMD,
         staff.map((s) => s.id),
-        selectedLocationId || undefined,
+        selectedLocationId,
       ),
     enabled: !!accessToken && view === "day" && staff.length > 0,
     placeholderData: keepPreviousData,
@@ -1378,7 +1381,7 @@ export function CalendarPage() {
         defaultStaffId={addRequest?.defaultStaffId}
         defaultTime={addRequest?.defaultTime}
         timezone={timezone}
-        locationId={selectedLocationId || undefined}
+        locationId={selectedLocationId}
       />
 
       <ManageStaffSetsModal

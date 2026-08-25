@@ -28,6 +28,9 @@ function Initials({ name }: { name: string }) {
  * `hasHours` is the one thing this view adds — someone can be assigned
  * here and still be unbookable because nobody set their working hours,
  * which is otherwise only discoverable from an empty calendar column.
+ * It's only shown for someone who could be booked in the first place: an
+ * unclaimed invite is unbookable for a different and more basic reason,
+ * and saying "No hours set" about them points at the wrong fix.
  */
 export function LocationStaffTab({ location }: { location: AccountLocation }) {
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -90,12 +93,21 @@ export function LocationStaffTab({ location }: { location: AccountLocation }) {
                     .join(" · ")}
                 </span>
               </div>
-              {!member.isActive && (
+              {/* `claimed`, not `isActive` — a row is active from the moment
+                  the invite is created, so isActive never said "Invited"
+                  at all and this badge only ever showed for someone who
+                  had been deactivated. */}
+              {!member.claimed && (
                 <span className="rounded-full bg-tn-neutral-bg px-2 py-0.5 font-sans text-[10px] font-semibold text-tn-muted-5">
                   Invited
                 </span>
               )}
-              {member.isActive && !member.hasHours && (
+              {!member.isActive && (
+                <span className="rounded-full bg-tn-neutral-bg px-2 py-0.5 font-sans text-[10px] font-semibold text-tn-muted-5">
+                  Deactivated
+                </span>
+              )}
+              {member.isActive && member.claimed && !member.hasHours && (
                 <span className="rounded-full bg-tn-gold-bg px-2 py-0.5 font-sans text-[10px] font-semibold text-tn-gold">
                   No hours set
                 </span>

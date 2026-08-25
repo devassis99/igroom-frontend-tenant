@@ -139,7 +139,8 @@ export interface MeResponse {
   staffUser: {
     id: string;
     accountId: string;
-    locationId: string;
+    /** Every shop this caller works at — see the backend's db/schema/staff-locations.ts on why this is no longer one id. */
+    locationIds: string[];
     name: string;
     email: string;
     roleId: string | null;
@@ -152,7 +153,8 @@ export interface MeResponse {
   /** Permission keys granted to staffUser.roleId — see use-permissions.ts. */
   permissions: string[];
   account: Record<string, unknown> | null;
-  location: Record<string, unknown> | null;
+  /** The full location rows for staffUser.locationIds, ordered by name. */
+  locations: Record<string, unknown>[];
 }
 
 export function getMe(accessToken: string): Promise<MeResponse> {

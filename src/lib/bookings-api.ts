@@ -3,11 +3,15 @@ import { request } from "./http";
 /**
  * Talks to igroom-backend's /bookings module (see bookings.service.ts).
  * Every route requires a bearer token — requireAccountAuth derives
- * accountId/locationId from the token server-side. locationId is
- * optional on both GET calls below: omit it to get the caller's own
- * location (unchanged default), or pass one of locations-api.ts's
- * AccountLocation ids to view a different one of the account's locations
- * — see CalendarPage.tsx's location dropdown.
+ * accountId from it server-side.
+ *
+ * locationId is *required* on every call here, reads and writes alike. It
+ * used to be optional, defaulting server-side to the caller's own
+ * location; a staff member works at many now (see the backend's
+ * db/schema/staff-locations.ts), so there is no single location to fall
+ * back to, and a booking written against a guess is a booking at the
+ * wrong shop. CalendarPage already tracks the selected location for its
+ * own dropdown, so it passes it.
  */
 
 export type BookingStatus = "confirmed" | "walk_in" | "cancelled" | "completed" | "no_show";
@@ -44,13 +48,13 @@ function authHeaders(accessToken: string): HeadersInit {
   return { Authorization: `Bearer ${accessToken}` };
 }
 
-/** Active staff at a location (defaults to the caller's own) — backs the Day view's columns and the Add Booking "assign to" picker. */
+/** Active staff at a location — backs the Day view's columns and the Add Booking "assign to" picker. */
 export function listStaff(
   accessToken: string,
-  locationId?: string,
+  locationId: string,
 ): Promise<{ staff: BookingsStaffMember[] }> {
-  const params = locationId ? `?${new URLSearchParams({ locationId }).toString()}` : "";
-  return request(`/bookings/staff${params}`, { headers: authHeaders(accessToken) });
+  const params = new URLSearchParams({ locationId }).toString();
+  return request(`/bookings/staff?${params}`, { headers: authHeaders(accessToken) });
 }
 
 export interface ListBookingsRange {
@@ -60,14 +64,13 @@ export interface ListBookingsRange {
   end: string;
 }
 
-/** Every non-cancelled booking overlapping [start, end) at a location (defaults to the caller's own) — pass whatever range the visible Day/Week/Month grid needs. */
+/** Every non-cancelled booking overlapping [start, end) at a location — pass whatever range the visible Day/Week/Month grid needs. */
 export function listBookings(
   accessToken: string,
   range: ListBookingsRange,
-  locationId?: string,
+  locationId: string,
 ): Promise<{ bookings: Booking[] }> {
-  const params = new URLSearchParams({ start: range.start, end: range.end });
-  if (locationId) params.set("locationId", locationId);
+  const params = new URLSearchParams({ start: range.start, end: range.end, locationId });
   return request(`/bookings?${params.toString()}`, { headers: authHeaders(accessToken) });
 }
 
@@ -102,6 +105,8 @@ export function listBookingsPaged(
 }
 
 export interface CreateBookingPayload {
+  /** Which shop the appointment is at. Required — see this file's header. */
+  locationId: string;
   staffUserId: string;
   customerName: string;
   customerPhone?: string;
@@ -177,13 +182,14 @@ export interface StaffSet {
 /** Every set the caller can see at a location — their own private sets plus every set shared account-wide for it. */
 export function listStaffSets(
   accessToken: string,
-  locationId?: string,
+  locationId: string,
 ): Promise<{ staffSets: StaffSet[] }> {
-  const params = locationId ? `?${new URLSearchParams({ locationId }).toString()}` : "";
-  return request(`/bookings/staff-sets${params}`, { headers: authHeaders(accessToken) });
+  const params = new URLSearchParams({ locationId }).toString();
+  return request(`/bookings/staff-sets?${params}`, { headers: authHeaders(accessToken) });
 }
 
 export interface StaffSetPayload {
+  locationId: string;
   name: string;
   staffUserIds: string[];
   /** Defaults to false (private to the creator) server-side. */
@@ -202,6 +208,7 @@ export function createStaffSet(
 }
 
 export interface StaffSetUpdatePayload {
+  locationId: string;
   name?: string;
   staffUserIds?: string[];
   isShared?: boolean;
@@ -220,8 +227,14 @@ export function updateStaffSet(
   });
 }
 
-export function deleteStaffSet(accessToken: string, staffSetId: string): Promise<void> {
-  return request(`/bookings/staff-sets/${staffSetId}`, {
+/** DELETE carries no body, so the location travels as a query parameter. */
+export function deleteStaffSet(
+  accessToken: string,
+  staffSetId: string,
+  locationId: string,
+): Promise<void> {
+  const params = new URLSearchParams({ locationId }).toString();
+  return request(`/bookings/staff-sets/${staffSetId}?${params}`, {
     method: "DELETE",
     headers: authHeaders(accessToken),
   });
@@ -231,10 +244,11 @@ export function deleteStaffSet(accessToken: string, staffSetId: string): Promise
 export function reorderStaffSets(
   accessToken: string,
   staffSetIds: string[],
+  locationId: string,
 ): Promise<{ staffSets: StaffSet[] }> {
   return request("/bookings/staff-sets/reorder", {
     method: "POST",
-    body: { staffSetIds },
+    body: { staffSetIds, locationId },
     headers: authHeaders(accessToken),
   });
 }
@@ -243,10 +257,11 @@ export function setDefaultStaffSet(
   accessToken: string,
   staffSetId: string,
   isDefault: boolean,
+  locationId: string,
 ): Promise<{ staffSet: StaffSet }> {
   return request(`/bookings/staff-sets/${staffSetId}/default`, {
     method: "POST",
-    body: { isDefault },
+    body: { isDefault, locationId },
     headers: authHeaders(accessToken),
   });
 }
@@ -269,7 +284,7 @@ export function getStaffShifts(
   accessToken: string,
   date: string,
   staffUserIds: string[],
-  locationId?: string,
+  locationId: string,
 ): Promise<{ shifts: StaffShift[] }> {
   const params = new URLSearchParams({ date, staffUserIds: staffUserIds.join(",") });
   if (locationId) params.set("locationId", locationId);

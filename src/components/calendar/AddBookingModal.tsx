@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Field, formInputClass, formSelectClass } from "@/components/ui/FormField";
-import { WizardTabs } from "@/components/ui/WizardTabs";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { TimePicker } from "@/components/ui/TimePicker";
 import { PhoneInput, isPhoneValid } from "@/components/ui/PhoneInput";
@@ -36,7 +35,8 @@ interface AddBookingModalProps {
    * treatments this location doesn't do — and quote the catalogue price
    * rather than the one this site charges.
    */
-  locationId?: string;
+  /** Which shop the appointment is at. Required: the server no longer infers it from the caller — see bookings-api.ts. */
+  locationId: string;
 }
 
 function toDateInputValue(date: Date): string {
@@ -47,17 +47,18 @@ function toTimeInputValue(date: Date): string {
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
-const STEPS = ["Customer", "Service", "Staff & Time", "Notes"];
-
 /**
- * T7's "+ Add Booking" form, as a 4-step wizard (Customer → Service →
- * Staff & Time → Notes) rather than one long scrolling form — same
- * WizardTabs/step-by-step pattern as AddMemberWizard.tsx's "Add New
- * Member" flow, kept consistent so the two multi-field creation modals in
- * the app feel like one family. Every field here is real (unlike
- * AddMemberWizard's Services/Schedule/Options steps) — this whole form
- * maps straight onto bookings-api.ts's createBooking payload, just spread
- * across steps instead of one screen.
+ * T7's "+ Add Booking" form: one screen, four labelled sections
+ * (customer, service, staff & time, notes).
+ *
+ * It used to be a wizard. Every step was a handful of fields with a Next
+ * button under it, which meant four clicks and three screens to enter what
+ * fits comfortably in one — and the last step existed largely to show a
+ * summary of what you had already typed but could no longer see. As a
+ * side sheet the whole form has full viewport height to sit in, so the
+ * reason to slice it up is gone.
+ *
+ * Every field maps straight onto bookings-api.ts's createBooking payload.
  */
 export function AddBookingModal({
   open,
@@ -71,7 +72,6 @@ export function AddBookingModal({
   locationId,
 }: AddBookingModalProps) {
   const queryClient = useQueryClient();
-  const [step, setStep] = useState(0);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -92,7 +92,7 @@ export function AddBookingModal({
   // always matches what actually exists. Only fetched while the modal's
   // open, matching AddMemberWizard.tsx's locations/roles queries.
   const servicesQuery = useQuery({
-    queryKey: ["services", locationId ?? "all"],
+    queryKey: ["services", locationId],
     queryFn: () => listServices(accessToken, locationId),
     enabled: open,
   });
@@ -111,7 +111,6 @@ export function AddBookingModal({
   // Re-sync whenever the modal is reopened for a different slot/day.
   useEffect(() => {
     if (!open) return;
-    setStep(0);
     setCustomerName("");
     setCustomerPhone("");
     setCustomerEmail("");
@@ -143,6 +142,7 @@ export function AddBookingModal({
           ? zonedTimeToUtc(year, month - 1, day, hour ?? 0, minute ?? 0, timezone)
           : new Date(`${dateValue}T${timeValue}:00`);
       return createBooking(accessToken, {
+        locationId,
         staffUserId,
         customerName: customerName.trim(),
         customerPhone: customerPhone.trim() || undefined,
@@ -176,45 +176,40 @@ export function AddBookingModal({
     },
   });
 
-  function goBack() {
-    if (step === 0) {
-      onClose();
+  /**
+   * One pass over everything, in the order the fields appear — so the
+   * message always points at the first thing that needs attention rather
+   * than whichever check happens to be written first.
+   */
+  function handleSubmit() {
+    if (!customerName.trim()) {
+      setFormError("Add the customer's name.");
       return;
     }
-    setFormError(null);
-    setOutsideShiftWarning(null);
-    setStep(step - 1);
-  }
-
-  function goNext() {
-    if (step === 0 && !customerName.trim()) {
-      setFormError("Add the customer's name before continuing.");
-      return;
-    }
-    if (step === 0 && !isPhoneValid(customerPhone)) {
+    if (!isPhoneValid(customerPhone)) {
       setFormError("That phone number doesn't look right for the selected country.");
       return;
     }
-    if (step === 1 && selectedServiceIds.size === 0) {
-      setFormError("Pick at least one service before continuing.");
+    if (selectedServiceIds.size === 0) {
+      setFormError("Pick at least one service.");
       return;
     }
-    if (step === 2 && (!staffUserId || !dateValue || !timeValue)) {
-      setFormError("Pick a staff member, date, and time before continuing.");
+    if (!staffUserId || !dateValue || !timeValue) {
+      setFormError("Pick a staff member, date, and time.");
       return;
     }
 
     setFormError(null);
     setOutsideShiftWarning(null);
-    if (step < STEPS.length - 1) {
-      setStep(step + 1);
-      return;
-    }
     mutation.mutate(undefined);
   }
 
   return (
-    <Modal open={open} onClose={onClose}>
+    // A side sheet, same as the other create-a-record forms — and what
+    // makes one screen viable here: full viewport height fits every
+    // section without a wizard, and the calendar grid stays visible
+    // behind, so the slot being booked into is still on screen.
+    <Modal open={open} onClose={onClose} width={520} variant="sheet">
       <div className="flex items-center justify-between px-6 pt-6">
         <h2 className="m-0 font-sans text-[19px] font-semibold text-tn-ink">Add Booking</h2>
         <button
@@ -228,162 +223,144 @@ export function AddBookingModal({
       </div>
 
       <div className="flex flex-col gap-5 px-6 pb-6 pt-4">
-        <WizardTabs steps={STEPS} activeIndex={step} />
+        <div className="flex flex-col gap-[18px]">
+          <Field label="CUSTOMER NAME">
+            <input
+              className={formInputClass}
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              placeholder="Jordan Rivera"
+            />
+          </Field>
 
-        {step === 0 && (
-          <div className="flex flex-col gap-[18px]">
-            <Field label="CUSTOMER NAME">
-              <input
-                className={formInputClass}
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="Jordan Rivera"
-              />
-            </Field>
+          <Field label="PHONE (OPTIONAL)">
+            <PhoneInput value={customerPhone} onChange={setCustomerPhone} />
+          </Field>
 
-            <Field label="PHONE (OPTIONAL)">
-              <PhoneInput value={customerPhone} onChange={setCustomerPhone} />
-            </Field>
+          <Field label="EMAIL (OPTIONAL)">
+            <input
+              type="email"
+              className={formInputClass}
+              value={customerEmail}
+              onChange={(e) => setCustomerEmail(e.target.value)}
+              placeholder="jordan@example.com"
+            />
+          </Field>
+        </div>
 
-            <Field label="EMAIL (OPTIONAL)">
-              <input
-                type="email"
-                className={formInputClass}
-                value={customerEmail}
-                onChange={(e) => setCustomerEmail(e.target.value)}
-                placeholder="jordan@example.com"
-              />
-            </Field>
-          </div>
-        )}
+        <div className="flex flex-col gap-3 border-t border-tn-border-soft pt-5">
+          <p className="m-0 font-sans text-xs font-semibold tracking-[0.04em] text-tn-muted-5">
+            SERVICE (SELECT ONE OR MORE)
+          </p>
 
-        {step === 1 && (
-          <div className="flex flex-col gap-3">
-            <p className="m-0 font-sans text-xs font-semibold tracking-[0.04em] text-tn-muted-5">
-              SERVICE (SELECT ONE OR MORE)
+          {servicesQuery.isPending && (
+            <p className="m-0 font-sans text-[13px] text-tn-muted-5">Loading services…</p>
+          )}
+          {!servicesQuery.isPending && services.length === 0 && (
+            <p className="m-0 font-sans text-[13px] text-tn-muted-5">
+              No services set up yet — add one on the Services page first.
             </p>
+          )}
 
-            {servicesQuery.isPending && (
-              <p className="m-0 font-sans text-[13px] text-tn-muted-5">Loading services…</p>
-            )}
-            {!servicesQuery.isPending && services.length === 0 && (
-              <p className="m-0 font-sans text-[13px] text-tn-muted-5">
-                No services set up yet — add one on the Services page first.
-              </p>
-            )}
-
-            {services.length > 0 && (
-              <div className="flex max-h-72 flex-col overflow-y-auto rounded-xl border border-tn-border">
-                <div className="grid grid-cols-[2fr_1fr_1fr_0.8fr] bg-tn-table-head px-4 py-2.5 font-sans text-xs font-semibold text-tn-muted-5">
-                  <span>SERVICE</span>
-                  <span>PRICE</span>
-                  <span>DURATION</span>
-                  <span>SELECT</span>
-                </div>
-                {services.map((s, i) => (
-                  <label
-                    key={s.id}
-                    className={`grid grid-cols-[2fr_1fr_1fr_0.8fr] items-center px-4 py-3 ${
-                      i < services.length - 1 ? "border-b border-tn-border-soft" : ""
-                    }`}
-                  >
-                    <span className="font-sans text-[13px] text-tn-ink">
-                      {s.name}
-                      {s.categoryName && (
-                        <span className="ml-1.5 font-sans text-xs text-tn-muted-5">
-                          {s.categoryName}
-                        </span>
-                      )}
-                    </span>
-                    <span className="font-sans text-[13px] text-tn-muted-3">
-                      ${(s.priceCents / 100).toFixed(2)}
-                    </span>
-                    <span className="font-sans text-[13px] text-tn-muted-3">
-                      {s.durationMinutes} min
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={selectedServiceIds.has(s.id)}
-                      onChange={() => toggleService(s.id)}
-                      className="accent-tn-gold"
-                    />
-                  </label>
-                ))}
+          {services.length > 0 && (
+            <div className="flex max-h-72 flex-col overflow-y-auto rounded-xl border border-tn-border">
+              <div className="grid grid-cols-[2fr_1fr_1fr_0.8fr] bg-tn-table-head px-4 py-2.5 font-sans text-xs font-semibold text-tn-muted-5">
+                <span>SERVICE</span>
+                <span>PRICE</span>
+                <span>DURATION</span>
+                <span>SELECT</span>
               </div>
-            )}
+              {services.map((s, i) => (
+                <label
+                  key={s.id}
+                  className={`grid grid-cols-[2fr_1fr_1fr_0.8fr] items-center px-4 py-3 ${
+                    i < services.length - 1 ? "border-b border-tn-border-soft" : ""
+                  }`}
+                >
+                  <span className="font-sans text-[13px] text-tn-ink">
+                    {s.name}
+                    {s.categoryName && (
+                      <span className="ml-1.5 font-sans text-xs text-tn-muted-5">
+                        {s.categoryName}
+                      </span>
+                    )}
+                  </span>
+                  <span className="font-sans text-[13px] text-tn-muted-3">
+                    ${(s.priceCents / 100).toFixed(2)}
+                  </span>
+                  <span className="font-sans text-[13px] text-tn-muted-3">
+                    {s.durationMinutes} min
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={selectedServiceIds.has(s.id)}
+                    onChange={() => toggleService(s.id)}
+                    className="accent-tn-gold"
+                  />
+                </label>
+              ))}
+            </div>
+          )}
 
-            {selectedServices.length > 0 && (
-              <p className="m-0 font-sans text-xs text-tn-muted-5">
-                {selectedServices.length} selected · {combinedDurationMinutes} min total · $
-                {(combinedPriceCents / 100).toFixed(2)}
-              </p>
-            )}
-          </div>
-        )}
+          {selectedServices.length > 0 && (
+            <p className="m-0 font-sans text-xs text-tn-muted-5">
+              {selectedServices.length} selected · {combinedDurationMinutes} min total · $
+              {(combinedPriceCents / 100).toFixed(2)}
+            </p>
+          )}
+        </div>
 
-        {step === 2 && (
-          <div className="flex flex-col gap-[18px]">
-            <Field label="STAFF">
-              <select
-                className={formSelectClass}
-                value={staffUserId}
-                onChange={(e) => setStaffUserId(e.target.value)}
-              >
-                {staff.length === 0 && <option value="">No staff available</option>}
-                {staff.map((member) => (
-                  <option key={member.id} value={member.id}>
-                    {member.name}
-                  </option>
-                ))}
-              </select>
+        <div className="flex flex-col gap-[18px] border-t border-tn-border-soft pt-5">
+          <Field label="STAFF">
+            <select
+              className={formSelectClass}
+              value={staffUserId}
+              onChange={(e) => setStaffUserId(e.target.value)}
+            >
+              {staff.length === 0 && <option value="">No staff available</option>}
+              {staff.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="DATE">
+              <DatePicker value={dateValue} onChange={setDateValue} label="Date" />
             </Field>
 
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="DATE">
-                <DatePicker value={dateValue} onChange={setDateValue} label="Date" />
-              </Field>
-
-              <Field label="TIME">
-                <TimePicker value={timeValue} onChange={setTimeValue} label="Time" />
-              </Field>
-            </div>
-
-            <label className="flex items-center gap-2 font-sans text-[13px] text-tn-muted-1">
-              <input
-                type="checkbox"
-                checked={isWalkIn}
-                onChange={(e) => setIsWalkIn(e.target.checked)}
-                className="accent-tn-gold"
-              />
-              Walk-in (no online booking record)
-            </label>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="flex flex-col gap-[18px]">
-            <div className="flex flex-col gap-1.5 rounded-xl bg-tn-page p-3.5">
-              <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">{customerName}</p>
-              <p className="m-0 font-sans text-xs text-tn-muted-4">
-                {combinedServiceName} · {combinedDurationMinutes} min
-                {isWalkIn ? " · Walk-in" : ""}
-              </p>
-              <p className="m-0 font-sans text-xs text-tn-muted-4">
-                {staff.find((m) => m.id === staffUserId)?.name ?? "Unassigned"} — {dateValue} at{" "}
-                {timeValue}
-              </p>
-            </div>
-
-            <Field label="NOTES (OPTIONAL)">
-              <input
-                className={formInputClass}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Anything the barber should know"
-              />
+            <Field label="TIME">
+              <TimePicker value={timeValue} onChange={setTimeValue} label="Time" />
             </Field>
           </div>
-        )}
+
+          <label className="flex items-center gap-2 font-sans text-[13px] text-tn-muted-1">
+            <input
+              type="checkbox"
+              checked={isWalkIn}
+              onChange={(e) => setIsWalkIn(e.target.checked)}
+              className="accent-tn-gold"
+            />
+            Walk-in (no online booking record)
+          </label>
+        </div>
+
+        {/* The wizard's last step opened with a card summarising what you
+            had typed, because by then you could no longer see it. On one
+            screen everything it repeated is a few centimetres above, so
+            only the field it wrapped survives. */}
+        <div className="border-t border-tn-border-soft pt-5">
+          <Field label="NOTES (OPTIONAL)">
+            <input
+              className={formInputClass}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Anything the barber should know"
+            />
+          </Field>
+        </div>
 
         {formError && <p className="m-0 font-sans text-xs text-tn-danger">{formError}</p>}
 
@@ -420,17 +397,18 @@ export function AddBookingModal({
             type="button"
             variant="secondary"
             className="flex-1"
-            onClick={goBack}
+            onClick={onClose}
             disabled={mutation.isPending}
           >
-            {step === 0 ? "Cancel" : "← Back"}
+            Cancel
           </Button>
-          <Button type="button" className="flex-1" onClick={goNext} disabled={mutation.isPending}>
-            {step === STEPS.length - 1
-              ? mutation.isPending
-                ? "Booking…"
-                : "Add Booking"
-              : `Next: ${STEPS[step + 1]} →`}
+          <Button
+            type="button"
+            className="flex-1"
+            onClick={handleSubmit}
+            disabled={mutation.isPending}
+          >
+            {mutation.isPending ? "Booking…" : "Add Booking"}
           </Button>
         </div>
       </div>

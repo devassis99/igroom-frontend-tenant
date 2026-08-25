@@ -107,12 +107,25 @@ export function LocationAvailabilityTab({ location }: { location: AccountLocatio
     enabled: !!accessToken,
   });
 
-  // Invited-but-unclaimed rows come back with isActive false (that's what
-  // the Staff tab's "Invited" badge reads) and can't sign in, so they
-  // can't hold a schedule either — scheduling them would put someone on
-  // the rota the calendar will never show.
+  /**
+   * Who can actually hold a schedule here.
+   *
+   * Both flags are needed, and `claimed` is the one that matters: a
+   * staff_users row is isActive from the moment the invite is created, so
+   * filtering on isActive alone left unclaimed invites in this picker —
+   * offering to set working hours for someone who cannot sign in, will
+   * not appear as a calendar column (bookings.service.ts's
+   * listStaffForLocation excludes them on the same check) and cannot be
+   * booked. Deactivated members are excluded for the plainer reason.
+   */
   const schedulable = useMemo(
-    () => (staffQuery.data?.staff ?? []).filter((member) => member.isActive),
+    () => (staffQuery.data?.staff ?? []).filter((member) => member.isActive && member.claimed),
+    [staffQuery.data],
+  );
+
+  /** Invited-but-unclaimed members, kept apart so the empty state can say where they went. */
+  const invited = useMemo(
+    () => (staffQuery.data?.staff ?? []).filter((member) => member.isActive && !member.claimed),
     [staffQuery.data],
   );
 
@@ -156,16 +169,30 @@ export function LocationAvailabilityTab({ location }: { location: AccountLocatio
           When the people who work here can be booked. This is what the booking page offers
           customers — {withHours} of {schedulable.length}{" "}
           {schedulable.length === 1 ? "person has" : "people have"} hours set.
+          {invited.length > 0 &&
+            ` ${invited.length} more ${invited.length === 1 ? "hasn't" : "haven't"} signed in yet and can't be scheduled.`}
         </p>
       </div>
 
       {schedulable.length === 0 ? (
         <p className="m-0 rounded-2xl border border-dashed border-tn-border px-4 py-6 text-center font-sans text-sm text-tn-muted-5">
-          Nobody works here yet — assign someone in{" "}
-          <Link to="/settings/staff" className="font-semibold text-tn-ink">
-            Staff Management
-          </Link>{" "}
-          and their hours will show up here.
+          {invited.length > 0 ? (
+            <>
+              {invited.length === 1
+                ? `${invited[0]!.name} hasn't signed in yet`
+                : `${invited.length} people here haven't signed in yet`}
+              , so there&rsquo;s no schedule to set. Hours can be added once they&rsquo;ve claimed
+              their invite.
+            </>
+          ) : (
+            <>
+              Nobody works here yet — assign someone in{" "}
+              <Link to="/settings/staff" className="font-semibold text-tn-ink">
+                Staff Management
+              </Link>{" "}
+              and their hours will show up here.
+            </>
+          )}
         </p>
       ) : viewableStaff.length === 0 ? (
         <p className="m-0 rounded-2xl border border-dashed border-tn-border px-4 py-6 text-center font-sans text-sm text-tn-muted-5">

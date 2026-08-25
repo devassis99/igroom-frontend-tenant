@@ -398,7 +398,7 @@ export function StaffManagementPage() {
               <div className="grid grid-cols-[1.8fr_1fr_1.2fr_0.8fr_0.8fr] bg-tn-table-head px-[18px] py-3 font-sans text-xs font-semibold text-tn-muted-5">
                 <span>Name</span>
                 <span>Role</span>
-                <span>Location</span>
+                <span>Locations</span>
                 <span>Status</span>
                 <span>Shortcuts</span>
               </div>
@@ -448,8 +448,16 @@ export function StaffManagementPage() {
                       </span>
                     </span>
                     <span className="font-sans text-[13px] text-tn-muted-2">{member.roleName}</span>
-                    <span className="font-sans text-[13px] text-tn-muted-2">
-                      {member.locationName}
+                    {/* Every shop, comma-joined — one line per person, not
+                        one per membership, so a member working two sites
+                        doesn't read as two people. */}
+                    <span
+                      className="truncate font-sans text-[13px] text-tn-muted-2"
+                      title={member.locations.map((loc) => loc.name).join(", ")}
+                    >
+                      {member.locations.length > 0
+                        ? member.locations.map((loc) => loc.name).join(", ")
+                        : "—"}
                     </span>
                     <StatusPill tone={statusTone}>{statusLabel}</StatusPill>
                     <span className="flex gap-2 font-sans text-tn-muted-5">
