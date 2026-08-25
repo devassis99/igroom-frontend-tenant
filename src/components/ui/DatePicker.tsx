@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useAnchoredPanel } from "@/components/ui/use-anchored-panel";
 
 interface DatePickerProps {
   /** "YYYY-MM-DD", or "" for no date picked yet. */
@@ -9,7 +10,6 @@ interface DatePickerProps {
   className?: string;
 }
 
-const GAP = 6;
 const WEEKDAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 function pad2(n: number): string {
@@ -125,21 +125,6 @@ function ChevronRightIcon() {
   );
 }
 
-function useAnchoredPosition(open: boolean, anchorRef: RefObject<HTMLElement | null>) {
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
-
-  useLayoutEffect(() => {
-    if (!open || !anchorRef.current) {
-      setPosition(null);
-      return;
-    }
-    const rect = anchorRef.current.getBoundingClientRect();
-    setPosition({ top: rect.bottom + GAP, left: rect.left });
-  }, [open, anchorRef]);
-
-  return position;
-}
-
 /**
  * Replaces the native `<input type="date">` (whose picker is the OS/
  * browser's own UI, not this app's, and reads inconsistently across
@@ -156,7 +141,7 @@ export function DatePicker({ value, onChange, label = "Date", className = "" }: 
   const [viewDate, setViewDate] = useState(() => selected ?? new Date());
   const anchorRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const position = useAnchoredPosition(open, anchorRef);
+  const position = useAnchoredPanel(open, anchorRef, { width: 288, minHeight: 340 });
 
   // Jump the visible month back to whatever's selected (or today, if
   // nothing's picked yet) every time the popover opens, rather than
@@ -239,8 +224,11 @@ export function DatePicker({ value, onChange, label = "Date", className = "" }: 
             className="fixed z-50 overflow-hidden rounded-2xl border border-tn-border bg-tn-surface p-3.5"
             style={{
               top: position.top,
+              bottom: position.bottom,
               left: position.left,
-              width: 288,
+              width: position.width,
+              maxHeight: position.maxHeight,
+              overflowY: "auto",
               boxShadow: "0 20px 45px -15px rgba(20,15,5,0.35)",
             }}
           >

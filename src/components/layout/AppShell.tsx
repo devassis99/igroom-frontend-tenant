@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
+import { NavLink, Outlet, useLocation, useNavigate, useOutletContext } from "react-router";
 import { useAuthStore } from "@/auth/auth-store";
 import { usePermissions } from "@/auth/use-permissions";
 import { requiredPermissionFor } from "@/auth/route-permissions";
@@ -30,10 +30,25 @@ const NAV_ITEMS: Array<{
   { to: "/waitlist", label: "Waitlist", icon: WaitlistIcon, permission: "bookings.view" },
   { to: "/analytics", label: "Analytics", icon: AnalyticsIcon, permission: "bookings.view" },
   { to: "/services", label: "Services", icon: ServicesIcon, permission: "services.view" },
+  // Promoted out of Settings > Workspace: a shop is something an owner
+  // works *in* all day (rosters, menus, takings per site), not a
+  // configure-once account setting, and burying it two navs deep made
+  // every "which branch?" question a detour through Settings.
+  { to: "/locations", label: "Locations", icon: LocationsIcon, permission: "locations.view" },
   { to: "/staff", label: "Staff", icon: StaffIcon, permission: "staff.view" },
   { to: "/customers", label: "Customers", icon: CustomersIcon, permission: "customers.view" },
   { to: "/payments", label: "Payments", icon: PaymentsIcon, permission: "billing.view" },
 ];
+
+/** Map-pin glyph for Locations — same outline family as the rows around it. */
+function LocationsIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <path d="M12 21s7-7.58 7-12a7 7 0 1 0-14 0c0 4.42 7 12 7 12z" />
+      <circle cx="12" cy="9" r="2.5" />
+    </svg>
+  );
+}
 
 /**
  * Shared stroke props for the sidebar's glyph set below — same
@@ -204,7 +219,7 @@ function CollapsibleLabel({
 
 /**
  * Layout for every authenticated route — matches the mockup's sidebar
- * (T6–T12): iGroom wordmark, then the primary nav rows (8, after
+ * (T6–T12): iGroom wordmark, then the primary nav rows (9, after
  * splitting the mockup's single T6 Owner Dashboard frame into Home +
  * Analytics — see HomePage.tsx's comment), then (pinned to the bottom)
  * What's New, Integrations (BUSINESS-plan badge) and the gear-icon
@@ -217,6 +232,25 @@ function CollapsibleLabel({
  * page (IntegrationsPage) — both share CategoryNav/IntegrationCardGrid
  * (see components/integrations/) so the two entry points can't drift.
  */
+/**
+ * What a page can ask the root sidebar to do.
+ *
+ * Only one thing so far: Locations collapses the rail to its icon width
+ * while a shop's detail pane is open, because that pane wants the width
+ * and the nav is not what you are looking at while you are inside one
+ * shop. This is the same deal SettingsLayout's SettingsChrome offered
+ * that page before it moved out of Settings — kept, so the behaviour
+ * survived the move.
+ */
+export interface AppChrome {
+  setNavCollapsed: (collapsed: boolean) => void;
+}
+
+/** Typed accessor for AppShell's Outlet context — pages call this rather than useOutletContext directly. */
+export function useAppChrome(): AppChrome {
+  return useOutletContext<AppChrome>();
+}
+
 /** Remembers the owner's collapse preference across reloads, same "just localStorage, no store needed for one boolean" call as sample-data.ts's peers. */
 const SIDEBAR_COLLAPSED_KEY = "igroom-sidebar-collapsed";
 
@@ -260,14 +294,24 @@ export function AppShell() {
   // is entered fresh).
   const isSettingsRoute = location.pathname.startsWith("/settings");
   const [expandedInSettings, setExpandedInSettings] = useState(false);
+  // Set by a page through useAppChrome() below. Wins over both the
+  // persisted preference and the Settings override, and is cleared by
+  // the page itself on unmount.
+  const [pageCollapsed, setPageCollapsed] = useState(false);
 
   useEffect(() => {
     if (!isSettingsRoute) setExpandedInSettings(false);
   }, [isSettingsRoute]);
 
-  const collapsed = isSettingsRoute ? !expandedInSettings : storedCollapsed;
+  const collapsed = pageCollapsed || (isSettingsRoute ? !expandedInSettings : storedCollapsed);
 
   function toggleCollapsed() {
+    // Expanding by hand overrides whatever a page asked for — the
+    // button should never look broken.
+    if (pageCollapsed) {
+      setPageCollapsed(false);
+      return;
+    }
     if (isSettingsRoute) {
       setExpandedInSettings((v) => !v);
     } else {
@@ -302,7 +346,7 @@ export function AppShell() {
             onClick={toggleCollapsed}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md border-none bg-transparent text-tn-muted-5 hover:bg-tn-page hover:text-tn-ink"
+            className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md border-none bg-transparent text-tn-muted-5 transition-colors duration-150 hover:bg-tn-page hover:text-tn-ink"
           >
             <SidebarToggleIcon />
           </button>
@@ -329,10 +373,10 @@ export function AppShell() {
               state={item.to === "/calendar" ? { resetToken: Date.now() } : undefined}
               title={collapsed ? item.label : undefined}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-6 py-[11px] font-sans text-[13px] ${
+                `flex items-center gap-3 px-6 py-[11px] font-sans text-[13px] transition-colors duration-200 ${
                   isActive
                     ? "bg-tn-dark font-semibold text-tn-on-dark"
-                    : "font-medium text-tn-nav-inactive"
+                    : "font-medium text-tn-nav-inactive hover:bg-tn-page hover:text-tn-ink-soft"
                 }`
               }
             >
@@ -392,10 +436,10 @@ export function AppShell() {
             to="/settings"
             title={collapsed ? "Settings" : undefined}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-6 py-[11px] font-sans text-[13px] ${
+              `flex items-center gap-3 px-6 py-[11px] font-sans text-[13px] transition-colors duration-200 ${
                 isActive
                   ? "bg-tn-dark font-semibold text-tn-on-dark"
-                  : "font-medium text-tn-nav-inactive"
+                  : "font-medium text-tn-nav-inactive hover:bg-tn-page hover:text-tn-ink-soft"
               }`
             }
           >
@@ -449,7 +493,13 @@ export function AppShell() {
 
       <div className="flex-1 overflow-y-auto bg-tn-surface px-10 py-8">
         {routeAllowed ? (
-          <Outlet />
+          // Keyed by pathname so each navigation remounts this and replays
+          // the animation — clicking a nav row otherwise swaps a whole
+          // screen with nothing connecting the two states. Covers Settings'
+          // own sub-nav too, since those change the pathname as well.
+          <div key={location.pathname} className="tn-content-in">
+            <Outlet context={{ setNavCollapsed: setPageCollapsed } satisfies AppChrome} />
+          </div>
         ) : (
           <div className="flex flex-col items-start gap-2 rounded-2xl border border-tn-border bg-tn-page p-8">
             <h1 className="m-0 font-sans text-xl font-semibold text-tn-ink">

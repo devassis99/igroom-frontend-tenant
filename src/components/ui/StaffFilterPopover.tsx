@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useAnchoredPanel } from "@/components/ui/use-anchored-panel";
 import { Avatar } from "@/components/ui/Avatar";
 
 interface StaffOption {
@@ -19,7 +20,6 @@ interface StaffFilterPopoverProps {
 }
 
 const PANEL_WIDTH = 260;
-const GAP = 6;
 
 // Same deterministic id->color hash as StaffPage.tsx/StaffManagementPage.tsx
 // /CustomersPage.tsx, duplicated here rather than newly shared so a given
@@ -120,21 +120,6 @@ function CheckIcon() {
   );
 }
 
-function useAnchoredPosition(open: boolean, anchorRef: RefObject<HTMLElement | null>) {
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
-
-  useLayoutEffect(() => {
-    if (!open || !anchorRef.current) {
-      setPosition(null);
-      return;
-    }
-    const rect = anchorRef.current.getBoundingClientRect();
-    setPosition({ top: rect.bottom + GAP, left: rect.left });
-  }, [open, anchorRef]);
-
-  return position;
-}
-
 /**
  * Staff filter for Settings > Availability, styled after the same
  * reference "Filter scheduler" popover as LocationFilterPopover.tsx —
@@ -157,7 +142,7 @@ export function StaffFilterPopover({
   const anchorRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const position = useAnchoredPosition(open, anchorRef);
+  const position = useAnchoredPanel(open, anchorRef, { width: PANEL_WIDTH, minHeight: 260 });
 
   // Fresh search box every time the popover opens, rather than showing
   // whatever was left over from the last time it was open. Focused
@@ -242,19 +227,21 @@ export function StaffFilterPopover({
           <div
             ref={panelRef}
             aria-label={label}
-            className="fixed z-50 overflow-hidden rounded-2xl border border-tn-border bg-tn-surface"
+            className="fixed z-50 flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface"
             style={{
               top: position.top,
+              bottom: position.bottom,
               left: position.left,
-              width: PANEL_WIDTH,
+              width: position.width,
+              maxHeight: position.maxHeight,
               boxShadow: "0 20px 45px -15px rgba(20,15,5,0.35)",
             }}
           >
-            <div className="px-4 py-3">
+            <div className="flex-none px-4 py-3">
               <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">{label}</p>
             </div>
 
-            <div className="border-t border-tn-border-soft px-4 py-2.5">
+            <div className="flex-none border-t border-tn-border-soft px-4 py-2.5">
               <div className="flex items-center gap-2 rounded-lg bg-tn-page px-3 py-2">
                 <span className="text-tn-muted-5">
                   <SearchIcon />
@@ -270,7 +257,7 @@ export function StaffFilterPopover({
               </div>
             </div>
 
-            <div className="max-h-64 overflow-y-auto border-t border-tn-border-soft py-1.5">
+            <div className="min-h-0 flex-1 overflow-y-auto border-t border-tn-border-soft py-1.5">
               {filteredStaff.map((member) => (
                 <button
                   key={member.id}

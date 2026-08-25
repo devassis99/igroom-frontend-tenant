@@ -9,7 +9,7 @@ import {
   StaffStack,
   UtilisationCell,
 } from "@/components/settings/LocationRowMetrics";
-import { useSettingsChrome } from "@/pages/settings/SettingsLayout";
+import { useAppChrome } from "@/components/layout/AppShell";
 import { useAuthStore } from "@/auth/auth-store";
 import { usePermissions } from "@/auth/use-permissions";
 import { listLocations, type AccountLocation } from "@/lib/locations-api";
@@ -52,10 +52,10 @@ function statusColour(loc: AccountLocation): string {
  * pane answers "what is going on at this one", and neither is a good way
  * to ask the other question.
  */
-export function LocationsSettingsPage() {
+export function LocationsPage() {
   const accessToken = useAuthStore((s) => s.accessToken);
   const { has: hasPermission } = usePermissions();
-  const { setNavCollapsed } = useSettingsChrome();
+  const { setNavCollapsed } = useAppChrome();
 
   const [qrLocation, setQrLocation] = useState<AccountLocation | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -129,7 +129,7 @@ export function LocationsSettingsPage() {
         <button
           type="button"
           onClick={backToTable}
-          className="w-fit cursor-pointer border-none bg-transparent p-0 font-sans text-xs font-semibold text-tn-muted-5 hover:text-tn-ink"
+          className="w-fit cursor-pointer border-none bg-transparent p-0 font-sans text-xs font-semibold text-tn-muted-5 transition-colors duration-150 hover:text-tn-ink"
         >
           &larr; All locations
         </button>
@@ -154,7 +154,7 @@ export function LocationsSettingsPage() {
                     type="button"
                     onClick={() => setSelectedId(loc.id)}
                     aria-current={isSelected ? "true" : undefined}
-                    className={`flex cursor-pointer flex-col gap-1 rounded-xl border px-3 py-2.5 text-left ${
+                    className={`flex cursor-pointer flex-col gap-1 rounded-xl border px-3 py-2.5 text-left transition-colors duration-150 ${
                       isSelected
                         ? "border-tn-border bg-tn-page"
                         : "border-transparent bg-transparent hover:bg-tn-page"
@@ -215,7 +215,15 @@ export function LocationsSettingsPage() {
             </div>
           </aside>
 
-          <LocationDetailPanel location={selected} canManage={canManageLocations} />
+          {/* Keyed by id so picking a different shop remounts the pane:
+              the content animates in rather than mutating field by field,
+              and the tab resets to Details instead of leaving you on, say,
+              Payouts for a location you just opened. */}
+          <LocationDetailPanel
+            key={selected.id}
+            location={selected}
+            canManage={canManageLocations}
+          />
         </div>
 
         <QrCodeModal location={qrLocation} onClose={() => setQrLocation(null)} />
@@ -427,4 +435,4 @@ export function LocationsSettingsPage() {
   );
 }
 
-export default LocationsSettingsPage;
+export default LocationsPage;

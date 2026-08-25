@@ -1,12 +1,6 @@
-import {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type ChangeEvent,
-  type RefObject,
-} from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ChangeEvent } from "react";
 import { createPortal } from "react-dom";
+import { useAnchoredPanel } from "@/components/ui/use-anchored-panel";
 
 interface PhoneInputProps {
   /** Combined "+<dial code> <national number as typed>" string (e.g. "+1 5555550182"), or "" for empty. Same plain-string shape every phone field already sends to the backend — no API change, just a richer way to produce that string. */
@@ -99,8 +93,6 @@ const COUNTRIES_BY_DIAL_CODE_DESC = [...COUNTRIES].sort((a, b) => {
   if (b.iso2 === DEFAULT_COUNTRY.iso2) return 1;
   return 0;
 });
-
-const GAP = 6;
 
 function flagEmoji(iso2: string): string {
   return String.fromCodePoint(
@@ -354,21 +346,6 @@ export function isPhoneValid(value: string): boolean {
   return count >= country.digits[0] && count <= country.digits[1];
 }
 
-function useAnchoredPosition(open: boolean, anchorRef: RefObject<HTMLElement | null>) {
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
-
-  useLayoutEffect(() => {
-    if (!open || !anchorRef.current) {
-      setPosition(null);
-      return;
-    }
-    const rect = anchorRef.current.getBoundingClientRect();
-    setPosition({ top: rect.bottom + GAP, left: rect.left });
-  }, [open, anchorRef]);
-
-  return position;
-}
-
 function ChevronIcon({ open }: { open: boolean }) {
   return (
     <svg
@@ -436,7 +413,7 @@ export function PhoneInput({
   const anchorRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const position = useAnchoredPosition(open, anchorRef);
+  const position = useAnchoredPanel(open, anchorRef, { width: 280, minHeight: 260 });
 
   useEffect(() => {
     if (value === lastEmitted.current) return;
@@ -591,15 +568,17 @@ export function PhoneInput({
           <div
             ref={panelRef}
             aria-label="Country code"
-            className="fixed z-50 overflow-hidden rounded-2xl border border-tn-border bg-tn-surface"
+            className="fixed z-50 flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface"
             style={{
               top: position.top,
+              bottom: position.bottom,
               left: position.left,
-              width: 280,
+              width: position.width,
+              maxHeight: position.maxHeight,
               boxShadow: "0 20px 45px -15px rgba(20,15,5,0.35)",
             }}
           >
-            <div className="border-b border-tn-border-soft px-4 py-2.5">
+            <div className="flex-none border-b border-tn-border-soft px-4 py-2.5">
               <div className="flex items-center gap-2 rounded-lg bg-tn-page px-3 py-2">
                 <input
                   ref={searchInputRef}
@@ -612,7 +591,7 @@ export function PhoneInput({
               </div>
             </div>
 
-            <div className="max-h-64 overflow-y-auto py-1.5">
+            <div className="min-h-0 flex-1 overflow-y-auto py-1.5">
               {filteredCountries.map((c) => (
                 <button
                   key={c.iso2}

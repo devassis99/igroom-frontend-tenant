@@ -143,36 +143,6 @@ export function reverseGeocodeLocation(
 
 // --- The location detail pane's tabs ---------------------------------------
 
-export interface LocationHoursDay {
-  /** 0 = Sunday .. 6 = Saturday, matching Date#getDay(). */
-  dayOfWeek: number;
-  isClosed: boolean;
-  /** "HH:MM", null when closed. */
-  openTime: string | null;
-  closeTime: string | null;
-}
-
-/** Always seven days, Sunday first — a missing row server-side means closed, filled in for you. */
-export function listLocationHours(
-  accessToken: string,
-  locationId: string,
-): Promise<{ days: LocationHoursDay[] }> {
-  return request(`/locations/${locationId}/hours`, { headers: authHeaders(accessToken) });
-}
-
-/** Whole-week replace: the editor saves all seven days together, so a partial write would leave a shop half-open. */
-export function setLocationHours(
-  accessToken: string,
-  locationId: string,
-  days: LocationHoursDay[],
-): Promise<{ days: LocationHoursDay[] }> {
-  return request(`/locations/${locationId}/hours`, {
-    method: "PUT",
-    body: { days },
-    headers: authHeaders(accessToken),
-  });
-}
-
 export interface LocationStaffMember {
   id: string;
   name: string;

@@ -65,7 +65,7 @@ export function AnalyticsPage() {
       <div className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between">
           <p className="m-0 font-sans text-base font-semibold text-tn-ink">By location</p>
-          <Link to="/settings/locations" className="font-sans text-[13px] font-medium text-tn-gold">
+          <Link to="/locations" className="font-sans text-[13px] font-medium text-tn-gold">
             View locations
           </Link>
         </div>

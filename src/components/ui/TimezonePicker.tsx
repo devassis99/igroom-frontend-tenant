@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useAnchoredPanel } from "@/components/ui/use-anchored-panel";
 
 interface TimezonePickerProps {
   value: string;
@@ -7,10 +8,18 @@ interface TimezonePickerProps {
   label?: string;
   /** What the button reads when `value` is empty — for the optional timezone fields, where "not set" is a real answer. */
   placeholder?: string;
+  /**
+   * Extra classes for the trigger button. The default is the compact
+   * chip that sits in the availability editor's header; a caller putting
+   * this in a form row passes the form's own sizing here. Tailwind
+   * resolves same-specificity conflicts by stylesheet order rather than
+   * by position in this string, so an override of a class the base
+   * already sets (padding, radius, text size) needs `!`.
+   */
+  className?: string;
 }
 
 const PANEL_WIDTH = 300;
-const GAP = 6;
 const MAX_VISIBLE = 60;
 
 // Intl.supportedValuesOf("timeZone") returns the full IANA tz database
@@ -133,21 +142,6 @@ function CheckIcon() {
   );
 }
 
-function useAnchoredPosition(open: boolean, anchorRef: RefObject<HTMLElement | null>) {
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
-
-  useLayoutEffect(() => {
-    if (!open || !anchorRef.current) {
-      setPosition(null);
-      return;
-    }
-    const rect = anchorRef.current.getBoundingClientRect();
-    setPosition({ top: rect.bottom + GAP, left: rect.left });
-  }, [open, anchorRef]);
-
-  return position;
-}
-
 /**
  * The reference Working Hours page's editable "Timezone" field — a
  * searchable dropdown over the full IANA tz database, each row showing
@@ -158,22 +152,24 @@ function useAnchoredPosition(open: boolean, anchorRef: RefObject<HTMLElement | n
  * falling back to the location's own timezone, then the browser's, but
  * once the user picks one here it's an explicit override either way.
  *
- * Portaled to document.body and positioned from the trigger's own
- * getBoundingClientRect(), same reasoning as LocationFilterPopover.tsx /
- * StaffFilterPopover.tsx.
+ * Portaled to document.body and positioned by useAnchoredPanel, which
+ * flips the panel above the field and caps its height when there isn't
+ * room below — this field sits near the bottom of the Locations detail
+ * form, where a plain drop-down ran straight off the viewport.
  */
 export function TimezonePicker({
   value,
   onChange,
   label = "Timezone",
   placeholder = "Not set",
+  className = "",
 }: TimezonePickerProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const anchorRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const position = useAnchoredPosition(open, anchorRef);
+  const position = useAnchoredPanel(open, anchorRef, { width: PANEL_WIDTH, minHeight: 280 });
 
   // Fresh search box every time the popover opens, rather than showing
   // whatever was left over from the last time it was open. Focused
@@ -242,7 +238,7 @@ export function TimezonePicker({
         onClick={() => setOpen((v) => !v)}
         className={`flex cursor-pointer items-center gap-2 rounded-lg border bg-tn-surface px-3 py-1.5 font-sans text-xs font-semibold text-tn-ink-soft hover:bg-tn-page ${
           open ? "border-tn-gold" : "border-tn-input-border"
-        }`}
+        } ${className}`}
       >
         <span className="text-tn-muted-5">
           <GlobeIcon />
@@ -261,19 +257,21 @@ export function TimezonePicker({
           <div
             ref={panelRef}
             aria-label={label}
-            className="fixed z-50 overflow-hidden rounded-2xl border border-tn-border bg-tn-surface"
+            className="fixed z-50 flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface"
             style={{
               top: position.top,
+              bottom: position.bottom,
               left: position.left,
-              width: PANEL_WIDTH,
+              width: position.width,
+              maxHeight: position.maxHeight,
               boxShadow: "0 20px 45px -15px rgba(20,15,5,0.35)",
             }}
           >
-            <div className="px-4 py-3">
+            <div className="flex-none px-4 py-3">
               <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">{label}</p>
             </div>
 
-            <div className="border-t border-tn-border-soft px-4 py-2.5">
+            <div className="flex-none border-t border-tn-border-soft px-4 py-2.5">
               <div className="flex items-center gap-2 rounded-lg bg-tn-page px-3 py-2">
                 <span className="text-tn-muted-5">
                   <SearchIcon />
@@ -289,7 +287,7 @@ export function TimezonePicker({
               </div>
             </div>
 
-            <div className="max-h-72 overflow-y-auto border-t border-tn-border-soft py-1.5">
+            <div className="min-h-0 flex-1 overflow-y-auto border-t border-tn-border-soft py-1.5">
               {filteredZones.shown.map((zone) => (
                 <button
                   key={zone}

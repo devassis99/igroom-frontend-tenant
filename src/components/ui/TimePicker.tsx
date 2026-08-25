@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useAnchoredPanel } from "@/components/ui/use-anchored-panel";
 
 interface TimePickerProps {
   /** "HH:mm" (24-hour), or "" for no time picked yet. */
@@ -9,7 +10,14 @@ interface TimePickerProps {
   className?: string;
 }
 
-const GAP = 6;
+/**
+ * Floor for the panel width — it otherwise matches the trigger it hangs
+ * off, via useAnchoredPanel's "anchor" width. The width used to be a
+ * hardcoded 152px, wider than the compact 132px fields on the availability
+ * grid, which left a strip of empty panel past each field's right edge.
+ * This floor only catches a trigger too narrow to fit a formatted time.
+ */
+const MIN_PANEL_WIDTH = 120;
 // Close duration must match the tn-popover-out keyframe's own duration
 // (see index.css) — this is what keeps the panel mounted long enough for
 // that animation to actually finish playing before it's removed.
@@ -61,22 +69,6 @@ function ClockIcon() {
   );
 }
 
-/** `active` should stay true through a closing animation (not just while genuinely open) — see the `mounted` state below — so the panel doesn't lose its anchored position mid-animation. */
-function useAnchoredPosition(active: boolean, anchorRef: RefObject<HTMLElement | null>) {
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
-
-  useLayoutEffect(() => {
-    if (!active || !anchorRef.current) {
-      setPosition(null);
-      return;
-    }
-    const rect = anchorRef.current.getBoundingClientRect();
-    setPosition({ top: rect.bottom + GAP, left: rect.left });
-  }, [active, anchorRef]);
-
-  return position;
-}
-
 /**
  * Replaces the native `<input type="time">` (whose scroll-wheel popup is
  * the OS/browser's own blue-accented UI, not this app's) with an in-app
@@ -101,7 +93,11 @@ export function TimePicker({ value, onChange, label = "Time", className = "" }: 
   const anchorRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const position = useAnchoredPosition(mounted, anchorRef);
+  const position = useAnchoredPanel(mounted, anchorRef, {
+    width: "anchor",
+    minWidth: MIN_PANEL_WIDTH,
+    minHeight: 200,
+  });
 
   useEffect(() => {
     if (open) {
@@ -190,19 +186,21 @@ export function TimePicker({ value, onChange, label = "Time", className = "" }: 
           <div
             ref={panelRef}
             aria-label={label}
-            className={`fixed z-50 overflow-hidden rounded-2xl border border-tn-border bg-tn-surface ${closing ? "pointer-events-none" : ""}`}
+            className={`fixed z-50 flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface ${closing ? "pointer-events-none" : ""}`}
             style={{
               top: position.top,
+              bottom: position.bottom,
               left: position.left,
-              width: 152,
-              transformOrigin: "top left",
+              width: position.width,
+              maxHeight: position.maxHeight,
+              transformOrigin: position.placement === "above" ? "bottom left" : "top left",
               boxShadow: "0 20px 45px -15px rgba(20,15,5,0.35)",
               animation: closing
                 ? `tn-popover-out ${POPOVER_CLOSE_MS}ms ease-in forwards`
                 : `tn-popover-in ${POPOVER_OPEN_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`,
             }}
           >
-            <div ref={listRef} className="max-h-64 overflow-y-auto py-1.5">
+            <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto py-1.5">
               {TIME_OPTIONS.map((time) => {
                 const isSelected = value === time;
                 const [hour = 0, minute = 0] = time.split(":").map(Number);

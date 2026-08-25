@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useAnchoredPanel } from "@/components/ui/use-anchored-panel";
 import { Button } from "./Button";
 
 interface CopyTimesPopoverProps {
@@ -13,8 +14,6 @@ interface CopyTimesPopoverProps {
 }
 
 const PANEL_WIDTH = 232;
-const GAP = 6;
-const VIEWPORT_MARGIN = 8;
 
 /**
  * Anchored below the trigger, then pulled back inside the viewport. Unlike
@@ -22,25 +21,6 @@ const VIEWPORT_MARGIN = 8;
  * icon partway down a row that can sit close to the right-hand edge, so
  * left-aligning it unclamped would push the panel off screen.
  */
-function useAnchoredPosition(open: boolean, anchorRef: RefObject<HTMLElement | null>) {
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
-
-  useLayoutEffect(() => {
-    if (!open || !anchorRef.current) {
-      setPosition(null);
-      return;
-    }
-    const rect = anchorRef.current.getBoundingClientRect();
-    const maxLeft = window.innerWidth - PANEL_WIDTH - VIEWPORT_MARGIN;
-    setPosition({
-      top: rect.bottom + GAP,
-      left: Math.max(VIEWPORT_MARGIN, Math.min(rect.left, maxLeft)),
-    });
-  }, [open, anchorRef]);
-
-  return position;
-}
-
 function CopyIcon() {
   return (
     <svg
@@ -84,7 +64,7 @@ export function CopyTimesPopover({
   const [selected, setSelected] = useState<number[]>([]);
   const anchorRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const position = useAnchoredPosition(open, anchorRef);
+  const position = useAnchoredPanel(open, anchorRef, { width: PANEL_WIDTH, minHeight: 300 });
 
   useEffect(() => {
     if (!open) return;
@@ -160,8 +140,11 @@ export function CopyTimesPopover({
             className="fixed z-50 overflow-hidden rounded-2xl border border-tn-border bg-tn-surface"
             style={{
               top: position.top,
+              bottom: position.bottom,
               left: position.left,
-              width: PANEL_WIDTH,
+              width: position.width,
+              maxHeight: position.maxHeight,
+              overflowY: "auto",
               boxShadow: "0 20px 45px -15px rgba(20,15,5,0.35)",
             }}
           >

@@ -48,7 +48,7 @@ export function getLaunchChecklistSteps(): LaunchChecklistStep[] {
         "Confirm your shop's hours and locations so the booking calendar only ever offers real openings.",
       done: LOCATIONS.some((l) => l.status === "Active"),
       ctaLabel: "Go to Locations",
-      ctaTo: "/settings/locations",
+      ctaTo: "/locations",
     },
     {
       id: "payments",

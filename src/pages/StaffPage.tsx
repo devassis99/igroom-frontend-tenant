@@ -14,7 +14,7 @@ import { getStaffPerformance, type StaffPerformanceMember } from "@/lib/staff-ap
 const EMPTY_STAFF: StaffPerformanceMember[] = [];
 
 // No account-level subscription/seats endpoint exists yet — same
-// limitation LocationsSettingsPage's TOTAL_SEATS comment describes.
+// limitation LocationsPage's TOTAL_SEATS comment describes.
 // Revisit once a real GET for the account's active plan/seat usage
 // exists; usedSeats below (active staff count) is real, just the cap
 // isn't.

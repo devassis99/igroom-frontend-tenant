@@ -233,6 +233,70 @@ body {
 }
 
 /*
+ * The Locations detail pane's two content swaps: changing tab, and
+ * changing which shop you're looking at. Both replace a screenful in
+ * place with nothing tying the old state to the new one, which reads as a
+ * flicker rather than a move. A short fade-and-rise gives the eye
+ * something to follow.
+ *
+ * Applied as a class here rather than inline like the popovers above,
+ * because what replays these is a React `key` change remounting the
+ * element — there's no per-render value to interpolate, so there's
+ * nothing for an inline style to carry.
+ */
+@keyframes tn-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/*
+ * `backwards`, deliberately not `both`. A retained `transform` — even the
+ * identity translateY(0) a forwards fill would leave behind — makes the
+ * element a containing block for every `position: fixed` descendant, for
+ * good. CalendarPage's floating "now" button and the calendar's inline
+ * `fixed inset-0` modal backdrops are inside this wrapper and would
+ * anchor to it instead of the viewport. The end state here is the
+ * element's natural style anyway, so there is nothing to hold on to.
+ */
+.tn-content-in {
+  animation: tn-content-in 220ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/* The active tab's underline, drawn out from its left edge rather than appearing whole. */
+@keyframes tn-underline-in {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.tn-underline-in {
+  transform-origin: left center;
+  /* `backwards` for the same reason as .tn-content-in above. */
+  animation: tn-underline-in 220ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/*
+ * Motion here is decoration — it helps you follow a swap, it never
+ * carries information — so anyone who has asked their OS for less of it
+ * gets the end state directly.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .tn-content-in,
+  .tn-underline-in {
+    animation: none;
+  }
+}
+
+/*
  * Keep Leaflet's internal stacking inside its own box.
  *
  * leaflet.css assigns high z-indexes globally — .leaflet-pane is 400 and

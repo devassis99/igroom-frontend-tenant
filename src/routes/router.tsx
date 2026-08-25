@@ -95,6 +95,10 @@ export const router = createBrowserRouter([
             lazy: () => import("@/pages/ServicesPage").then((m) => ({ Component: m.default })),
           },
           {
+            path: "locations",
+            lazy: () => import("@/pages/LocationsPage").then((m) => ({ Component: m.default })),
+          },
+          {
             path: "staff",
             lazy: () => import("@/pages/StaffPage").then((m) => ({ Component: m.default })),
           },
@@ -133,13 +137,6 @@ export const router = createBrowserRouter([
                 path: "security",
                 lazy: () =>
                   import("@/pages/settings/SecuritySettingsPage").then((m) => ({
-                    Component: m.default,
-                  })),
-              },
-              {
-                path: "locations",
-                lazy: () =>
-                  import("@/pages/settings/LocationsSettingsPage").then((m) => ({
                     Component: m.default,
                   })),
               },

@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
-import { Field, formInputClass } from "@/components/ui/FormField";
+import { Field, formControlHeightClass, formInputClass } from "@/components/ui/FormField";
 import { PhoneInput, isPhoneValid } from "@/components/ui/PhoneInput";
 import { TimezonePicker } from "@/components/ui/TimezonePicker";
 import { LocationMapPicker } from "@/components/settings/LocationMapPicker";
 import { MapSearchField } from "@/components/settings/MapSearchField";
-import { LocationHoursTab } from "@/components/settings/location-tabs/LocationHoursTab";
+import { LocationAvailabilityTab } from "@/components/settings/location-tabs/LocationAvailabilityTab";
 import { LocationStaffTab } from "@/components/settings/location-tabs/LocationStaffTab";
 import { LocationServicesTab } from "@/components/settings/location-tabs/LocationServicesTab";
 import { LocationPayoutsTab } from "@/components/settings/location-tabs/LocationPayoutsTab";
@@ -22,7 +22,7 @@ import {
 
 const TABS = [
   { key: "details", label: "Details" },
-  { key: "hours", label: "Hours" },
+  { key: "availability", label: "Availability" },
   { key: "staff", label: "Staff" },
   { key: "services", label: "Services & pricing" },
   { key: "payouts", label: "Payouts" },
@@ -45,7 +45,7 @@ function money(cents: number): string {
  * The Locations mockup's frame 1b: one location's whole world on one
  * screen, instead of a modal that could only ever hold the fields.
  *
- * Hours, staff, the menu and the takings are all questions an owner asks
+ * Availability, staff, the menu and the takings are all questions an owner asks
  * *about a specific shop*, and answering them used to mean four different
  * pages with a location filter on each. This is why the ops table stays
  * alongside it: the table answers "how are all my shops doing", this
@@ -64,7 +64,7 @@ export function LocationDetailPanel({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-tn-border-soft pb-4">
+      <div className="tn-content-in flex flex-wrap items-start justify-between gap-3 border-b border-tn-border-soft pb-4">
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex items-center gap-2.5">
             <h2 className="m-0 font-serif text-2xl font-semibold text-tn-ink">{location.name}</h2>
@@ -96,19 +96,32 @@ export function LocationDetailPanel({
               type="button"
               onClick={() => setTab(option.key)}
               aria-current={isActive ? "page" : undefined}
-              className={`cursor-pointer border-none bg-transparent px-3 py-3 font-sans text-[13px] ${
+              className={`relative cursor-pointer border-none bg-transparent px-3 py-3 font-sans text-[13px] transition-colors duration-150 ${
                 isActive
-                  ? "border-b-2 border-tn-ink font-semibold text-tn-ink"
+                  ? "font-semibold text-tn-ink"
                   : "font-medium text-tn-muted-5 hover:text-tn-ink-soft"
               }`}
             >
               {option.label}
+              {/* Own element rather than a border on the button, so it can
+                  animate its width in from the left — a border-bottom can
+                  only fade. Keyed by tab so it replays on every switch. */}
+              {isActive && (
+                <span
+                  key={tab}
+                  aria-hidden
+                  className="tn-underline-in absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-tn-ink"
+                />
+              )}
             </button>
           );
         })}
       </div>
 
-      <div className="pt-5">
+      {/* Keyed by tab so each switch remounts this subtree and replays the
+          fade-and-rise. Switching location remounts the whole panel (see
+          LocationsPage's key on it), which replays it too. */}
+      <div key={tab} className="tn-content-in pt-5">
         {tab === "details" && (
           <DetailsTab
             location={location}
@@ -117,7 +130,7 @@ export function LocationDetailPanel({
             onSaved={() => void queryClient.invalidateQueries({ queryKey: ["locations"] })}
           />
         )}
-        {tab === "hours" && <LocationHoursTab location={location} canManage={canManage} />}
+        {tab === "availability" && <LocationAvailabilityTab location={location} />}
         {tab === "staff" && <LocationStaffTab location={location} />}
         {tab === "services" && <LocationServicesTab location={location} canManage={canManage} />}
         {tab === "payouts" && <LocationPayoutsTab location={location} />}
@@ -356,13 +369,19 @@ function DetailsTab({
                   value={timezone}
                   onChange={setTimezone}
                   placeholder="Not set — bookings read in UTC"
+                  // Sized to sit level with BOOKING STATUS beside it and
+                  // the NAME/ADDRESS inputs above — the default trigger is
+                  // the compact chip from the availability header.
+                  className={`w-full !justify-between !rounded-xl !px-3.5 !text-sm !font-normal ${formControlHeightClass}`}
                 />
               </Field>
             </div>
             <div className="min-w-[180px] flex-1">
               <Field label="BOOKING STATUS">
-                <div className="flex items-center justify-between gap-3 rounded-xl border border-tn-input-border px-3.5 py-2.5">
-                  <span className="font-sans text-[13px] text-tn-ink">
+                <div
+                  className={`flex items-center justify-between gap-3 rounded-xl border border-tn-input-border px-3.5 py-2.5 ${formControlHeightClass}`}
+                >
+                  <span className="font-sans text-sm text-tn-ink">
                     {active ? "Taking bookings" : "Not taking bookings"}
                   </span>
                   <button

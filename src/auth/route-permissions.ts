@@ -49,7 +49,7 @@ export const ROUTE_PERMISSIONS: GatedRoute[] = [
   { to: "/staff", permission: "staff.view" },
   { to: "/customers", permission: "customers.view" },
   { to: "/payments", permission: "billing.view" },
-  { to: "/settings/locations", permission: "locations.view" },
+  { to: "/locations", permission: "locations.view" },
   { to: "/settings/staff", permission: "staff.view" },
   { to: "/settings/billing", permission: "billing.view" },
 ];
