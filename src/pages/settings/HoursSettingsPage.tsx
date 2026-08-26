@@ -14,9 +14,9 @@ import { listLocations } from "@/lib/locations-api";
  * neither backed by a real API) with a real per-staff-member editor.
  *
  * This page is now only the *picker*: who am I looking at (a location
- * filter and a member filter, both manager-only), and what timezone
- * should their schedule fall back to. The schedule itself — weekly grid,
- * copy-times, date overrides, save — lives in StaffAvailabilityEditor,
+ * filter and a member filter, both manager-only). The schedule itself —
+ * weekly grid, copy-times, date overrides, save — lives in
+ * StaffAvailabilityEditor,
  * shared with a location's Availability tab so the same editor answers
  * "this person's hours" wherever you reach it from.
  *
@@ -50,13 +50,12 @@ export function HoursSettingsPage() {
     queryFn: () => listStaff(accessToken ?? ""),
     enabled: !!accessToken && canManage,
   });
-  // Unlike staffQuery above, this one isn't manager-gated: a self-viewing
-  // Barber still needs it to resolve their own location's timezone for
-  // the editor's fallback chain.
+  // Manager-gated for the same reason as staffQuery above: the location
+  // filter it backs only renders for a manager.
   const locationsQuery = useQuery({
     queryKey: ["locations"],
     queryFn: () => listLocations(accessToken ?? ""),
-    enabled: !!accessToken,
+    enabled: !!accessToken && canManage,
   });
 
   const staffOptions = useMemo(() => {
@@ -77,31 +76,6 @@ export function HoursSettingsPage() {
   }, [staffQuery.data, selectedLocationId]);
 
   const selectedStaffMember = staffOptions.find((s) => s.id === selectedStaffUserId);
-  /**
-   * Which shop's timezone the editor should fall back to.
-   *
-   * A member can work at several now, so there is no single "their
-   * location" any more. When the location filter names one, that's the
-   * answer — you're looking at this person *at that shop*. Otherwise take
-   * the first of theirs, which is stable (the API orders by name) and only
-   * ever a fallback: a schedule that has been saved carries its own
-   * timezone, and this is consulted only when it hasn't.
-   *
-   * staffOptions (and so selectedStaffMember) is only populated for a
-   * manager — staffQuery above is manager-gated — so a self-viewing
-   * non-manager falls back to their own first location from
-   * GET /accounts/me.
-   */
-  const memberLocationIds = selectedStaffMember
-    ? selectedStaffMember.locations.map((loc) => loc.id)
-    : (staffUser?.locationIds ?? []);
-  const viewingLocationId =
-    selectedLocationId !== "all" && memberLocationIds.includes(selectedLocationId)
-      ? selectedLocationId
-      : (memberLocationIds[0] ?? null);
-  const locationTimezone = viewingLocationId
-    ? (locationsQuery.data?.locations.find((l) => l.id === viewingLocationId)?.timezone ?? null)
-    : null;
 
   // Switching the location filter can drop the currently-selected staff
   // member out of the list (they work at a different location) — fall
@@ -157,7 +131,6 @@ export function HoursSettingsPage() {
         // survive a switch and land on the wrong person's week.
         key={selectedStaffUserId}
         staffUserId={selectedStaffUserId}
-        locationTimezone={locationTimezone}
         heading={
           viewingSelf
             ? "Set your availability"

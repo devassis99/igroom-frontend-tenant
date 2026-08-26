@@ -6,7 +6,6 @@ import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { AddOverrideModal } from "@/components/availability/AddOverrideModal";
 import { SuccessToast } from "@/components/ui/Toast";
 import { CopyTimesPopover } from "@/components/ui/CopyTimesPopover";
-import { TimezonePicker } from "@/components/ui/TimezonePicker";
 import { TimePicker } from "@/components/ui/TimePicker";
 import {
   getStaffAvailability,
@@ -100,21 +99,15 @@ function formatOverrideDate(iso: string): string {
 export interface StaffAvailabilityEditorProps {
   /** Whose schedule this is. The caller decides who that is (self, a filter pick, a location's roster). */
   staffUserId: string;
-  /**
-   * Second link in the timezone fallback chain, after the schedule's own
-   * saved zone: the timezone of the location this member is being viewed
-   * under. Null when the caller can't resolve one — the browser's zone is
-   * then the last resort.
-   */
-  locationTimezone?: string | null;
   /** Heading above the weekly grid. "Set your availability" reads wrong when an owner is editing somebody else's week. */
   heading?: string;
 }
 
 /**
  * One staff member's working hours: the weekly grid (a day on/off toggle
- * and one or more time ranges per day, with copy-to-other-days), the
- * schedule's timezone, and the date-specific overrides beside it.
+ * and one or more time ranges per day, with copy-to-other-days) and the
+ * date-specific overrides beside it. Times are wall-clock in the shop's
+ * own timezone — a schedule carries no zone of its own.
  *
  * Extracted from HoursSettingsPage so the same editor backs both places
  * a schedule can be reached from — Settings › Availability (pick anyone
@@ -130,17 +123,12 @@ export interface StaffAvailabilityEditorProps {
  */
 export function StaffAvailabilityEditor({
   staffUserId,
-  locationTimezone = null,
   heading = "Set your availability",
 }: StaffAvailabilityEditorProps) {
   const accessToken = useAuthStore((s) => s.accessToken);
   const queryClient = useQueryClient();
 
   const [weekly, setWeekly] = useState<WeeklyState>(emptyWeek());
-  // null until the seeding effect below runs at least once — rendered as
-  // "Loading…" (same as the rest of the page) rather than guessing at a
-  // default before we actually know the location/browser fallback.
-  const [timezone, setTimezone] = useState<string | null>(null);
   const [overrideModalOpen, setOverrideModalOpen] = useState(false);
   const [overrideToDelete, setOverrideToDelete] = useState<AvailabilityOverride | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -158,22 +146,6 @@ export function StaffAvailabilityEditor({
       setWeekly(toWeeklyState(availabilityQuery.data.weeklySchedule));
     }
   }, [availabilityQuery.data]);
-
-  // Fallback chain: this schedule's own saved timezone (staff_availability_settings)
-  // → the viewed staff member's location timezone → the browser's local
-  // zone, so the picker never comes up pointed at nothing. Re-seeds
-  // (discarding any unsaved pick) whenever the fetched schedule or the
-  // resolved location timezone changes — same "switching who you're
-  // viewing resets the form" behavior the `weekly` effect above already
-  // has.
-  useEffect(() => {
-    if (!availabilityQuery.data) return;
-    setTimezone(
-      availabilityQuery.data.timezone ??
-        locationTimezone ??
-        Intl.DateTimeFormat().resolvedOptions().timeZone,
-    );
-  }, [availabilityQuery.data, locationTimezone]);
 
   // Per-day "does range i conflict with an earlier range that same day"
   // flags — drives the inline "Overlapping or consecutive slots aren't
@@ -208,7 +180,7 @@ export function StaffAvailabilityEditor({
         dayOfWeek,
         ranges: weekly[dayOfWeek] ?? [],
       }));
-      return setStaffAvailability(accessToken ?? "", staffUserId, days, timezone);
+      return setStaffAvailability(accessToken ?? "", staffUserId, days);
     },
     onSuccess: () => {
       invalidateAvailabilityViews();
@@ -317,19 +289,8 @@ export function StaffAvailabilityEditor({
     <div className="tn-content-in flex flex-col gap-6">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
         <section className="flex flex-col gap-1 rounded-2xl border border-tn-border p-5">
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-3">
             <p className="m-0 font-sans text-sm font-semibold text-tn-ink">{heading}</p>
-            {timezone && (
-              <TimezonePicker
-                value={timezone}
-                onChange={setTimezone}
-                label={
-                  locationTimezone
-                    ? "Timezone"
-                    : "Timezone (no location timezone set — defaulted to your browser's)"
-                }
-              />
-            )}
           </div>
 
           {DISPLAY_ORDER.map((dayOfWeek, i) => {

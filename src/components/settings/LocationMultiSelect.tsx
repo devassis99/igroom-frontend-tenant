@@ -18,12 +18,20 @@ export function LocationMultiSelect({
   onChange,
   disabled = false,
   loading = false,
+  unavailableReason,
 }: {
   locations: AccountLocation[];
   value: string[];
   onChange: (locationIds: string[]) => void;
   disabled?: boolean;
   loading?: boolean;
+  /**
+   * Why a particular location can't be ticked right now, or undefined if
+   * it can. Returning the reason rather than a boolean means the row can
+   * say it in a tooltip instead of just going grey — a control that
+   * refuses without explaining reads as broken.
+   */
+  unavailableReason?: (location: AccountLocation) => string | undefined;
 }) {
   function toggle(locationId: string) {
     onChange(
@@ -46,9 +54,14 @@ export function LocationMultiSelect({
     <div className="flex max-h-52 flex-col overflow-y-auto rounded-xl border border-tn-input-border">
       {locations.map((loc, i) => {
         const checked = value.includes(loc.id);
+        // A location already ticked is never blocked — otherwise the only
+        // way to undo a selection would be to satisfy the rule it broke.
+        const reason = checked ? undefined : unavailableReason?.(loc);
+        const rowDisabled = disabled || reason !== undefined;
         return (
           <label
             key={loc.id}
+            title={reason}
             // The visible text sits two spans deep (name + address), past
             // the depth jsx-a11y/label-has-associated-control walks, so
             // name the control explicitly rather than restructuring the
@@ -56,12 +69,12 @@ export function LocationMultiSelect({
             aria-label={loc.name}
             className={`flex cursor-pointer items-center gap-3 px-3.5 py-2.5 transition-colors duration-150 hover:bg-tn-page ${
               i < locations.length - 1 ? "border-b border-tn-border-soft" : ""
-            } ${disabled ? "cursor-not-allowed opacity-60" : ""}`}
+            } ${rowDisabled ? "cursor-not-allowed opacity-55" : ""}`}
           >
             <input
               type="checkbox"
               checked={checked}
-              disabled={disabled}
+              disabled={rowDisabled}
               onChange={() => toggle(loc.id)}
               className="size-4 shrink-0 accent-tn-gold"
             />

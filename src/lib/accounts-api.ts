@@ -292,3 +292,63 @@ export function revokeOtherSessions(
     body: { currentRefreshToken },
   });
 }
+
+export interface RedeemInviteOutcome extends TokenPair {
+  /**
+   * True when this member has neither a password nor a linked Google
+   * account. The invite link they just used is single-use and now burnt,
+   * so onboarding must not let them leave without setting one of the two
+   * — there would be no way back in.
+   */
+  needsSignInMethod: boolean;
+}
+
+/**
+ * Exchanges an emailed staff-invite token for a real session.
+ *
+ * No bearer token: the emailed token *is* the credential, same as a
+ * password on /login. It is single-use, so call this exactly once — see
+ * InvitePage's StrictMode guard.
+ */
+export function redeemInvite(token: string): Promise<RedeemInviteOutcome> {
+  return request<RedeemInviteOutcome>("/accounts/invite/redeem", {
+    method: "POST",
+    body: { token },
+  });
+}
+
+/**
+ * Sets a password for a caller who has never had one. Rejected once a
+ * password exists — changing an existing one still goes through the
+ * emailed-code flow (requestPasswordResetCode / confirmSetPassword).
+ */
+export function setInitialPassword(accessToken: string, newPassword: string): Promise<void> {
+  return request("/accounts/me/password/initial", {
+    method: "POST",
+    body: { newPassword },
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+/** The fields that describe a person to customers. Null clears; omitting leaves untouched. */
+export interface OwnProfileInput {
+  name?: string;
+  displayTitle?: string | null;
+  bio?: string | null;
+  specialties?: string[] | null;
+  yearsExperience?: number | null;
+  avatarUrl?: string | null;
+}
+
+/**
+ * The caller editing their own profile — open to any signed-in staff
+ * member, unlike PATCH /staff/:id which needs staff.manage and can also
+ * change role, locations and commission.
+ */
+export function updateOwnProfile(accessToken: string, patch: OwnProfileInput): Promise<MeResponse> {
+  return request<MeResponse>("/accounts/me/profile", {
+    method: "PATCH",
+    body: patch,
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}

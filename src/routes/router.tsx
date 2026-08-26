@@ -63,6 +63,26 @@ export const router = createBrowserRouter([
     path: "/signup/receipt",
     lazy: () => import("@/pages/ReceiptPage").then((m) => ({ Component: m.default })),
   },
+  // Where an invited staff member lands from their email. Outside
+  // ProtectedRoute by construction — there is no session until the token
+  // in the URL fragment is redeemed, which is what this page does.
+  {
+    path: "/invite",
+    lazy: () => import("@/pages/InvitePage").then((m) => ({ Component: m.default })),
+  },
+  // Their setup wizard. It runs with a real session but outside AppShell:
+  // dropping someone into the full nav before they have hours — or, worse,
+  // before they have any way to sign in again — buries the two things they
+  // actually need to do.
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: "/welcome",
+        lazy: () => import("@/pages/StaffWelcomePage").then((m) => ({ Component: m.default })),
+      },
+    ],
+  },
   {
     element: <ProtectedRoute />,
     children: [

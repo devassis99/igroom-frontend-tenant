@@ -100,9 +100,13 @@ export interface InviteStaffInput {
   name: string;
   email: string;
   roleId: string;
-  /** Every shop this member works at. At least one — a member attached to nothing can't be booked anywhere. */
-  locationIds: string[];
-  /** The wizard's Services step, per location. Omit to assign nothing yet. */
+  /**
+   * The one shop this member starts at. Additional locations are added
+   * later from Edit Member — hiring happens somewhere, and working a
+   * second site is a separate decision.
+   */
+  locationId: string;
+  /** The wizard's Services step. Keyed by location, though only the invite location can appear. */
   serviceIdsByLocation?: ServiceIdsByLocation;
 }
 
@@ -116,14 +120,18 @@ export interface InviteStaffInput {
 export function inviteStaff(
   accessToken: string,
   input: InviteStaffInput,
-): Promise<{ staff: StaffMember }> {
+): Promise<{ staff: StaffMember; invite: StaffInviteResult }> {
   return request("/staff", { method: "POST", body: input, headers: authHeaders(accessToken) });
 }
 
 export interface StaffUpdateInput {
   name?: string;
   roleId?: string;
-  /** Complete replacement set of the shops this member works at. Omitting leaves them alone. */
+  /**
+   * Complete replacement set of the shops this member works at. Omitting
+   * leaves them alone. Every id must book in the same timezone — a member
+   * has one weekly schedule, and it can only describe one working day.
+   */
   locationIds?: string[];
   /** Percent, 0-100, or null to clear a previously-set rate. */
   commissionRate?: number | null;
@@ -166,6 +174,34 @@ export function setStaffActive(
   return request(`/staff/${staffId}/active`, {
     method: "PATCH",
     body: { isActive },
+    headers: authHeaders(accessToken),
+  });
+}
+
+export interface StaffInviteResult {
+  /** True only when a real provider actually accepted it. False for both a failed send and the dev console fallback. */
+  emailed: boolean;
+  /**
+   * Which of the three things happened. "logged" means no email provider
+   * is configured, so the message was printed to the server console
+   * instead — the invite is valid, it just hasn't left the machine.
+   */
+  delivery: "sent" | "logged" | "failed";
+  /** ISO timestamp — 7 days out. */
+  expiresAt: string;
+}
+
+/**
+ * Re-mints and re-sends the setup link for a member who hasn't claimed
+ * their account yet. Supersedes any outstanding invite for them, so an
+ * older forwarded email stops working immediately.
+ */
+export function resendStaffInvite(
+  accessToken: string,
+  staffId: string,
+): Promise<{ invite: StaffInviteResult }> {
+  return request(`/staff/${staffId}/invite/resend`, {
+    method: "POST",
     headers: authHeaders(accessToken),
   });
 }

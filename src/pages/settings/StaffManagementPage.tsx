@@ -6,12 +6,13 @@ import { StatusPill } from "@/components/ui/StatusPill";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { Modal } from "@/components/ui/Modal";
 import { Field, formInputClass } from "@/components/ui/FormField";
+import { Toast, type ToastTone } from "@/components/ui/Toast";
 import { SeatUpgradeModal } from "@/components/settings/SeatUpgradeModal";
 import { AddMemberWizard } from "@/components/settings/AddMemberWizard";
 import { EditMemberModal } from "@/components/settings/EditMemberModal";
 import { useAuthStore } from "@/auth/auth-store";
 import { usePermissions } from "@/auth/use-permissions";
-import { listStaff, setStaffActive, type StaffMember } from "@/lib/staff-api";
+import { listStaff, resendStaffInvite, setStaffActive, type StaffMember } from "@/lib/staff-api";
 import {
   listRoles,
   listPermissionsCatalog,
@@ -288,6 +289,42 @@ export function StaffManagementPage() {
 
   const canManageStaff = hasPermission("staff.manage");
 
+  /**
+   * "Resend invite" on a row nobody has claimed yet.
+   *
+   * Worth having as its own action rather than telling an owner to
+   * delete and re-invite: the member's role, locations and service
+   * assignments are already set up on that row, and re-creating them is
+   * both work and a chance to get it wrong. Resending supersedes the old
+   * link server-side, so a forwarded email stops working.
+   */
+  const [resentFor, setResentFor] = useState<string | null>(null);
+  const [inviteToast, setInviteToast] = useState<{ message: string; tone: ToastTone } | null>(null);
+  const resendInviteMutation = useMutation({
+    mutationFn: (staffId: string) => resendStaffInvite(accessToken ?? "", staffId),
+    onSuccess: (result, staffId) => {
+      // "Sent" only for a send that actually happened. The other two
+      // outcomes both re-minted a valid link but delivered nothing, and
+      // they need different fixes — so they get different words.
+      setResentFor(result.invite.delivery === "sent" ? staffId : null);
+      if (result.invite.delivery === "sent") {
+        setInviteToast({ message: "Invite sent", tone: "success" });
+      } else if (result.invite.delivery === "logged") {
+        setInviteToast({
+          message: "No email provider set up — the invite link is in the server console",
+          tone: "notice",
+        });
+      } else {
+        setInviteToast({
+          message: "Couldn't send that email — the link is valid, see the server log",
+          tone: "danger",
+        });
+      }
+    },
+    onError: () =>
+      setInviteToast({ message: "Couldn't resend the invite — try again", tone: "danger" }),
+  });
+
   const toggleActiveMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       setStaffActive(accessToken ?? "", id, isActive),
@@ -475,6 +512,22 @@ export function StaffManagementPage() {
                       >
                         ✎
                       </button>
+                      {!member.claimed && member.isActive && (
+                        <button
+                          type="button"
+                          title={
+                            canManageStaff
+                              ? "Email them a fresh setup link"
+                              : "You don't have permission to do this"
+                          }
+                          aria-label={`Resend the invite to ${member.name}`}
+                          onClick={() => resendInviteMutation.mutate(member.id)}
+                          disabled={!canManageStaff || resendInviteMutation.isPending}
+                          className="cursor-pointer border-none bg-transparent p-0 font-sans text-[11px] font-semibold text-tn-gold disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {resentFor === member.id ? "Sent" : "Resend"}
+                        </button>
+                      )}
                       <button
                         type="button"
                         title={
@@ -640,6 +693,17 @@ export function StaffManagementPage() {
         onClose={() => setSeatModalOpen(false)}
         onUpgrade={handleUpgrade}
       />
+      {/* Anything that isn't a plain success stays until dismissed — these
+          two say where to look for the link, which is no use if it
+          disappears while you're reading it. */}
+      {inviteToast && (
+        <Toast
+          message={inviteToast.message}
+          tone={inviteToast.tone}
+          duration={inviteToast.tone === "success" ? 3000 : 0}
+          onDismiss={() => setInviteToast(null)}
+        />
+      )}
       <AddMemberWizard open={wizardOpen} onClose={() => setWizardOpen(false)} />
       <EditMemberModal member={editingMember} onClose={() => setEditingMember(null)} />
       <ConfirmModal

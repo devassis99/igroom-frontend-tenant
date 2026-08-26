@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { WizardTabs } from "@/components/ui/WizardTabs";
 import { Field, formInputClass, formSelectClass } from "@/components/ui/FormField";
 import { useAuthStore } from "@/auth/auth-store";
-import { listLocations } from "@/lib/locations-api";
+import { listLocations, type AccountLocation } from "@/lib/locations-api";
 import { listRoles } from "@/lib/roles-api";
 import { updateStaff, type ServiceIdsByLocation, type StaffMember } from "@/lib/staff-api";
 import { LocationMultiSelect } from "@/components/settings/LocationMultiSelect";
@@ -152,6 +152,31 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
   const removedLocations =
     member === null ? [] : member.locations.filter((loc) => !locationIds.includes(loc.id));
 
+  /**
+   * The timezone every shop this member works at has to agree on.
+   *
+   * A member holds one weekly schedule written in one timezone, so two
+   * shops in different zones would make "Monday 09:00" two different
+   * instants and the same saved hours would be right for one shop and
+   * wrong for the other. The backend refuses it outright
+   * (assertLocationsShareTimezone); showing it here means the owner sees
+   * *why* a shop can't be ticked instead of meeting the rule as a failed
+   * save.
+   *
+   * Compared as resolved zones, matching the server: a location with no
+   * timezone set books in UTC, so unset and explicitly-UTC agree.
+   */
+  const resolvedZone = (loc: AccountLocation) => loc.timezone?.trim() || "UTC";
+  const currentZone = locations.find((loc) => locationIds.includes(loc.id))
+    ? resolvedZone(locations.find((loc) => locationIds.includes(loc.id))!)
+    : null;
+
+  function locationUnavailableReason(loc: AccountLocation): string | undefined {
+    if (currentZone === null) return undefined;
+    if (resolvedZone(loc) === currentZone) return undefined;
+    return `Runs on ${resolvedZone(loc)} — a member's shops must share one timezone`;
+  }
+
   function handleLocationsChange(nextLocationIds: string[]) {
     setLocationIds(nextLocationIds);
     // Assignments name the shop they apply at, so unticking one drops just
@@ -239,8 +264,17 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
                   value={locationIds}
                   onChange={handleLocationsChange}
                   loading={locationsQuery.isPending}
+                  unavailableReason={locationUnavailableReason}
                 />
               </Field>
+              {currentZone !== null && locations.some(locationUnavailableReason) && (
+                <p className="m-0 -mt-2 font-sans text-xs text-tn-muted-5">
+                  Shops on a different clock are greyed out. This member&rsquo;s hours are written
+                  in <span className="font-semibold text-tn-ink-soft">{currentZone}</span>, and one
+                  schedule can only describe one working day. To move them somewhere else, untick
+                  their current shop first.
+                </p>
+              )}
               {removedLocations.length > 0 && (
                 <p className="m-0 -mt-2 font-sans text-xs text-tn-muted-5">
                   Saving removes this member from{" "}

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { Field, formInputClass } from "@/components/ui/FormField";
+import { Field, formInputClass, formSelectClass } from "@/components/ui/FormField";
 import { WizardTabs } from "@/components/ui/WizardTabs";
 import { Toggle } from "@/components/ui/Toggle";
 import { PhoneInput } from "@/components/ui/PhoneInput";
@@ -10,7 +10,6 @@ import { useAuthStore } from "@/auth/auth-store";
 import { listLocations } from "@/lib/locations-api";
 import { listRoles } from "@/lib/roles-api";
 import { inviteStaff, type ServiceIdsByLocation } from "@/lib/staff-api";
-import { LocationMultiSelect } from "@/components/settings/LocationMultiSelect";
 import { LocationServicesPicker } from "@/components/settings/LocationServicesPicker";
 
 interface AddMemberWizardProps {
@@ -61,7 +60,10 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [locationIds, setLocationIds] = useState<string[]>([]);
+  // One location, not a set. See InviteStaffInput — a second site is a
+  // decision for Edit Member, where the timezone rule can be explained
+  // next to the choice rather than sprung on someone mid-invite.
+  const [locationId, setLocationId] = useState("");
   // Starts empty — the old "first three services" default came from
   // sample-data and would now silently assign real services nobody picked.
   // Keyed by location: the same person can do different work at different
@@ -87,20 +89,19 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
   });
   const roles = rolesQuery.data?.roles ?? [];
 
-  // Every ticked location, in the account's own order, for the Services
-  // step below — which fetches each shop's menu itself.
+  // The one chosen location, in the shape the Services step wants — it
+  // renders a section per location and this list simply never has more
+  // than one entry at invite time.
   const selectedLocations = locations
-    .filter((loc) => locationIds.includes(loc.id))
+    .filter((loc) => loc.id === locationId)
     .map((loc) => ({ id: loc.id, name: loc.name }));
 
   // Default to the account's primary location the moment the list loads,
-  // so a shop with just one location never has to touch this field. Only
-  // the primary: the rest are a deliberate choice, and silently putting a
-  // new hire on every branch is not a default anyone asked for.
+  // so a shop with just one location never has to touch this field.
   useEffect(() => {
-    if (locationIds.length > 0 || locations.length === 0) return;
-    setLocationIds([(locations.find((l) => l.isPrimary) ?? locations[0]!).id]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when the list itself changes, not when locationIds is cleared by handleClose below
+    if (locationId || locations.length === 0) return;
+    setLocationId((locations.find((l) => l.isPrimary) ?? locations[0]!).id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when the list itself changes, not when locationId is cleared by handleClose below
   }, [locations]);
 
   // Default to the first non-Owner role (a brand-new member is almost
@@ -118,7 +119,7 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
         name: `${firstName} ${lastName}`.trim(),
         email,
         roleId,
-        locationIds,
+        locationId,
         serviceIdsByLocation: assignedServices,
       }),
     onSuccess: () => {
@@ -143,20 +144,19 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
     setLastName("");
     setPhone("");
     setEmail("");
-    setLocationIds([]);
+    setLocationId("");
     setRoleId("");
     setAssignedServices({});
     setFormError(null);
   }
 
-  function handleLocationsChange(nextLocationIds: string[]) {
-    setLocationIds(nextLocationIds);
-    // Assignments at a shop that's just been unticked would be rejected by
-    // inviteStaff's assertServicesAssignable — drop them here rather than
-    // failing the invite at the last step. Assignments at the shops still
-    // ticked are kept, so unticking one doesn't wipe the others.
+  function handleLocationChange(nextLocationId: string) {
+    setLocationId(nextLocationId);
+    // Services picked for the previous shop belong to its menu and would
+    // be rejected by inviteStaff's assertServicesAssignable — drop them
+    // here rather than failing the invite at the last step.
     setAssignedServices((prev) =>
-      Object.fromEntries(Object.entries(prev).filter(([id]) => nextLocationIds.includes(id))),
+      Object.fromEntries(Object.entries(prev).filter(([id]) => id === nextLocationId)),
     );
   }
 
@@ -170,9 +170,9 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
       setFormError("Add at least a first name and email before sending the invite.");
       return;
     }
-    if (locationIds.length === 0) {
+    if (!locationId) {
       setStep(0);
-      setFormError("Pick at least one location for this member.");
+      setFormError("Pick a location for this member.");
       return;
     }
     if (!roleId) {
@@ -252,16 +252,23 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
                 className={formInputClass}
               />
             </Field>
-            <Field label="LOCATIONS">
-              <LocationMultiSelect
-                locations={locations}
-                value={locationIds}
-                onChange={handleLocationsChange}
-                loading={locationsQuery.isPending}
-              />
+            <Field label="LOCATION">
+              <select
+                value={locationId}
+                onChange={(e) => handleLocationChange(e.target.value)}
+                className={formSelectClass}
+              >
+                {locations.length === 0 && <option value="">Loading locations…</option>}
+                {locations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name}
+                  </option>
+                ))}
+              </select>
             </Field>
             <p className="m-0 font-sans text-xs text-tn-muted-5">
-              Tick every shop this member works at — they can be booked at all of them.
+              Where this member works. You can add more shops later from their profile — as long as
+              those shops keep the same time as this one.
             </p>
             <p className="m-0 font-sans text-xs text-tn-muted-5">
               No email gets sent — tell {firstName || "them"} out-of-band to sign in with Google

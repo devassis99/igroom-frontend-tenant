@@ -236,7 +236,6 @@ export function LocationAvailabilityTab({ location }: { location: AccountLocatio
               // onto the next person's week.
               key={selectedStaffUserId}
               staffUserId={selectedStaffUserId}
-              locationTimezone={location.timezone}
               heading="Weekly hours"
             />
           </>
