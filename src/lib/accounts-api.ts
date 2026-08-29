@@ -145,6 +145,8 @@ export interface MeResponse {
     email: string;
     roleId: string | null;
     roleName: string;
+    /** True for the account's system (Owner) role — read as a fact about the role, since an owner can rename it. Decides whether a control acts on the whole account or only on the caller's branches. */
+    isOwner: boolean;
     /** False for a caller who's only ever signed in with Google — see accounts.service.ts's getMeDetails. Drives SecuritySettingsPage's "Set password" vs "Change password" row label. */
     hasPassword: boolean;
     /** Whether this caller has TOTP 2FA enabled — see SetPasswordModal.tsx, which asks for an authenticator code instead of emailing one when this is true. */

@@ -208,9 +208,14 @@ export function LocationsPage() {
                         ? loc.staffCount === 0
                           ? "No staff · setup incomplete"
                           : "No hours · setup incomplete"
-                        : `${loc.staffCount} staff · ${loc.bookingsToday} booking${
-                            loc.bookingsToday === 1 ? "" : "s"
-                          } today${loc.isPrimary ? " · Primary" : ""}`}
+                        : loc.bookingsToday === null
+                          ? // Not a branch this caller runs, so today's
+                            // count was never sent — say nothing about it
+                            // rather than imply a quiet day.
+                            `${loc.staffCount} staff${loc.isPrimary ? " · Primary" : ""}`
+                          : `${loc.staffCount} staff · ${loc.bookingsToday} booking${
+                              loc.bookingsToday === 1 ? "" : "s"
+                            } today${loc.isPrimary ? " · Primary" : ""}`}
                     </span>
                   </button>
                 );

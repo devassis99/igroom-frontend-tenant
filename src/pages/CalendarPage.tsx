@@ -231,7 +231,15 @@ export function CalendarPage() {
     queryFn: () => listLocations(accessToken ?? ""),
     enabled: !!accessToken,
   });
-  const locations = locationsQuery.data?.locations ?? EMPTY_LOCATIONS;
+  // Only the branches this caller actually runs. The list itself comes
+  // back whole (the member picker needs every shop by name — see the
+  // backend's listLocations), but every read on this page is scoped, so
+  // offering a shop here that the staff and bookings endpoints will
+  // refuse would just be a 403 with extra steps. It also matters for the
+  // default below: picking the account's primary branch unconditionally
+  // landed a single-branch manager on somebody else's shop.
+  const allLocations = locationsQuery.data?.locations ?? EMPTY_LOCATIONS;
+  const locations = useMemo(() => allLocations.filter((l) => l.inScope), [allLocations]);
 
   // Day/Week grid's wall-clock zone — an explicit pick from the picker
   // below wins outright, otherwise it follows the selected location's own
@@ -271,10 +279,13 @@ export function CalendarPage() {
   const staffQuery = useQuery({
     queryKey: ["bookings-staff", selectedLocationId],
     queryFn: () => listStaff(accessToken ?? "", selectedLocationId),
-    // Waits for the location list: firing while selectedLocationId is still
-    // "" fetches every location, then immediately refetches for the real
-    // one — two round trips for one page open.
-    enabled: !!accessToken && !locationsQuery.isPending,
+    // Waits for the effect above to pick a location. locationId is
+    // required on every one of these reads now (see bookings-api.ts's
+    // header), so firing while selectedLocationId is still "" is no
+    // longer a merely wasteful round trip that the server would answer
+    // account-wide — it's a 400 the user reads as "Couldn't load staff
+    // right now (Invalid request body)".
+    enabled: !!accessToken && !!selectedLocationId,
     placeholderData: keepPreviousData,
   });
   const staff = staffQuery.data?.staff ?? EMPTY_STAFF;
@@ -289,7 +300,7 @@ export function CalendarPage() {
       ),
     // The List view has its own paged query (AppointmentListView) instead
     // of this date-range one — no need to fetch both while it's active.
-    enabled: !!accessToken && view !== "list" && !locationsQuery.isPending,
+    enabled: !!accessToken && view !== "list" && !!selectedLocationId,
     // The previous range's bookings stay on screen (fading/sliding out
     // under the transition below) while the new range loads, instead of
     // the grid flashing empty for a beat on every date/view/location
@@ -303,7 +314,7 @@ export function CalendarPage() {
   const staffSetsQuery = useQuery({
     queryKey: ["bookings-staff-sets", selectedLocationId],
     queryFn: () => listStaffSets(accessToken ?? "", selectedLocationId),
-    enabled: !!accessToken && !locationsQuery.isPending,
+    enabled: !!accessToken && !!selectedLocationId,
   });
   const staffSets = staffSetsQuery.data?.staffSets ?? EMPTY_STAFF_SETS;
 
@@ -764,6 +775,32 @@ export function CalendarPage() {
   }, [bookings]);
 
   const monthWeeks = useMemo(() => getMonthGrid(cursorDate), [cursorDate]);
+
+  // Nothing below this line works without a location. Every read on this
+  // page is scoped to one shop now (see bookings-api.ts's header), so
+  // when the list is empty selectedLocationId never gets set, the three
+  // queries above stay disabled, and the grid would otherwise sit on its
+  // loading skeleton forever. The two ways of getting here are told
+  // apart deliberately: a failed list is a fault to report, an empty one
+  // is a state to explain.
+  if (!locationsQuery.isPending && locations.length === 0) {
+    const failed = locationsQuery.isError;
+    return (
+      <div className="flex flex-col gap-7">
+        <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">Calendar</h1>
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-tn-input-border bg-tn-page px-8 py-16 text-center">
+          <span className="font-sans text-[15px] font-semibold text-tn-ink">
+            {failed ? "Couldn\u2019t load your locations" : "No shop to show yet"}
+          </span>
+          <span className="max-w-[380px] font-sans text-[13px] text-tn-muted-5">
+            {failed
+              ? `${locationsQuery.error instanceof Error ? locationsQuery.error.message : "Unknown error"} \u2014 refresh to try again.`
+              : "The calendar shows one shop at a time. Once you\u2019re assigned to a location, its day, week and month views appear here."}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-7">

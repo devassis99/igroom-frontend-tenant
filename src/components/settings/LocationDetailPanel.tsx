@@ -420,14 +420,26 @@ function DetailsTab({
               Today at {location.name}
             </p>
             <div className="flex gap-4">
-              <Figure value={String(location.bookingsToday)} label="Bookings" />
-              <Figure value={money(location.revenueTodayCents)} label="Revenue" />
+              {/* An em dash where a figure would be: this branch isn't one
+                  the caller runs, so its takings were never sent. */}
+              <Figure
+                value={location.bookingsToday === null ? "—" : String(location.bookingsToday)}
+                label="Bookings"
+              />
+              <Figure
+                value={
+                  location.revenueTodayCents === null ? "—" : money(location.revenueTodayCents)
+                }
+                label="Revenue"
+              />
               <Figure value={String(location.staffCount)} label="Staff" />
             </div>
             <p className="m-0 font-sans text-[11px] text-tn-faint">
-              {location.slotsCapacity > 0
-                ? `${location.slotsBooked} of ${location.slotsCapacity} half-hour slots booked`
-                : "No working hours set — nothing is bookable here yet"}
+              {location.slotsCapacity === null || location.slotsBooked === null
+                ? "Today's figures are only shown for locations you manage"
+                : location.slotsCapacity > 0
+                  ? `${location.slotsBooked} of ${location.slotsCapacity} half-hour slots booked`
+                  : "No working hours set — nothing is bookable here yet"}
             </p>
           </div>
 

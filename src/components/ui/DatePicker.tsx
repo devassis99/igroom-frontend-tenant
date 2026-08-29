@@ -8,6 +8,14 @@ interface DatePickerProps {
   onChange: (value: string) => void;
   label?: string;
   className?: string;
+  /**
+   * Earliest selectable day, "YYYY-MM-DD" — the native input's `min`
+   * attribute, which this control replaced. Days before it are shown but
+   * not clickable: hiding them entirely would leave a half-empty first
+   * week that reads as a rendering fault, and greying them says "in the
+   * past" the way a calendar normally does.
+   */
+  min?: string;
 }
 
 const WEEKDAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
@@ -135,7 +143,13 @@ function ChevronRightIcon() {
  * stays a plain "YYYY-MM-DD" string, same as the input it replaces — no
  * caller-visible change beyond the picker UI itself.
  */
-export function DatePicker({ value, onChange, label = "Date", className = "" }: DatePickerProps) {
+export function DatePicker({
+  value,
+  onChange,
+  label = "Date",
+  className = "",
+  min,
+}: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const selected = parseValue(value);
   const [viewDate, setViewDate] = useState(() => selected ?? new Date());
@@ -190,6 +204,7 @@ export function DatePicker({ value, onChange, label = "Date", className = "" }: 
   }
 
   const today = new Date();
+  const minDate = min ? parseValue(min) : null;
   const cells = buildGrid(viewDate);
   const monthLabel = viewDate.toLocaleDateString(undefined, { month: "long", year: "numeric" });
   const displayValue = selected
@@ -265,20 +280,26 @@ export function DatePicker({ value, onChange, label = "Date", className = "" }: 
               {cells.map((cell) => {
                 const isSelected = selected !== null && isSameDay(cell.date, selected);
                 const isToday = isSameDay(cell.date, today);
+                // Both sides are local midnight (see parseValue and
+                // buildGrid), so a plain comparison is a day comparison.
+                const isBlocked = minDate !== null && cell.date < minDate;
                 return (
                   <button
                     key={cell.date.toISOString()}
                     type="button"
+                    disabled={isBlocked}
                     onClick={() => select(cell.date)}
                     aria-current={isToday ? "date" : undefined}
-                    className={`m-auto flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-none font-sans text-[13px] ${
-                      isSelected
-                        ? "bg-tn-gold font-semibold text-tn-on-dark"
-                        : isToday
-                          ? "bg-tn-page font-semibold text-tn-ink"
-                          : cell.inMonth
-                            ? "bg-transparent text-tn-ink-soft hover:bg-tn-page"
-                            : "bg-transparent text-tn-faint-2 hover:bg-tn-page"
+                    className={`m-auto flex h-8 w-8 items-center justify-center rounded-full border-none font-sans text-[13px] ${
+                      isBlocked
+                        ? "cursor-not-allowed bg-transparent text-tn-faint-2"
+                        : isSelected
+                          ? "cursor-pointer bg-tn-gold font-semibold text-tn-on-dark"
+                          : isToday
+                            ? "cursor-pointer bg-tn-page font-semibold text-tn-ink"
+                            : cell.inMonth
+                              ? "cursor-pointer bg-transparent text-tn-ink-soft hover:bg-tn-page"
+                              : "cursor-pointer bg-transparent text-tn-faint-2 hover:bg-tn-page"
                     }`}
                   >
                     {cell.date.getDate()}

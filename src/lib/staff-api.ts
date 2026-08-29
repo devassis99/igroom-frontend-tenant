@@ -166,14 +166,28 @@ export function updateStaff(
   });
 }
 
+/**
+ * Stands a member up or down — at one branch, or across the account.
+ *
+ * Two different acts, and who you are decides which one you get. An
+ * owner's default is the account: they're locked out everywhere and
+ * can't sign in. Anyone else is bounded by the branches they run, so
+ * theirs means "not working here", which keeps the member's hours,
+ * services and history at that branch intact.
+ *
+ * Omit `scope` and the server does whatever the caller is actually able
+ * to do. Asking for `"account"` without the owner role is refused rather
+ * than quietly narrowed — see the backend's setStaffActive.
+ */
 export function setStaffActive(
   accessToken: string,
   staffId: string,
   isActive: boolean,
+  options: { locationId?: string; scope?: "account" | "location" } = {},
 ): Promise<{ staff: StaffMember }> {
   return request(`/staff/${staffId}/active`, {
     method: "PATCH",
-    body: { isActive },
+    body: { isActive, ...options },
     headers: authHeaders(accessToken),
   });
 }

@@ -271,7 +271,7 @@ export function StaffManagementPage() {
   const accessToken = useAuthStore((s) => s.accessToken);
   const owner = useAuthStore((s) => s.owner);
   const queryClient = useQueryClient();
-  const { has: hasPermission } = usePermissions();
+  const { has: hasPermission, isOwner } = usePermissions();
 
   const [activeTab, setActiveTab] = useState<StaffTab>("members");
 
@@ -374,6 +374,10 @@ export function StaffManagementPage() {
 
   const toggleActiveMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      // No scope passed: the server does what this caller is able to do —
+      // the whole account for an owner, their own branches for anyone
+      // else. Sending "account" from here would only produce a refusal
+      // for the people who can't perform it.
       setStaffActive(accessToken ?? "", id, isActive),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["staff"] });
@@ -778,15 +782,37 @@ export function StaffManagementPage() {
         }
         title={
           togglingMember?.isActive
-            ? `Deactivate ${togglingMember.name}?`
-            : `Activate ${togglingMember?.name}?`
+            ? isOwner
+              ? `Deactivate ${togglingMember.name}?`
+              : `Remove ${togglingMember.name} from your locations?`
+            : isOwner
+              ? `Activate ${togglingMember?.name}?`
+              : `Put ${togglingMember?.name} back on your locations?`
         }
+        /* The same button does two different things depending on who is
+           pressing it, so it has to say which. An owner closes the
+           account; anyone else stands the member down at their own
+           branches and leaves the rest of the business alone. Saying
+           "deactivate" to both would have a manager believe somebody is
+           gone when they are still working across town. */
         body={
           togglingMember?.isActive
-            ? "They'll be signed out and won't be able to log back in until reactivated."
-            : "They'll be able to sign in again."
+            ? isOwner
+              ? "They'll be signed out and won't be able to log back in until reactivated."
+              : "They'll stop being bookable at your locations and drop off those calendars. Their hours and history there are kept, and they carry on as normal anywhere else. Only an owner can close their account entirely."
+            : isOwner
+              ? "They'll be able to sign in again."
+              : "They'll be bookable at your locations again, with the hours they had before."
         }
-        confirmLabel={togglingMember?.isActive ? "Deactivate" : "Activate"}
+        confirmLabel={
+          togglingMember?.isActive
+            ? isOwner
+              ? "Deactivate"
+              : "Remove from my locations"
+            : isOwner
+              ? "Activate"
+              : "Put back"
+        }
         confirming={toggleActiveMutation.isPending}
         danger={togglingMember?.isActive ?? false}
       />

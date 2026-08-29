@@ -63,6 +63,8 @@ export function usePermissions() {
     isReady: !query.isPending || cached.length > 0,
     /** The caller's own staff_users row (id, locationId, roleId, ...) — e.g. Settings > Availability defaults its staff picker to this id. Null until this query resolves. */
     staffUser: query.data?.staffUser ?? null,
+    /** True when the caller holds the account's system (Owner) role — the only role whose reach is the whole business rather than its own branches. */
+    isOwner: query.data?.staffUser.isOwner === true,
     /** The account row this session belongs to — read for account-wide settings such as the collision guard's travel buffer. Null until this query resolves. */
     account: query.data?.account ?? null,
   };

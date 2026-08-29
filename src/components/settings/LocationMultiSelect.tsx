@@ -18,6 +18,7 @@ export function LocationMultiSelect({
   onChange,
   disabled = false,
   loading = false,
+  error,
   unavailableReason,
 }: {
   locations: AccountLocation[];
@@ -25,6 +26,13 @@ export function LocationMultiSelect({
   onChange: (locationIds: string[]) => void;
   disabled?: boolean;
   loading?: boolean;
+  /**
+   * Why the list couldn't be fetched, or undefined if it could. An empty
+   * `locations` has two very different causes and only one of them is
+   * "add one" — saying "no locations yet" to somebody whose request was
+   * refused tells them the account is empty when it isn't.
+   */
+  error?: string;
   /**
    * Why a particular location can't be ticked right now, or undefined if
    * it can. Returning the reason rather than a boolean means the row can
@@ -41,6 +49,9 @@ export function LocationMultiSelect({
 
   if (loading && locations.length === 0) {
     return <p className="m-0 font-sans text-sm text-tn-muted-5">Loading locations…</p>;
+  }
+  if (error !== undefined) {
+    return <p className="m-0 font-sans text-sm text-tn-danger">{error}</p>;
   }
   if (locations.length === 0) {
     return (

@@ -172,6 +172,13 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
     : null;
 
   function locationUnavailableReason(loc: AccountLocation): string | undefined {
+    // A branch outside the caller's own reach. The list arrives whole so
+    // the shop can still be *named* here — a member already working there
+    // shows their real roster rather than a gap — but a caller who
+    // doesn't run that shop can't put somebody into it, and the backend
+    // refuses it either way (assertCallerAtLocations). Saying so beats
+    // offering the tick and failing the save.
+    if (!loc.inScope) return "Not one of your locations — ask an owner to assign them here";
     if (currentZone === null) return undefined;
     if (resolvedZone(loc) === currentZone) return undefined;
     return `Runs on ${resolvedZone(loc)} — a member's shops must share one timezone`;
@@ -264,6 +271,11 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
                   value={locationIds}
                   onChange={handleLocationsChange}
                   loading={locationsQuery.isPending}
+                  error={
+                    locationsQuery.isError
+                      ? `Couldn\u2019t load the shop list \u2014 ${locationsQuery.error instanceof Error ? locationsQuery.error.message : "unknown error"}`
+                      : undefined
+                  }
                   unavailableReason={locationUnavailableReason}
                 />
               </Field>

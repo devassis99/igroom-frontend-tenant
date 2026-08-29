@@ -63,6 +63,12 @@ export function StaffStack({ location }: { location: AccountLocation }) {
  * at all, and the row's setup call-to-action is what says so.
  */
 export function UtilisationCell({ location }: { location: AccountLocation }) {
+  // Null, not zero: this branch isn't one the caller runs, so the figure
+  // was never sent. "Not bookable" would be a claim about the shop; this
+  // is a fact about the reader.
+  if (location.slotsCapacity === null || location.slotsBooked === null) {
+    return <span className="font-sans text-xs text-tn-faint">Not your location</span>;
+  }
   if (location.slotsCapacity === 0) {
     return <span className="font-sans text-xs text-tn-faint">Not bookable</span>;
   }
@@ -93,6 +99,10 @@ export function UtilisationCell({ location }: { location: AccountLocation }) {
  */
 export function RevenueSparkline({ location }: { location: AccountLocation }) {
   const series = location.revenueSeries;
+  // See UtilisationCell — null means it wasn't ours to be told.
+  if (series === null) {
+    return <span className="font-sans text-xs text-tn-faint">—</span>;
+  }
   const total = series.reduce((sum, day) => sum + day.cents, 0);
 
   if (series.length === 0 || total === 0) {

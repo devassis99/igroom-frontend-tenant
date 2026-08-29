@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { Field, formInputClass } from "@/components/ui/FormField";
+import { Field } from "@/components/ui/FormField";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { TimePicker } from "@/components/ui/TimePicker";
 import type { UpsertOverrideInput } from "@/lib/availability-api";
 
@@ -12,7 +13,7 @@ interface AddOverrideModalProps {
   submitting: boolean;
 }
 
-/** Today, as "YYYY-MM-DD" in the browser's local timezone — the date input's min, so an override can't be backdated. */
+/** Today, as "YYYY-MM-DD" in the browser's local timezone — the picker's min, so an override can't be backdated. */
 function todayIso(): string {
   const now = new Date();
   const offset = now.getTimezoneOffset() * 60_000;
@@ -61,13 +62,12 @@ export function AddOverrideModal({ open, onClose, onSubmit, submitting }: AddOve
         <p className="m-0 font-sans text-lg font-semibold text-tn-ink">Add a date override</p>
 
         <Field label="DATE">
-          <input
-            type="date"
-            value={date}
-            min={todayIso()}
-            onChange={(e) => setDate(e.target.value)}
-            className={formInputClass}
-          />
+          {/* The app's own calendar, not <input type="date">. The native
+              one opened the browser's chrome — blue accent, its own
+              Clear/Today row, its own idea of dd/mm/yyyy — inside a modal
+              whose every other control is ours, and the two didn't look
+              like the same product. Same swap TimePicker made next to it. */}
+          <DatePicker label="Override date" value={date} onChange={setDate} min={todayIso()} />
         </Field>
 
         <div className="flex flex-col gap-2">

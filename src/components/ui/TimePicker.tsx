@@ -98,6 +98,8 @@ export function TimePicker({ value, onChange, label = "Time", className = "" }: 
     minWidth: MIN_PANEL_WIDTH,
     minHeight: 200,
   });
+  // Whether the panel — and so the list inside it — is in the DOM yet.
+  const positioned = position !== null;
 
   useEffect(() => {
     if (open) {
@@ -115,15 +117,46 @@ export function TimePicker({ value, onChange, label = "Time", className = "" }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when `open` itself flips; `mounted` is read for its current value below, not tracked as a trigger
   }, [open]);
 
-  // Scroll the currently-picked time into view every time the popover
-  // opens, rather than always starting the list at 00:00.
+  // Scroll the picked time into view every time the popover opens, rather
+  // than always starting the list at 00:00.
+  //
+  // Keyed off the *nearest* option rather than an exact match, because a
+  // value off the 15-minute grid is the common case, not the odd one:
+  // AddBookingModal seeds this with the current clock time, so opening
+  // the picker at 11:51 looked for a row that doesn't exist, found
+  // nothing, and left the list sitting at 12:00 AM — nine hours from
+  // where the field said it was. Only an exact match is *highlighted*
+  // (see aria-current below); rounding decides where to scroll, never
+  // what to claim is selected.
+  //
+  // Sets scrollTop directly instead of calling scrollIntoView: the panel
+  // is portalled and position:fixed, and scrollIntoView on a descendant
+  // will happily scroll the page behind it to bring the panel's own
+  // ancestors into view.
+  //
+  // Waits on `positioned`, not just `open`. The portal below renders only
+  // once useAnchoredPanel has measured the trigger, so for the first
+  // render or two after opening there is no list in the DOM at all —
+  // firing on `open` alone meant the one attempt often found a null ref,
+  // gave up, and left the list at 00:00. A boolean (rather than the
+  // position object, whose identity changes on every reposition) keeps
+  // this to exactly one scroll per open, so it can't yank the list back
+  // while someone is scrolling it.
   useEffect(() => {
-    if (!open) return;
+    if (!open || !positioned) return;
     const raf = requestAnimationFrame(() => {
-      listRef.current?.querySelector('[aria-current="true"]')?.scrollIntoView({ block: "center" });
+      const list = listRef.current;
+      if (!list) return;
+      const index = parsed
+        ? Math.min(TIME_OPTIONS.length - 1, Math.round((parsed.hour * 60 + parsed.minute) / 15))
+        : 0;
+      const row = list.children[index] as HTMLElement | undefined;
+      if (!row) return;
+      list.scrollTop = row.offsetTop - list.clientHeight / 2 + row.offsetHeight / 2;
     });
     return () => cancelAnimationFrame(raf);
-  }, [open]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs when the panel first appears; `parsed` is read for its value at that moment, not tracked as a trigger
+  }, [open, positioned]);
 
   useEffect(() => {
     if (!open) return;
@@ -210,8 +243,10 @@ export function TimePicker({ value, onChange, label = "Time", className = "" }: 
                     type="button"
                     // aria-current (not aria-selected — role-supports-aria-props
                     // rejects that on a plain <button>'s implicit role="button")
-                    // flags the picked time for both assistive tech and the
-                    // scroll-into-view effect above, which queries this same attribute.
+                    // flags the picked time for assistive tech. Exact matches
+                    // only: a value between two slots belongs to neither, and
+                    // the effect above scrolls to the nearest row without
+                    // marking it chosen.
                     aria-current={isSelected ? "true" : undefined}
                     onClick={() => selectTime(time)}
                     // Fixed h-8 (not padding + line-height) pins every row

@@ -22,18 +22,27 @@ export interface AccountLocation {
   isPrimary: boolean;
   /** Active staff currently assigned to this location. */
   staffCount: number;
-  /** Non-cancelled bookings starting today (server UTC day). */
-  bookingsToday: number;
-  /** Sum of priceCents across today's non-cancelled bookings. */
-  revenueTodayCents: number;
+  /**
+   * Whether this branch is one the caller runs.
+   *
+   * False for a shop outside their reach — the row still appears, because
+   * the member picker has to offer every branch, but the trading figures
+   * below come back null rather than zeroed. Zero is a claim about a real
+   * day's takings; null says "not yours to see".
+   */
+  inScope: boolean;
+  /** Non-cancelled bookings starting today (server UTC day). Null for a branch outside the caller's reach. */
+  bookingsToday: number | null;
+  /** Sum of priceCents across today's non-cancelled bookings. Null outside the caller's reach. */
+  revenueTodayCents: number | null;
   /** A few staff for the row's avatar stack — `staffCount` is still the real total. */
   staffPreview: { id: string; name: string }[];
-  /** Takings per day for the last 7 days, oldest first, zero-filled so the sparkline has a bar per day. */
-  revenueSeries: { date: string; cents: number }[];
-  /** Half-hour slots booked today. */
-  slotsBooked: number;
-  /** Half-hour slots the roster's working hours actually offer today. Zero means nobody has hours set. */
-  slotsCapacity: number;
+  /** Takings per day for the last 7 days, oldest first, zero-filled so the sparkline has a bar per day. Null outside the caller's reach. */
+  revenueSeries: { date: string; cents: number }[] | null;
+  /** Half-hour slots booked today. Null outside the caller's reach. */
+  slotsBooked: number | null;
+  /** Half-hour slots the roster's working hours actually offer today. Zero means nobody has hours set; null means this branch is outside the caller's reach. */
+  slotsCapacity: number | null;
   /** No staff, or none with hours — this location can't take a booking yet. */
   needsSetup: boolean;
   createdAt: string;

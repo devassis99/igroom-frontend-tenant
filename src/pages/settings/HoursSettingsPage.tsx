@@ -81,6 +81,14 @@ export function HoursSettingsPage() {
     queryFn: () => listLocations(accessToken ?? ""),
     enabled: !!accessToken && canManage,
   });
+  // Only the branches this manager runs. The response carries the whole
+  // account's shops so pickers elsewhere can name any of them, but
+  // filtering by a branch whose staff and schedules this caller can't see
+  // would just empty the page.
+  const filterLocations = useMemo(
+    () => (locationsQuery.data?.locations ?? []).filter((loc) => loc.inScope),
+    [locationsQuery.data],
+  );
 
   const staffOptions = useMemo(() => {
     const all = staffQuery.data?.staff ?? [];
@@ -135,12 +143,22 @@ export function HoursSettingsPage() {
                 put where a manager already thinks about hours rather
                 than buried in a general settings page. */}
             <TravelBufferField />
-            <LocationFilterPopover
-              locations={locationsQuery.data?.locations ?? []}
-              value={selectedLocationId}
-              onChange={setSelectedLocationId}
-              label="Filter by location"
-            />
+            {/* Only worth showing when there is a choice to make. A
+                manager who runs one branch has nothing to filter — "All
+                locations" is their one shop under another name, and
+                offering it implies the page is holding back shops they
+                could switch to. The staff picker beside it is already
+                narrowed to the same reach (listStaff is caller-scoped),
+                so leaving the value at "all" with the control hidden
+                shows exactly their branch. */}
+            {filterLocations.length > 1 && (
+              <LocationFilterPopover
+                locations={filterLocations}
+                value={selectedLocationId}
+                onChange={setSelectedLocationId}
+                label="Filter by location"
+              />
+            )}
             <StaffFilterPopover
               staff={staffOptions}
               value={selectedStaffUserId ?? ""}
