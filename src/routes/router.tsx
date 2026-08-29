@@ -111,6 +111,19 @@ export const router = createBrowserRouter([
             lazy: () => import("@/pages/WaitlistPage").then((m) => ({ Component: m.default })),
           },
           {
+            path: "register",
+            lazy: () => import("@/pages/RegisterPage").then((m) => ({ Component: m.default })),
+          },
+          {
+            // Deliberately its own route rather than a tab inside
+            // /register: the register is a screen two people share all
+            // day, and close-of-day is one person, once, with the door
+            // locked. Putting the night's payouts one tap from the till
+            // is how a barber sees what everyone else took home.
+            path: "close-of-day",
+            lazy: () => import("@/pages/CloseOfDayPage").then((m) => ({ Component: m.default })),
+          },
+          {
             path: "services",
             lazy: () => import("@/pages/ServicesPage").then((m) => ({ Component: m.default })),
           },

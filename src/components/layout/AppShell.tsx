@@ -28,6 +28,9 @@ const NAV_ITEMS: Array<{
   { to: "/dashboard", label: "Home", icon: HomeIcon },
   { to: "/calendar", label: "Calendar", icon: CalendarIcon, permission: "bookings.view" },
   { to: "/waitlist", label: "Waitlist", icon: WaitlistIcon, permission: "bookings.view" },
+  // Next to Waitlist and Calendar because that is the order of a visit:
+  // they arrive, they sit, they pay.
+  { to: "/register", label: "Register", icon: RegisterIcon, permission: "pos.register" },
   { to: "/analytics", label: "Analytics", icon: AnalyticsIcon, permission: "bookings.view" },
   { to: "/services", label: "Services", icon: ServicesIcon, permission: "services.view" },
   // Promoted out of Settings > Workspace: a shop is something an owner
@@ -37,8 +40,30 @@ const NAV_ITEMS: Array<{
   { to: "/locations", label: "Locations", icon: LocationsIcon, permission: "locations.view" },
   { to: "/staff", label: "Staff", icon: StaffIcon, permission: "staff.view" },
   { to: "/customers", label: "Customers", icon: CustomersIcon, permission: "customers.view" },
+  { to: "/close-of-day", label: "Close of day", icon: CloseOfDayIcon, permission: "pos.close" },
   { to: "/payments", label: "Payments", icon: PaymentsIcon, permission: "billing.view" },
 ];
+
+/** Till drawer for the Register — a rectangle with a handle, not a card, since the register is the whole sale and not only the card part. */
+function RegisterIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <rect x="3" y="8" width="18" height="12" rx="2" />
+      <path d="M3 12h18" />
+      <path d="M10 16h4" />
+      <path d="M7 8V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" />
+    </svg>
+  );
+}
+
+/** Moon over a line for Close of day — the end of the night, distinct from Analytics' bars. */
+function CloseOfDayIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg {...ICON_PROPS} className={className}>
+      <path d="M20 14.5A8 8 0 0 1 9.5 4a7 7 0 1 0 10.5 10.5z" />
+    </svg>
+  );
+}
 
 /** Map-pin glyph for Locations — same outline family as the rows around it. */
 function LocationsIcon({ className = "" }: { className?: string }) {

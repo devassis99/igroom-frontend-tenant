@@ -285,14 +285,115 @@ body {
 }
 
 /*
+ * Switching between two views of the same data — the Waitlist's
+ * List/Board toggle.
+ *
+ * Direction carries meaning: Board sits to the right of List in the
+ * control, so moving to it brings the new view in from the right and
+ * moving back brings it in from the left. A plain cross-fade would be
+ * cheaper and would leave you unsure which way you just went.
+ *
+ * Deliberately its own pair rather than reusing tn-cal-slide-in-*: those
+ * belong to the calendar's paging, where the same motion means "the next
+ * week", and tuning one view's feel should not silently retune the
+ * other's.
+ */
+@keyframes tn-view-in-forward {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes tn-view-in-back {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* `backwards`, not `both`, for the containing-block reason spelled out on .tn-content-in above. */
+.tn-view-in-forward {
+  animation: tn-view-in-forward 260ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.tn-view-in-back {
+  animation: tn-view-in-back 260ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/*
+ * The SegmentedControl's thumb — the filled pill that sits behind the
+ * selected option.
+ *
+ * One element that slides and resizes, rather than a background colour
+ * swapping between two buttons. The swap version gives you no sense that
+ * the two options are positions on the same track, which is the whole
+ * idea the control is trying to express. Its left/width are written by
+ * the component from the real measured button, so options of different
+ * widths ("List" and "Board", "Day"/"Week"/"Month") all work without the
+ * segments being forced to equal size.
+ */
+.tn-segmented-thumb {
+  transition:
+    transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/*
+ * The chair rings on the Waitlist board, drawn from empty to wherever
+ * the appointment actually is.
+ *
+ * `stroke-dashoffset` rather than `stroke-dasharray`: the dash pattern
+ * stays a single full-circumference segment and only its starting
+ * offset moves, so the arc grows from its origin instead of a dash
+ * pattern being re-tiled around the circle, which is what animating the
+ * array looks like.
+ *
+ * The class is added a frame *after* the empty value is committed — a
+ * transition needs a painted "before" state to run from, and applying
+ * both in one frame gets you the end value with no animation at all.
+ * See SegmentedControl for the same two-frame dance.
+ *
+ * Slower and gentler than the rest of the motion here on purpose. The
+ * segmented thumb is a response to a click and has to feel immediate;
+ * this is ambient — nobody is waiting on it — so it eases out of rest
+ * rather than snapping away from it.
+ *
+ * The curve is close to symmetric on purpose. An ease-out spends most
+ * of its duration on a tail that covers a few pixels of arc — you
+ * cannot see it, so the whole thing reads as fast however long the
+ * number says it is. This one is at half travel at half time, and
+ * still has 14% of the arc left in the last 15% of the duration, so
+ * the sweep is visible for very nearly the whole 2.8s.
+ */
+.tn-ring-draw {
+  transition: stroke-dashoffset 5000ms cubic-bezier(0.45, 0.05, 0.5, 0.95);
+}
+
+/*
  * Motion here is decoration — it helps you follow a swap, it never
  * carries information — so anyone who has asked their OS for less of it
  * gets the end state directly.
  */
 @media (prefers-reduced-motion: reduce) {
   .tn-content-in,
-  .tn-underline-in {
+  .tn-underline-in,
+  .tn-view-in-forward,
+  .tn-view-in-back {
     animation: none;
+  }
+
+  .tn-segmented-thumb,
+  .tn-ring-draw {
+    transition: none;
   }
 }
 
