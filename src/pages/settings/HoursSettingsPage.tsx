@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/auth/auth-store";
 import { usePermissions } from "@/auth/use-permissions";
@@ -7,6 +8,7 @@ import { LocationFilterPopover } from "@/components/ui/LocationFilterPopover";
 import { StaffFilterPopover } from "@/components/ui/StaffFilterPopover";
 import { listStaff } from "@/lib/staff-api";
 import { listLocations } from "@/lib/locations-api";
+import { TravelBufferField } from "@/components/availability/TravelBufferField";
 
 /**
  * Settings > Availability — replaces the old static Hours & Availability
@@ -20,23 +22,45 @@ import { listLocations } from "@/lib/locations-api";
  * shared with a location's Availability tab so the same editor answers
  * "this person's hours" wherever you reach it from.
  *
+ * Unpinned, so the editor draws its own tab strip: one tab per shop the
+ * picked member works at, each with its own week in its own timezone.
+ * The location filter above is still only a filter on *who* is listed —
+ * it narrows the roster, it doesn't pick which shop's hours are shown,
+ * which is what the editor's tabs are for.
+ *
  * Kept out of this pass (see the chat thread this was scoped from):
- * multiple named schedules/tabs and "Create new availability" — iGroom
- * still has exactly one schedule per staff member; and the reference's
- * "Active on X events" / "Launch troubleshooter" / "Learn more"
- * controls, which don't correspond to any real iGroom feature.
+ * "Create new availability" (several named schedules per member at one
+ * shop, which is a different axis from the per-shop tabs) and the
+ * reference's "Active on X events" / "Launch troubleshooter" / "Learn
+ * more" controls, which don't correspond to any real iGroom feature.
  */
 export function HoursSettingsPage() {
   const accessToken = useAuthStore((s) => s.accessToken);
   const { has, staffUser, isLoading: permissionsLoading } = usePermissions();
   const canManage = has("staff.manage");
 
-  const [selectedStaffUserId, setSelectedStaffUserId] = useState<string | null>(null);
+  /**
+   * `?staff=<id>` opens this page on somebody specific.
+   *
+   * Set by the collision panel on a location's Availability tab, which
+   * can only edit the one shop it is pinned to and so sends a manager
+   * here to see both sides of a clash. Landing on themselves instead of
+   * on the member whose schedule is broken would make that link useless.
+   */
+  const [searchParams] = useSearchParams();
+  const requestedStaffUserId = searchParams.get("staff");
+  /** Which shop's tab to open on — the one the clash was raised at, so the link lands on the week that needs the edit. */
+  const requestedLocationId = searchParams.get("shop");
+
+  const [selectedStaffUserId, setSelectedStaffUserId] = useState<string | null>(
+    requestedStaffUserId,
+  );
   const [selectedLocationId, setSelectedLocationId] = useState<string>("all");
 
   // Default the picker to "myself" the moment GET /accounts/me resolves —
   // everyone can always see their own schedule, so there's no reason to
-  // make even a non-manager wait on the staff-list fetch below.
+  // make even a non-manager wait on the staff-list fetch below. A `staff`
+  // param wins, since it is an explicit request rather than a default.
   useEffect(() => {
     if (!selectedStaffUserId && staffUser) setSelectedStaffUserId(staffUser.id);
   }, [selectedStaffUserId, staffUser]);
@@ -107,6 +131,10 @@ export function HoursSettingsPage() {
 
         {canManage && (
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* The one setting behind the collision guard's travel half,
+                put where a manager already thinks about hours rather
+                than buried in a general settings page. */}
+            <TravelBufferField />
             <LocationFilterPopover
               locations={locationsQuery.data?.locations ?? []}
               value={selectedLocationId}
@@ -131,6 +159,7 @@ export function HoursSettingsPage() {
         // survive a switch and land on the wrong person's week.
         key={selectedStaffUserId}
         staffUserId={selectedStaffUserId}
+        initialLocationId={requestedLocationId ?? undefined}
         heading={
           viewingSelf
             ? "Set your availability"

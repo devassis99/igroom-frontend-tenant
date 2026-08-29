@@ -152,7 +152,13 @@ export interface MeResponse {
   };
   /** Permission keys granted to staffUser.roleId — see use-permissions.ts. */
   permissions: string[];
-  account: Record<string, unknown> | null;
+  /**
+   * The account row. Mostly untyped because most of it is billing detail
+   * no screen here reads — except the collision guard's travel buffer,
+   * which Settings › Availability both shows and edits (see
+   * collisions-api.ts's updateSchedulingSettings).
+   */
+  account: (Record<string, unknown> & { locationChangeBufferMinutes?: number }) | null;
   /** The full location rows for staffUser.locationIds, ordered by name. */
   locations: Record<string, unknown>[];
 }

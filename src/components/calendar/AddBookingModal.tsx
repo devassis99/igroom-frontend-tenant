@@ -86,6 +86,7 @@ export function AddBookingModal({
   // from formError because this one is answerable: the owner can go
   // ahead anyway, which a plain red line gives them no way to do.
   const [outsideShiftWarning, setOutsideShiftWarning] = useState<string | null>(null);
+  const [travelWarning, setTravelWarning] = useState<string | null>(null);
 
   // Real, account-configured services (T9's menu) rather than free text —
   // same source Services page itself reads from, so what's pickable here
@@ -134,7 +135,16 @@ export function AddBookingModal({
   }
 
   const mutation = useMutation({
-    mutationFn: (allowOutsideShift?: boolean) => {
+    /**
+     * The two overrides a manager can grant, and they are separate on
+     * purpose: "she works late sometimes" and "she can get across town
+     * in ten minutes" are different pieces of knowledge, and confirming
+     * one should not silently confirm the other.
+     */
+    mutationFn: ({
+      allowOutsideShift,
+      allowTravelWarning,
+    }: { allowOutsideShift?: boolean; allowTravelWarning?: boolean } = {}) => {
       const [year, month, day] = dateValue.split("-").map(Number);
       const [hour, minute] = timeValue.split(":").map(Number);
       const startAt =
@@ -154,6 +164,7 @@ export function AddBookingModal({
         status: isWalkIn ? "walk_in" : "confirmed",
         notes: notes.trim() || undefined,
         allowOutsideShift,
+        allowTravelWarning,
       });
     },
     onSuccess: () => {
@@ -170,6 +181,17 @@ export function AddBookingModal({
           : undefined;
       if (code === "OUTSIDE_SHIFT") {
         setOutsideShiftWarning(err.message);
+        return;
+      }
+      /**
+       * The collision guard (see lib/collisions-api.ts). A tight
+       * turnaround between two shops is confirmable, on the same terms
+       * as out-of-hours: the manager may know she gets a lift. Being
+       * bookable in two rooms at once is not, so DOUBLE_BOOKED falls
+       * through to the plain error below with no button beside it.
+       */
+      if (code === "TRAVEL_BUFFER") {
+        setTravelWarning(err.message);
         return;
       }
       setFormError(err instanceof Error ? err.message : "Couldn't create the booking — try again.");
@@ -201,7 +223,8 @@ export function AddBookingModal({
 
     setFormError(null);
     setOutsideShiftWarning(null);
-    mutation.mutate(undefined);
+    setTravelWarning(null);
+    mutation.mutate({});
   }
 
   return (
@@ -382,7 +405,35 @@ export function AddBookingModal({
                 size="sm"
                 onClick={() => {
                   setOutsideShiftWarning(null);
-                  mutation.mutate(true);
+                  mutation.mutate({ allowOutsideShift: true });
+                }}
+                disabled={mutation.isPending}
+              >
+                Book anyway
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {travelWarning && (
+          <div className="flex flex-col gap-2 rounded-xl border border-tn-gold bg-tn-gold-bg p-3">
+            <p className="m-0 font-sans text-xs text-tn-ink-soft">{travelWarning}</p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => setTravelWarning(null)}
+                disabled={mutation.isPending}
+              >
+                Pick another time
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  setTravelWarning(null);
+                  mutation.mutate({ allowTravelWarning: true });
                 }}
                 disabled={mutation.isPending}
               >

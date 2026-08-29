@@ -120,6 +120,14 @@ export interface CreateBookingPayload {
   notes?: string;
   /** Set only after the owner has confirmed an out-of-hours slot — the server refuses one otherwise. Never bypasses the double-booking check. */
   allowOutsideShift?: boolean;
+  /**
+   * Book through a travel-buffer warning — the gap to this member's
+   * booking at another shop is shorter than the account allows for
+   * getting between them. Never overrides a genuine overlap, which comes
+   * back as DOUBLE_BOOKED with no override at all. See
+   * lib/collisions-api.ts.
+   */
+  allowTravelWarning?: boolean;
 }
 
 export function createBooking(

@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAnchoredPanel } from "@/components/ui/use-anchored-panel";
+// Shared with the availability editor's shop tabs, so a zone is labelled
+// the same wherever it's shown.
+import { utcOffsetLabel } from "@/lib/timezones";
 
 interface TimezonePickerProps {
   value: string;
@@ -47,20 +50,6 @@ function currentTimeIn(zone: string): string {
       minute: "2-digit",
       hour12: true,
     }).format(new Date());
-  } catch {
-    return "";
-  }
-}
-
-/** e.g. "UTC+1", "UTC+5:30", "UTC" — the offset row/button labels asked for, so zones can be told apart (and sorted mentally) at a glance instead of just by city name. */
-function utcOffsetLabel(zone: string): string {
-  try {
-    const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone: zone,
-      timeZoneName: "shortOffset",
-    }).formatToParts(new Date());
-    const raw = parts.find((p) => p.type === "timeZoneName")?.value ?? "";
-    return raw.replace("GMT", "UTC") || "UTC";
   } catch {
     return "";
   }

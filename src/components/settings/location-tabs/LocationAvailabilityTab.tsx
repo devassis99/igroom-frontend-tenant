@@ -92,7 +92,10 @@ function MemberIdentity({ member, isSelf }: { member: LocationStaffMember; isSel
  * Deliberately not an account-wide view: no location filter, because the
  * location is the thing you already picked to get here. It is the same
  * editor as Settings › Availability (StaffAvailabilityEditor), reached
- * with the roster pre-narrowed.
+ * with the roster pre-narrowed and the editor pinned to this shop —
+ * hours belong to a shop now, and a tab strip offering the member's
+ * other shops inside a shop's own tab would be two answers to one
+ * question.
  */
 export function LocationAvailabilityTab({ location }: { location: AccountLocation }) {
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -236,7 +239,13 @@ export function LocationAvailabilityTab({ location }: { location: AccountLocatio
               // onto the next person's week.
               key={selectedStaffUserId}
               staffUserId={selectedStaffUserId}
-              heading="Weekly hours"
+              // Pinned: the shop is the tab you're already standing in, so
+              // the editor shows this shop's week only. It still reads the
+              // member's other shops for the cross-shop note underneath —
+              // that's how "Wednesday belongs to Soho" gets said here
+              // without handing anyone Soho's editor from Valencia's tab.
+              locationId={location.id}
+              heading={`Weekly hours at ${location.name}`}
             />
           </>
         )

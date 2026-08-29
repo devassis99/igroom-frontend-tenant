@@ -13,6 +13,7 @@ import { useAppChrome } from "@/components/layout/AppShell";
 import { useAuthStore } from "@/auth/auth-store";
 import { usePermissions } from "@/auth/use-permissions";
 import { listLocations, type AccountLocation } from "@/lib/locations-api";
+import { listCollisions } from "@/lib/collisions-api";
 
 // Stable empty-array fallback — see CalendarPage.tsx's identical comment on why a fresh `[]` literal per render would defeat memoization downstream.
 const EMPTY_LOCATIONS: AccountLocation[] = [];
@@ -70,6 +71,35 @@ export function LocationsPage() {
     enabled: !!accessToken,
   });
   const locations = locationsQuery.data?.locations ?? EMPTY_LOCATIONS;
+
+  /**
+   * Standing collisions, account-wide, from the nightly sweep.
+   *
+   * Read here rather than per row so the whole list costs one request,
+   * and shown as a badge on the shops involved because that is where an
+   * owner is already looking when they wonder whether a branch is
+   * healthy — the same place "Needs working hours" lives. Failing quietly
+   * on purpose: a locations list that won't render because a warning
+   * endpoint is down is worse than one showing no warnings.
+   */
+  const collisionsQuery = useQuery({
+    queryKey: ["collisions"],
+    queryFn: () => listCollisions(accessToken ?? ""),
+    enabled: !!accessToken,
+    staleTime: 60_000,
+    retry: false,
+  });
+
+  /** locationId -> how many findings name it. A clash names two shops and is counted against both, because either one is a place to go and fix it. */
+  const collisionsByLocation = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const finding of collisionsQuery.data?.findings ?? []) {
+      for (const id of [finding.locationAId, finding.locationBId]) {
+        counts.set(id, (counts.get(id) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [collisionsQuery.data]);
 
   const canManageLocations = hasPermission("locations.manage");
   const usedSeats = locations.reduce((sum, loc) => sum + loc.staffCount, 0);
@@ -356,6 +386,17 @@ export function LocationsPage() {
                             .filter(Boolean)
                             .join(" · ")}
                     </span>
+                    {/* Ranked below "needs setup", not merged into it: a
+                        shop with no hours at all isn't bookable yet,
+                        while this one is bookable and wrong, which is
+                        the more urgent of the two but reads as noise if
+                        it displaces the setup prompt. */}
+                    {(collisionsByLocation.get(loc.id) ?? 0) > 0 && (
+                      <span className="mt-0.5 w-fit rounded-full bg-tn-danger-bg px-1.5 py-0.5 font-sans text-[10px] font-semibold text-tn-danger">
+                        {collisionsByLocation.get(loc.id)} scheduling{" "}
+                        {collisionsByLocation.get(loc.id) === 1 ? "clash" : "clashes"}
+                      </span>
+                    )}
                   </div>
 
                   <span className="truncate font-sans text-xs text-tn-muted-5" title={loc.address}>
