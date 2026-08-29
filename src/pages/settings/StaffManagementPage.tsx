@@ -12,7 +12,13 @@ import { AddMemberWizard } from "@/components/settings/AddMemberWizard";
 import { EditMemberModal } from "@/components/settings/EditMemberModal";
 import { useAuthStore } from "@/auth/auth-store";
 import { usePermissions } from "@/auth/use-permissions";
-import { listStaff, resendStaffInvite, setStaffActive, type StaffMember } from "@/lib/staff-api";
+import {
+  createStaffInviteLink,
+  listStaff,
+  resendStaffInvite,
+  setStaffActive,
+  type StaffMember,
+} from "@/lib/staff-api";
 import {
   listRoles,
   listPermissionsCatalog,
@@ -307,6 +313,8 @@ export function StaffManagementPage() {
       // outcomes both re-minted a valid link but delivered nothing, and
       // they need different fixes — so they get different words.
       setResentFor(result.invite.delivery === "sent" ? staffId : null);
+      // Same in reverse — a resend supersedes a link somebody just copied.
+      setCopiedFor(null);
       if (result.invite.delivery === "sent") {
         setInviteToast({ message: "Invite sent", tone: "success" });
       } else if (result.invite.delivery === "logged") {
@@ -323,6 +331,45 @@ export function StaffManagementPage() {
     },
     onError: () =>
       setInviteToast({ message: "Couldn't resend the invite — try again", tone: "danger" }),
+  });
+
+  /**
+   * "Copy link" — the same setup link, to pass on by hand when email
+   * isn't getting there. Common enough on a fresh install (no provider
+   * configured) or an unverified sending domain that telling an owner to
+   * go and read the server console is not a real answer.
+   *
+   * Two things it has to be honest about, both of which the toast says:
+   * it supersedes the emailed link (the server can only mint, never look
+   * up — the token is stored hashed), and the thing now on the clipboard
+   * is a credential.
+   */
+  const [copiedFor, setCopiedFor] = useState<string | null>(null);
+  const copyLinkMutation = useMutation({
+    mutationFn: async (staffId: string) => {
+      const { invite } = await createStaffInviteLink(accessToken ?? "", staffId);
+      // Written inside the mutation so a clipboard rejection — an
+      // insecure origin, a browser that wants a fresher user gesture —
+      // surfaces as a failure rather than a silent success over an empty
+      // clipboard. The link is in the message either way.
+      await navigator.clipboard.writeText(invite.url);
+      return invite;
+    },
+    onSuccess: (_invite, staffId) => {
+      setCopiedFor(staffId);
+      // Copying minted a new token, so whatever "Sent" referred to is
+      // dead. Leaving both badges up would claim two working links.
+      setResentFor(null);
+      setInviteToast({
+        message: "Setup link copied — it replaces the emailed one, so send it to them directly",
+        tone: "notice",
+      });
+    },
+    onError: () =>
+      setInviteToast({
+        message: "Couldn't copy the link — check clipboard permissions and try again",
+        tone: "danger",
+      }),
   });
 
   const toggleActiveMutation = useMutation({
@@ -526,6 +573,22 @@ export function StaffManagementPage() {
                           className="cursor-pointer border-none bg-transparent p-0 font-sans text-[11px] font-semibold text-tn-gold disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           {resentFor === member.id ? "Sent" : "Resend"}
+                        </button>
+                      )}
+                      {!member.claimed && member.isActive && (
+                        <button
+                          type="button"
+                          title={
+                            canManageStaff
+                              ? "Copy a setup link to send them yourself — replaces the emailed one"
+                              : "You don't have permission to do this"
+                          }
+                          aria-label={`Copy a setup link for ${member.name}`}
+                          onClick={() => copyLinkMutation.mutate(member.id)}
+                          disabled={!canManageStaff || copyLinkMutation.isPending}
+                          className="cursor-pointer border-none bg-transparent p-0 font-sans text-[11px] font-semibold text-tn-muted-5 hover:text-tn-ink disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {copiedFor === member.id ? "Copied" : "Copy link"}
                         </button>
                       )}
                       <button

@@ -205,3 +205,26 @@ export function resendStaffInvite(
     headers: authHeaders(accessToken),
   });
 }
+
+/**
+ * A setup link to hand over by some other means, for when email won't do
+ * the job.
+ *
+ * Mints a new one rather than reading the existing link back — the
+ * server only ever stores the token's hash, so no link can be looked up
+ * after it is issued. Taking one therefore supersedes whatever was
+ * emailed, which the UI has to say out loud rather than leave the owner
+ * to discover.
+ *
+ * Sends no email. The returned URL is a credential: anyone holding it
+ * can claim that member's account until it is superseded or expires.
+ */
+export function createStaffInviteLink(
+  accessToken: string,
+  staffId: string,
+): Promise<{ invite: { url: string; expiresAt: string } }> {
+  return request(`/staff/${staffId}/invite/link`, {
+    method: "POST",
+    headers: authHeaders(accessToken),
+  });
+}
