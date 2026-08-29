@@ -784,8 +784,9 @@ export function StaffAvailabilityEditor({
               : `${findings.length} collisions are already booked into this schedule`}
           </p>
           <p className="m-0 mt-1 font-sans text-xs leading-relaxed text-tn-muted-5">
-            Found by the nightly check, with nobody having edited anything — usually a clock change
-            moving hours that were fine when they were set.
+            Found by the nightly check rather than by anything anyone did — a clock change moving
+            hours that were fine when they were set, a shop's timezone corrected, or somebody added
+            to a second shop.
           </p>
           <ul className="m-0 mt-2 flex list-none flex-col gap-1 p-0">
             {findings.slice(0, 4).map((finding) => (
