@@ -4,6 +4,8 @@ dist-ssr/
 *.local
 .env
 .env.*.local
+# Written by deploy/aws-env.sh at build time.
+.env.production
 
 # Editor / OS
 .DS_Store

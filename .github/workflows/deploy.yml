@@ -1,0 +1,103 @@
+# Build the the shop owner's app and publish it to S3.
+#
+# A static site, so there is no server to roll: the bucket holds the whole
+# app and every deploy is an upload. The order and the cache headers below
+# are the only two things that make that safe.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  # One deploy at a time. Two overlapping uploads can interleave assets
+  # and index.html from different builds.
+  group: deploy-tenant
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: eu-west-1
+  S3_BUCKET: igroom-app-tenant
+  SECRETS_MANAGER_SECRET_ID: igroom/frontend-tenant
+
+permissions:
+  # OIDC, so there are no AWS keys in the repository.
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm test
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/igroomGithubDeployRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Fetch build-time configuration
+        run: sh deploy/aws-env.sh
+
+      # `pnpm build` is `tsc --noEmit && vite build`, so a type error stops
+      # the deploy before anything reaches the bucket.
+      - run: pnpm build
+
+      # Assets first, and never deleted. Every filename under assets/
+      # carries a content hash, so a year-long immutable cache is correct
+      # and two builds can coexist — which matters because somebody has
+      # the old index.html open right now, and it will keep asking for the
+      # old chunks until they reload.
+      - name: Upload hashed assets
+        run: |
+          aws s3 sync dist/assets "s3://$S3_BUCKET/assets" \
+            --exclude "*.map" --exclude "*.br" --exclude "*.gz" \
+            --cache-control "public,max-age=31536000,immutable" \
+            --no-progress
+
+      # Anything else Vite copied to the root — a favicon, robots.txt,
+      # a manifest. Not content-hashed, so it gets a short cache instead
+      # of an immutable one, or a new favicon would never appear.
+      - name: Upload unhashed root files
+        run: |
+          aws s3 sync dist "s3://$S3_BUCKET" \
+            --exclude "*" --include "*.*" \
+            --exclude "assets/*" --exclude "index.html" \
+            --exclude "*.map" --exclude "*.br" --exclude "*.gz" \
+            --cache-control "public,max-age=300" \
+            --no-progress
+
+      # index.html last, and never cached. It is the file that names which
+      # asset hashes this release uses, so publishing it before its assets
+      # exist is a white screen for whoever loads the site in between.
+      - name: Upload index.html
+        run: |
+          aws s3 cp dist/index.html "s3://$S3_BUCKET/index.html" \
+            --cache-control "no-cache,no-store,must-revalidate" \
+            --content-type "text/html; charset=utf-8" \
+            --no-progress
+
+      # No CloudFront yet. When there is one, set the repository variable
+      # and this starts working without any other change — S3 serves the
+      # new file immediately, but an edge cache would go on serving the
+      # old index.html for as long as it is allowed to.
+      - name: Invalidate CloudFront
+        if: vars.CLOUDFRONT_DISTRIBUTION_ID != ''
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" \
+            --paths "/index.html" "/"
