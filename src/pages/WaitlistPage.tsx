@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
@@ -9,7 +9,9 @@ import { SeatChairModal } from "@/components/waitlist/SeatChairModal";
 import { useAuthStore } from "@/auth/auth-store";
 import { ApiError } from "@/lib/http";
 import { listLocations } from "@/lib/locations-api";
+import { setBookingCheckedIn, updateBooking } from "@/lib/bookings-api";
 import { staffAvatarColorStrong } from "@/lib/staff-avatar-color";
+import { invalidateVisitCaches } from "@/lib/visit-cache";
 import {
   addWalkIn,
   callInEntry,
@@ -19,6 +21,7 @@ import {
   cancelWaitlistEntry,
   seatEntry,
   waitlistKeys,
+  type NowServingEntry,
   type WaitingEntry,
   type WaitlistBoard,
   type WaitlistChair,
@@ -39,21 +42,6 @@ const POLL_MS = 15_000;
 
 /** Circumference of the progress ring below, for r=46 on a 100×100 viewBox. */
 const RING_CIRCUMFERENCE = 2 * Math.PI * 46;
-
-/**
- * Read at the moment the ring draws rather than through a hook.
- *
- * The CSS already switches the transition off under this preference, but
- * the ring also needs to skip its deliberately-empty first frame —
- * otherwise somebody who asked for less motion gets a flash of an empty
- * ring snapping to full, which is more motion than they'd have had.
- */
-function prefersReducedMotion(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true
-  );
-}
 
 function errorMessage(error: unknown): string | null {
   if (!error) return null;
@@ -80,12 +68,23 @@ export function WaitlistPage() {
    * along a track rather than a page replacement.
    */
   const [viewDirection, setViewDirection] = useState<"forward" | "back">("forward");
+  /**
+   * Which kind of change the next animation is for.
+   *
+   * A List/Board switch is a move along a track, so it slides in the
+   * direction you travelled. Changing branch is not a move — there is no
+   * left or right about Valencia versus Gentry — so it gets the neutral
+   * rise-and-fade instead. Using the directional slide for both would
+   * imply a spatial relationship between two shops that does not exist.
+   */
+  const [transitionKind, setTransitionKind] = useState<"view" | "location">("location");
   const [chosenLocationId, setChosenLocationId] = useState<string | null>(null);
   const [walkInOpen, setWalkInOpen] = useState(false);
   const [seatTarget, setSeatTarget] = useState<WaitingEntry | null>(null);
 
   const changeView = (next: View) => {
     setViewDirection(next === "board" ? "forward" : "back");
+    setTransitionKind("view");
     setView(next);
   };
 
@@ -140,20 +139,23 @@ export function WaitlistPage() {
     placeholderData: keepPreviousData,
   });
   const board = boardQuery.data;
+  /**
+   * True while the picked branch and the branch on screen disagree — the
+   * window between choosing a shop and its board arriving.
+   */
+  const isSwitchingBranch =
+    !!board && !!selectedLocationId && board.locationId !== selectedLocationId;
 
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: waitlistKeys.board(selectedLocationId) });
 
   /**
    * Seating and completing both write to the calendar as well as the
-   * queue, so the bookings caches are invalidated too — otherwise a
-   * walk-in seated here doesn't appear on the calendar until something
-   * else happens to refetch it.
+   * queue, so every view of the visit re-reads — otherwise a walk-in
+   * seated here doesn't appear on the calendar until something else
+   * happens to refetch it. See lib/visit-cache.ts.
    */
-  const invalidateEverything = async () => {
-    await refresh();
-    await queryClient.invalidateQueries({ queryKey: ["bookings"] });
-  };
+  const invalidateEverything = () => invalidateVisitCaches(queryClient);
 
   const callIn = useMutation({
     mutationFn: (entryId: string) => callInEntry(accessToken ?? "", entryId),
@@ -167,10 +169,36 @@ export function WaitlistPage() {
       await invalidateEverything();
     },
   });
-  const complete = useMutation({
-    mutationFn: (entryId: string) => completeEntry(accessToken ?? "", entryId),
+  /**
+   * Two sources, two APIs.
+   *
+   * A seated walk-in is a waitlist entry and finishes through the
+   * waitlist (which completes the booking seating created). A checked-in
+   * appointment was never in the queue and has no entry to finish — its
+   * `entryId` is a synthetic `booking:<id>` — so it goes straight to the
+   * bookings API. Routing on `source` rather than on whether `bookingId`
+   * is set matters because a seated walk-in has one of those too.
+   */
+  const complete = useMutation<void, Error, NowServingEntry>({
+    mutationFn: async (entry) => {
+      if (entry.source === "appointment" && entry.bookingId) {
+        await updateBooking(accessToken ?? "", entry.bookingId, { status: "completed" });
+        return;
+      }
+      await completeEntry(accessToken ?? "", entry.entryId);
+    },
     onSuccess: invalidateEverything,
   });
+  /**
+   * A no-show is a customer who never turned up, and it is a mark
+   * against them that a shop may count. So it is only offered for
+   * somebody who has been called and hasn't come to the chair — never
+   * for a row in NOW SERVING, where the person is either seated by a
+   * barber or checked in at the desk. Both of those are proof they are
+   * here, and the API refuses the contradiction as well (see
+   * bookings.service.ts's updateBooking and waitlist.service.ts's
+   * endEntry) so no other screen can record one either.
+   */
   const noShow = useMutation({
     mutationFn: (entryId: string) => noShowEntry(accessToken ?? "", entryId),
     onSuccess: invalidateEverything,
@@ -178,6 +206,26 @@ export function WaitlistPage() {
   const cancel = useMutation({
     mutationFn: (entryId: string) => cancelWaitlistEntry(accessToken ?? "", entryId),
     onSuccess: refresh,
+  });
+  /**
+   * Taking a row out of a chair for any reason other than finishing it.
+   *
+   * Different act depending on where the row came from: a seated
+   * walk-in's queue entry is cancelled (and its booking with it), while
+   * a checked-in appointment just stops being checked in — the
+   * appointment itself is still on the calendar, and whether it ends up
+   * completed or a no-show is a question for later, once nobody is
+   * claiming they are in the building.
+   */
+  const clearChair = useMutation<void, Error, NowServingEntry>({
+    mutationFn: async (entry) => {
+      if (entry.source === "appointment" && entry.bookingId) {
+        await setBookingCheckedIn(accessToken ?? "", entry.bookingId, false);
+        return;
+      }
+      await cancelWaitlistEntry(accessToken ?? "", entry.entryId);
+    },
+    onSuccess: invalidateEverything,
   });
   const add = useMutation({
     mutationFn: (input: Parameters<typeof addWalkIn>[1]) => addWalkIn(accessToken ?? "", input),
@@ -202,7 +250,10 @@ export function WaitlistPage() {
             <LocationFilterPopover
               locations={locations}
               value={selectedLocationId}
-              onChange={setChosenLocationId}
+              onChange={(next) => {
+                setTransitionKind("location");
+                setChosenLocationId(next);
+              }}
               label="Filter by location"
               includeAllOption={false}
             />
@@ -267,36 +318,59 @@ export function WaitlistPage() {
         </div>
       ) : !board ? null : (
         /*
-         * `key` on the view is what replays the animation: React swaps
-         * the subtree, and an animation plays from its own `from` value
-         * the moment an element is inserted. A CSS transition would need
-         * the browser to have painted a "before" state that never exists
-         * here.
+         * `key` is what replays the animation: React swaps the subtree,
+         * and an animation plays from its own `from` value the moment an
+         * element is inserted. A CSS transition would need the browser to
+         * have painted a "before" state that never exists here.
+         *
+         * Keyed on the *board's* location rather than the picked one, so
+         * a branch change animates when its data actually lands. Keyed on
+         * the selection, the animation would play immediately over the
+         * previous shop's rows — `keepPreviousData` holds them on screen
+         * while the new read is in flight — and the real content would
+         * then appear mid-animation with no transition of its own.
          */
         <div
-          key={view}
+          key={`${view}:${board.locationId}`}
           className={`flex flex-col gap-7 ${
-            viewDirection === "forward" ? "tn-view-in-forward" : "tn-view-in-back"
+            transitionKind === "location"
+              ? "tn-content-in"
+              : viewDirection === "forward"
+                ? "tn-view-in-forward"
+                : "tn-view-in-back"
+          } ${
+            // The rows on screen belong to the shop we are leaving until
+            // the new read lands. Dimmed and inert for that moment: this
+            // is a screen with Complete and No-show buttons on it, and
+            // acting on the previous branch's queue by accident is a real
+            // way to lose somebody's place in line.
+            isSwitchingBranch
+              ? "pointer-events-none opacity-45 transition-opacity duration-200"
+              : ""
           }`}
+          aria-busy={isSwitchingBranch}
         >
           {view === "list" ? (
             <ListView
               board={board}
               onCallIn={(entryId) => callIn.mutate(entryId)}
               onSeat={setSeatTarget}
-              onComplete={(entryId) => complete.mutate(entryId)}
+              onComplete={(entry) => complete.mutate(entry)}
+              onClearChair={(entry) => clearChair.mutate(entry)}
               onNoShow={(entryId) => noShow.mutate(entryId)}
               onCancel={(entryId) => cancel.mutate(entryId)}
               busyEntryId={
                 callIn.isPending
                   ? callIn.variables
                   : complete.isPending
-                    ? complete.variables
-                    : noShow.isPending
-                      ? noShow.variables
-                      : cancel.isPending
-                        ? cancel.variables
-                        : null
+                    ? complete.variables.entryId
+                    : clearChair.isPending
+                      ? clearChair.variables.entryId
+                      : noShow.isPending
+                        ? noShow.variables
+                        : cancel.isPending
+                          ? cancel.variables
+                          : null
               }
             />
           ) : (
@@ -342,7 +416,8 @@ interface ListViewProps {
   board: WaitlistBoard;
   onCallIn: (entryId: string) => void;
   onSeat: (entry: WaitingEntry) => void;
-  onComplete: (entryId: string) => void;
+  onComplete: (entry: NowServingEntry) => void;
+  onClearChair: (entry: NowServingEntry) => void;
   onNoShow: (entryId: string) => void;
   onCancel: (entryId: string) => void;
   busyEntryId: string | null | undefined;
@@ -353,6 +428,7 @@ function ListView({
   onCallIn,
   onSeat,
   onComplete,
+  onClearChair,
   onNoShow,
   onCancel,
   busyEntryId,
@@ -372,7 +448,7 @@ function ListView({
               return (
                 <div
                   key={entry.entryId}
-                  className={`flex flex-wrap items-center gap-4 px-[18px] py-3.5 ${
+                  className={`group flex flex-wrap items-center gap-4 px-[18px] py-3.5 ${
                     index < board.nowServing.length - 1 ? "border-b border-tn-border-soft" : ""
                   }`}
                 >
@@ -395,22 +471,32 @@ function ListView({
                   >
                     {time.text}
                   </span>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
                     <Button
                       size="sm"
-                      onClick={() => onComplete(entry.entryId)}
+                      onClick={() => onComplete(entry)}
                       disabled={busyEntryId === entry.entryId}
                     >
                       Complete
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => onNoShow(entry.entryId)}
+                    {/*
+                      Where No-show used to sit. Somebody in a chair is
+                      here — a barber seated them, or the desk checked
+                      them in — so the only other way this row ends is
+                      that they left, which is not the same thing and
+                      shouldn't cost the customer a no-show. Quiet and
+                      hover-revealed on a pointer, always visible on the
+                      tablet at the desk, same treatment as Remove in the
+                      queue below.
+                    */}
+                    <button
+                      type="button"
+                      onClick={() => onClearChair(entry)}
                       disabled={busyEntryId === entry.entryId}
+                      className="cursor-pointer border-none bg-transparent font-sans text-xs text-tn-muted-6 hover:text-tn-danger sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100"
                     >
-                      No-show
-                    </Button>
+                      {entry.source === "appointment" ? "Undo check-in" : "Remove"}
+                    </button>
                   </div>
                 </div>
               );
@@ -423,12 +509,67 @@ function ListView({
         <p className="m-0 mb-3 font-sans text-[13px] font-semibold tracking-[0.02em] text-tn-muted-1">
           WAITING
         </p>
-        {board.waiting.length === 0 ? (
+        {/*
+          Checked-in appointments, above the queue.
+          
+          They are shown as their own group rather than numbered into the
+          line because they are not in it: they have a time, not a
+          position, and nobody ahead of them in the queue delays them.
+          Before this the board read the walk-in table and nothing else,
+          so checking a booked client in on the calendar appeared to do
+          nothing at all.
+        */}
+        {board.arrivals.length > 0 && (
+          <div className="mb-3 flex flex-col overflow-hidden rounded-2xl border border-tn-border">
+            {board.arrivals.map((arrival, index) => (
+              <div
+                key={arrival.bookingId}
+                className={`flex flex-wrap items-center gap-4 px-[18px] py-3.5 ${
+                  index < board.arrivals.length - 1 ? "border-b border-tn-border-soft" : ""
+                }`}
+              >
+                <span className="w-8 shrink-0">
+                  <span
+                    aria-hidden
+                    className="inline-block h-[7px] w-[7px] rounded-full bg-tn-success"
+                  />
+                </span>
+                <div className="min-w-[180px] flex-1">
+                  <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">
+                    {arrival.customerName} · {arrival.serviceName}
+                  </p>
+                  <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
+                    Booked{" "}
+                    {new Date(arrival.startAt).toLocaleTimeString([], {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                    {arrival.staffName ? ` with ${arrival.staffName.split(" ")[0]}` : ""} · here{" "}
+                    {arrival.waitingMinutes} min
+                  </p>
+                </div>
+                <span
+                  className={`rounded-full px-2.5 py-1 font-sans text-[11px] font-semibold ${
+                    arrival.minutesLateStarting > 5
+                      ? "bg-tn-danger-bg text-tn-danger"
+                      : "bg-tn-success-bg text-tn-success"
+                  }`}
+                >
+                  {arrival.minutesLateStarting > 5
+                    ? `${arrival.minutesLateStarting} min late`
+                    : "Checked in"}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {board.waiting.length === 0 && board.arrivals.length === 0 ? (
           <EmptyPanel>
             Nobody's waiting. Anyone who joins from the app, a QR code or the button above lands
             here.
           </EmptyPanel>
-        ) : (
+        ) : board.waiting.length === 0 ? null : (
           <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
             {board.waiting.map((entry, index) => (
               <div
@@ -485,6 +626,23 @@ function ListView({
                     thumb next to "Call In", but it also can't be
                     unreachable on the tablet most front desks use.
                   */}
+                  {/*
+                    The one place a no-show belongs: they were called and
+                    didn't come to the chair. Hidden until they have been
+                    called, because until then nobody has asked them to
+                    be anywhere — a name that has simply been in the line
+                    a while is a Remove, not a mark against them.
+                  */}
+                  {entry.status === "notified" && (
+                    <button
+                      type="button"
+                      onClick={() => onNoShow(entry.entryId)}
+                      disabled={busyEntryId === entry.entryId}
+                      className="cursor-pointer border-none bg-transparent font-sans text-xs text-tn-muted-6 hover:text-tn-danger sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100"
+                    >
+                      No-show
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => onCancel(entry.entryId)}
@@ -517,8 +675,8 @@ function BoardView({
           CHAIRS — NOW SERVING
         </p>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {board.chairs.map((chair, index) => (
-            <ChairCard key={chair.staffUserId} chair={chair} index={index} />
+          {board.chairs.map((chair) => (
+            <ChairCard key={chair.staffUserId} chair={chair} />
           ))}
         </div>
       </div>
@@ -568,23 +726,8 @@ function BoardView({
   );
 }
 
-function ChairCard({ chair, index }: { chair: WaitlistChair; index: number }) {
+function ChairCard({ chair }: { chair: WaitlistChair }) {
   const current = chair.current;
-  const ringRef = useRef<SVGCircleElement>(null);
-  /**
-   * Whether this ring has already been drawn once.
-   *
-   * The board re-reads itself every fifteen seconds, and a ring that
-   * restarted from empty on every poll would be a permanently
-   * re-animating dial rather than a reading. So the grow-from-zero
-   * happens on mount only; after that a changed value just transitions
-   * from wherever it was, which for a fifteen-second tick is a
-   * fraction of a degree nobody will notice.
-   *
-   * Switching to the Board view remounts these (the view wrapper is
-   * keyed on `view`), which is exactly when the draw *should* replay.
-   */
-  const hasDrawn = useRef(false);
   const time = chairTimeLabel(current?.minutesLeft ?? null);
 
   /**
@@ -597,30 +740,6 @@ function ChairCard({ chair, index }: { chair: WaitlistChair; index: number }) {
     current && current.durationMinutes > 0 && current.minutesLeft !== null
       ? Math.min(1, Math.max(0, 1 - current.minutesLeft / current.durationMinutes))
       : 0;
-
-  useLayoutEffect(() => {
-    const ring = ringRef.current;
-    if (!ring) return;
-    const target = String(RING_CIRCUMFERENCE * (1 - progress));
-
-    if (hasDrawn.current || prefersReducedMotion()) {
-      ring.style.strokeDashoffset = target;
-      hasDrawn.current = true;
-      return;
-    }
-
-    // Empty first, committed and painted, and only then the transition
-    // and the real value — see .tn-ring-draw in index.css.
-    ring.style.strokeDashoffset = String(RING_CIRCUMFERENCE);
-    hasDrawn.current = true;
-    const frame = requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        ring.classList.add("tn-ring-draw");
-        ring.style.strokeDashoffset = target;
-      });
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [progress]);
 
   if (!current) {
     return (
@@ -650,8 +769,14 @@ function ChairCard({ chair, index }: { chair: WaitlistChair; index: number }) {
             stroke="var(--color-tn-border-soft)"
             strokeWidth="7"
           />
+          {/*
+            Drawn straight at its value, with no entrance animation.
+            The ring is a *reading* — how far through the appointment this
+            chair is — and the board re-reads itself every fifteen
+            seconds, so anything that animates on arrival is motion the
+            desk sees over and over for no information.
+          */}
           <circle
-            ref={ringRef}
             cx="50"
             cy="50"
             r="46"
@@ -659,16 +784,7 @@ function ChairCard({ chair, index }: { chair: WaitlistChair; index: number }) {
             stroke={time.over ? "var(--color-tn-danger)" : "var(--color-tn-gold)"}
             strokeWidth="7"
             strokeLinecap="round"
-            strokeDasharray={RING_CIRCUMFERENCE}
-            /*
-             * Starts empty in the markup so there is no frame of a full
-             * ring before the effect above runs — the effect sets the
-             * real value, and on first mount animates to it.
-             */
-            strokeDashoffset={RING_CIRCUMFERENCE}
-            // A short stagger across the row, so the chairs read as a set
-            // filling in rather than one simultaneous flash.
-            style={{ transitionDelay: `${Math.min(index, 6) * 180}ms` }}
+            strokeDasharray={`${progress * RING_CIRCUMFERENCE} ${RING_CIRCUMFERENCE}`}
           />
         </svg>
         <Avatar

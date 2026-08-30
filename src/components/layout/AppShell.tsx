@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { NavLink, Outlet, useLocation, useNavigate, useOutletContext } from "react-router";
 import { useAuthStore } from "@/auth/auth-store";
 import { usePermissions } from "@/auth/use-permissions";
@@ -9,41 +9,84 @@ import { WhatsNewDrawer } from "./WhatsNewDrawer";
 
 type NavIconComponent = (props: { className?: string }) => ReactNode;
 
-const NAV_ITEMS: Array<{
-  to: string;
-  label: string;
-  icon: NavIconComponent;
-  /**
-   * staff_permissions.key needed to see this row. Omitted means everyone
-   * signed in gets it. Kept in sync with auth/route-permissions.ts, which
-   * is what actually gates the route — a row listed here without a
-   * matching entry there would be hidden but still reachable by URL.
-   */
-  permission?: string;
-}> = [
-  // Label is "Home" even though the URL stays "/dashboard" — see
-  // HomePage.tsx's comment on why the mockup's single T6 Owner Dashboard
-  // frame is now split into this (onboarding/welcome) and Analytics
-  // (reporting) below.
-  { to: "/dashboard", label: "Home", icon: HomeIcon },
-  { to: "/calendar", label: "Calendar", icon: CalendarIcon, permission: "bookings.view" },
-  { to: "/waitlist", label: "Waitlist", icon: WaitlistIcon, permission: "bookings.view" },
-  // Next to Waitlist and Calendar because that is the order of a visit:
-  // they arrive, they sit, they pay.
-  { to: "/register", label: "Register", icon: RegisterIcon, permission: "pos.register" },
-  { to: "/analytics", label: "Analytics", icon: AnalyticsIcon, permission: "bookings.view" },
-  { to: "/services", label: "Services", icon: ServicesIcon, permission: "services.view" },
-  // Promoted out of Settings > Workspace: a shop is something an owner
-  // works *in* all day (rosters, menus, takings per site), not a
-  // configure-once account setting, and burying it two navs deep made
-  // every "which branch?" question a detour through Settings.
-  { to: "/locations", label: "Locations", icon: LocationsIcon, permission: "locations.view" },
-  { to: "/staff", label: "Staff", icon: StaffIcon, permission: "staff.view" },
-  { to: "/customers", label: "Customers", icon: CustomersIcon, permission: "customers.view" },
-  { to: "/close-of-day", label: "Close of day", icon: CloseOfDayIcon, permission: "pos.close" },
-  { to: "/payments", label: "Payments", icon: PaymentsIcon, permission: "billing.view" },
+/**
+ * The sidebar, grouped by *how often a row is opened* rather than by how
+ * the features were built. The three bands are the three rhythms a shop
+ * runs on:
+ *
+ * - **the shift** — open all day, usually by two people at once.
+ * - **the business** — the owner, weekly.
+ * - **setup** — touched when something changes, which is rarely.
+ *
+ * Eleven flat rows is right at the edge where people stop reading a list
+ * and start hunting it, so the grouping is worth more than any single
+ * reordering. It is expressed as nested arrays rather than a `band` field
+ * per row on purpose: the shape *is* the grouping, nothing can be filed
+ * in the wrong place, and every row stays one readable line instead of
+ * being exploded across six by the formatter.
+ */
+const NAV_BANDS: Array<
+  Array<{
+    to: string;
+    label: string;
+    icon: NavIconComponent;
+    /**
+     * staff_permissions.key needed to see this row. Omitted means everyone
+     * signed in gets it. Kept in sync with auth/route-permissions.ts, which
+     * is what actually gates the route — a row listed here without a
+     * matching entry there would be hidden but still reachable by URL.
+     */
+    permission?: string;
+  }>
+> = [
+  [
+    // Label is "Home" even though the URL stays "/dashboard" — see
+    // HomePage.tsx's comment on why the mockup's single T6 Owner Dashboard
+    // frame is now split into this (onboarding/welcome) and Analytics
+    // (reporting) below.
+    { to: "/dashboard", label: "Home", icon: HomeIcon },
+  ],
+  [
+    // The shift, in the order a visit happens: they arrive, they sit,
+    // they pay — and at the end of the night somebody counts up.
+    //
+    // Close of day sits here rather than with the weekly reports (where
+    // it started) because every other row in this nav is a *place* and
+    // these two are a *sequence*: same person, same money, minutes apart.
+    // Filed under reporting it reads as something you look at instead of
+    // something you do before locking up.
+    { to: "/calendar", label: "Calendar", icon: CalendarIcon, permission: "bookings.view" },
+    { to: "/waitlist", label: "Waitlist", icon: WaitlistIcon, permission: "bookings.view" },
+    { to: "/register", label: "Register", icon: RegisterIcon, permission: "pos.register" },
+    { to: "/close-of-day", label: "Close of day", icon: CloseOfDayIcon, permission: "pos.close" },
+  ],
+  [
+    // The business. Customers outranks Analytics because a front desk
+    // looks a client up several times a day and nobody opens Analytics on
+    // a Saturday.
+    //
+    // "Payouts", not "Payments": this is money coming *to* the shop —
+    // what is pending, where it lands, what has been paid over. Two rows
+    // under a register, "Payments" read as "where the takings live",
+    // which is Register's job. It is also the opposite direction from
+    // Settings > Billing, the shop's own subscription to iGroom.
+    { to: "/customers", label: "Customers", icon: CustomersIcon, permission: "customers.view" },
+    { to: "/analytics", label: "Analytics", icon: AnalyticsIcon, permission: "bookings.view" },
+    { to: "/payouts", label: "Payouts", icon: PaymentsIcon, permission: "billing.view" },
+  ],
+  [
+    // Setup. Menus change with the season, people come and go, branches
+    // almost never do.
+    //
+    // Locations was promoted out of Settings > Workspace: a shop is
+    // something an owner works *in* all day (rosters, menus, takings per
+    // site), not a configure-once account setting, and burying it two
+    // navs deep made every "which branch?" question a detour.
+    { to: "/services", label: "Services", icon: ServicesIcon, permission: "services.view" },
+    { to: "/staff", label: "Staff", icon: StaffIcon, permission: "staff.view" },
+    { to: "/locations", label: "Locations", icon: LocationsIcon, permission: "locations.view" },
+  ],
 ];
-
 /** Till drawer for the Register — a rectangle with a handle, not a card, since the register is the whole sale and not only the card part. */
 function RegisterIcon({ className = "" }: { className?: string }) {
   return (
@@ -285,7 +328,14 @@ export function AppShell() {
   const owner = useAuthStore((s) => s.owner);
   const { has, isReady } = usePermissions();
 
-  const visibleNavItems = NAV_ITEMS.filter((item) => !item.permission || has(item.permission));
+  /**
+   * Bands that emptied out under the permission filter are dropped
+   * entirely, so a role that can only see part of the list never gets a
+   * separator against the top of the nav or two of them in a row.
+   */
+  const visibleBands = NAV_BANDS.map((band) =>
+    band.filter((item) => !item.permission || has(item.permission)),
+  ).filter((band) => band.length > 0);
 
   // The route half of the same rule the sidebar filter applies, so a
   // hidden menu row isn't still reachable by typing its URL. Waits rather
@@ -378,40 +428,55 @@ export function AppShell() {
         </div>
 
         <nav className="flex flex-col gap-0.5">
-          {visibleNavItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end
-              // Calendar-only: clicking this link while already on /calendar is a
-              // same-route navigation — the route doesn't change, so CalendarPage
-              // stays mounted and whatever day/scroll position the user had paged
-              // to (e.g. next week, scrolled away from "now") just sits there.
-              // Stamping a fresh `resetToken` in navigation state on every click
-              // still updates `location.state` (a new history entry, new key)
-              // even when the pathname is unchanged, which is what lets
-              // CalendarPage's own effect (see its `useLocation` usage) notice
-              // the click and jump back to today, exactly like its "Today"
-              // button already does. Other nav items don't need this — their
-              // pages don't carry the same "date you were last looking at"
-              // state that a plain route remount wouldn't already reset.
-              state={item.to === "/calendar" ? { resetToken: Date.now() } : undefined}
-              title={collapsed ? item.label : undefined}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-6 py-[11px] font-sans text-[13px] transition-colors duration-200 ${
-                  isActive
-                    ? "bg-tn-dark font-semibold text-tn-on-dark"
-                    : "font-medium text-tn-nav-inactive hover:bg-tn-page hover:text-tn-ink-soft"
-                }`
-              }
-            >
-              {() => (
-                <>
-                  <item.icon className="h-[18px] w-[18px] shrink-0" />
-                  <CollapsibleLabel collapsed={collapsed}>{item.label}</CollapsibleLabel>
-                </>
+          {visibleBands.map((band, bandIndex) => (
+            <Fragment key={band[0]!.to}>
+              {bandIndex > 0 && (
+                <span
+                  aria-hidden
+                  // tn-border, not tn-border-soft: the sidebar inherits
+                  // tn-page (oklch 93%) and border-soft is 93% too, so
+                  // the rule was invisible and only the margin was doing
+                  // any work. An element that pretends to be a divider
+                  // and isn't one is worse than no element.
+                  className="mx-6 my-2 h-px shrink-0 bg-tn-border"
+                />
               )}
-            </NavLink>
+              {band.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end
+                  // Calendar-only: clicking this link while already on /calendar is a
+                  // same-route navigation — the route doesn't change, so CalendarPage
+                  // stays mounted and whatever day/scroll position the user had paged
+                  // to (e.g. next week, scrolled away from "now") just sits there.
+                  // Stamping a fresh `resetToken` in navigation state on every click
+                  // still updates `location.state` (a new history entry, new key)
+                  // even when the pathname is unchanged, which is what lets
+                  // CalendarPage's own effect (see its `useLocation` usage) notice
+                  // the click and jump back to today, exactly like its "Today"
+                  // button already does. Other nav items don't need this — their
+                  // pages don't carry the same "date you were last looking at"
+                  // state that a plain route remount wouldn't already reset.
+                  state={item.to === "/calendar" ? { resetToken: Date.now() } : undefined}
+                  title={collapsed ? item.label : undefined}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-6 py-[11px] font-sans text-[13px] transition-colors duration-200 ${
+                      isActive
+                        ? "bg-tn-dark font-semibold text-tn-on-dark"
+                        : "font-medium text-tn-nav-inactive hover:bg-tn-page hover:text-tn-ink-soft"
+                    }`
+                  }
+                >
+                  {() => (
+                    <>
+                      <item.icon className="h-[18px] w-[18px] shrink-0" />
+                      <CollapsibleLabel collapsed={collapsed}>{item.label}</CollapsibleLabel>
+                    </>
+                  )}
+                </NavLink>
+              ))}
+            </Fragment>
           ))}
         </nav>
 

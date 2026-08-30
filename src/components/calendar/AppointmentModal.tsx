@@ -7,6 +7,7 @@ import { Field, formInputClass, formSelectClass } from "@/components/ui/FormFiel
 import { TimePicker } from "@/components/ui/TimePicker";
 import {
   cancelBooking,
+  setBookingCheckedIn,
   updateBooking,
   getBookingReviews,
   type Booking,
@@ -14,6 +15,7 @@ import {
 } from "@/lib/bookings-api";
 import { BOOKING_STATUS_TONE } from "@/lib/booking-status";
 import { formatDateTimeLabel } from "@/lib/calendar-dates";
+import { invalidateVisitCaches } from "@/lib/visit-cache";
 
 type Mode = "detail" | "reschedule" | "cancel";
 
@@ -41,39 +43,59 @@ function toTimeInputValue(date: Date): string {
  * moving through states rather than three separate screens. Reschedule
  * uses plain date/time inputs rather than the mockup's fixed slot grid
  * (T7d) since a real slot grid would need a live per-staff availability
- * query; "Message"/"Check In"/SMS-notify stay decorative — no
- * messaging/check-in backend exists yet.
+ * query. "Check In" is real (POST /bookings/:id/check-in); "Message"
+ * opens a mailto: and SMS-notify stays decorative — no messaging backend
+ * exists yet.
  */
 export function AppointmentModal({
   open,
   onClose,
-  booking,
+  booking: selected,
   staff,
   accessToken,
   initialMode,
 }: AppointmentModalProps) {
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<Mode>("detail");
+  /**
+   * The version this modal has changed itself, if it has.
+   *
+   * `booking` arrives as a snapshot the parent took when the row was
+   * clicked. Invalidating the bookings query refreshes the list behind
+   * the modal but not that captured object, so before this existed,
+   * checking someone in updated the calendar underneath while the open
+   * modal still showed "Check In" — the one action here that leaves the
+   * modal open was also the one that made the staleness visible.
+   *
+   * Kept here rather than fixed by deriving the selection from the query:
+   * the List view opens bookings from a *different* query (a paged one
+   * covering dates the calendar grid never loaded), so there is no single
+   * list to look them up in.
+   */
+  const [changed, setChanged] = useState<Booking | null>(null);
+  const booking = changed ?? selected;
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("");
   const [newStaffId, setNewStaffId] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open || !booking) return;
-    const start = new Date(booking.startAt);
+    if (!open || !selected) return;
+    const start = new Date(selected.startAt);
     setNewDate(toDateInputValue(start));
     setNewTime(toTimeInputValue(start));
-    setNewStaffId(booking.staffUserId);
+    setNewStaffId(selected.staffUserId);
     setMode(initialMode ?? "detail");
     setError(null);
+    setChanged(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- initialMode is read once per open, not tracked live
-  }, [open, booking]);
+  }, [open, selected]);
 
   function handleClose() {
     onClose();
     setMode("detail");
     setError(null);
+    setChanged(null);
   }
 
   const rescheduleMutation = useMutation({
@@ -86,7 +108,7 @@ export function AppointmentModal({
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      void invalidateVisitCaches(queryClient);
       handleClose();
     },
     onError: (err) =>
@@ -99,7 +121,7 @@ export function AppointmentModal({
       return cancelBooking(accessToken, booking.id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      void invalidateVisitCaches(queryClient);
       handleClose();
     },
     onError: (err) => setError(err instanceof Error ? err.message : "Couldn't cancel — try again."),
@@ -114,11 +136,37 @@ export function AppointmentModal({
       return updateBooking(accessToken, booking.id, { status: nextStatus });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      queryClient.invalidateQueries({ queryKey: ["bookings-list"] });
+      // The queue too: if this appointment was a seated walk-in, the
+      // backend has just closed its waitlist row, and if it was a
+      // checked-in appointment it has dropped off the board.
+      void invalidateVisitCaches(queryClient);
       handleClose();
     },
     onError: (err) => setError(err instanceof Error ? err.message : "Couldn't update — try again."),
+  });
+
+  /**
+   * Arrival. Not a status change — the appointment stays "confirmed"
+   * while the client sits in the shop, which is what keeps them ringable
+   * at the register.
+   *
+   * The modal stays open afterwards rather than closing: checking
+   * somebody in is not the end of dealing with them, and the desk often
+   * wants to glance at the notes or reschedule in the same breath.
+   */
+  const checkInMutation = useMutation({
+    mutationFn: (checkedIn: boolean) => {
+      if (!booking) return Promise.reject(new Error("No booking selected"));
+      return setBookingCheckedIn(accessToken, booking.id, checkedIn);
+    },
+    onSuccess: (updated) => {
+      setChanged(updated);
+      // Checking in puts them on the waitlist board, so that reads again too.
+      void invalidateVisitCaches(queryClient);
+      setError(null);
+    },
+    onError: (err) =>
+      setError(err instanceof Error ? err.message : "Couldn't check them in — try again."),
   });
 
   // Only fetched once the appointment's actually past — see
@@ -136,6 +184,10 @@ export function AppointmentModal({
   const end = new Date(booking.endAt);
   const status = BOOKING_STATUS_TONE[booking.status];
   const isPast = end.getTime() < Date.now();
+  const checkedInAt = booking.checkedInAt ? new Date(booking.checkedInAt) : null;
+  const arrivedLabel = checkedInAt
+    ? checkedInAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+    : "";
   const review = reviewQuery.data?.reviews[0];
 
   const titles: Record<Mode, string> = {
@@ -173,7 +225,15 @@ export function AppointmentModal({
                   </p>
                 )}
               </div>
-              <StatusPill tone={status.tone}>{status.label}</StatusPill>
+              <div className="flex flex-col items-end gap-1.5">
+                <StatusPill tone={status.tone}>{status.label}</StatusPill>
+                {/*
+                  Shown next to the status rather than replacing it: the
+                  appointment is still "confirmed" while they sit in the
+                  shop. Two separate facts, two separate pills.
+                */}
+                {checkedInAt && <StatusPill tone="success">Arrived {arrivedLabel}</StatusPill>}
+              </div>
             </div>
 
             <div className="flex flex-col overflow-hidden rounded-xl border border-tn-border">
@@ -249,14 +309,32 @@ export function AppointmentModal({
                   >
                     Mark completed
                   </Button>
-                  <Button
-                    variant="danger-outline"
-                    className="flex-1"
-                    disabled={markStatusMutation.isPending}
-                    onClick={() => markStatusMutation.mutate("no_show")}
-                  >
-                    Mark no-show
-                  </Button>
+                  {/*
+                    A no-show and an arrival can't both be true of one
+                    visit, so a checked-in client is offered the way back
+                    instead: take the arrival off, and the no-show
+                    becomes available (and honest). The API refuses the
+                    contradiction either way — see updateBooking.
+                  */}
+                  {checkedInAt ? (
+                    <Button
+                      variant="secondary"
+                      className="flex-1 whitespace-nowrap"
+                      disabled={checkInMutation.isPending}
+                      onClick={() => checkInMutation.mutate(false)}
+                    >
+                      Undo check-in
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="danger-outline"
+                      className="flex-1"
+                      disabled={markStatusMutation.isPending}
+                      onClick={() => markStatusMutation.mutate("no_show")}
+                    >
+                      Mark no-show
+                    </Button>
+                  )}
                   <Button
                     variant="secondary"
                     className="flex-1"
@@ -290,9 +368,30 @@ export function AppointmentModal({
                     >
                       Message
                     </Button>
-                    <Button className="flex-1" disabled>
-                      Check In
-                    </Button>
+                    {checkedInAt ? (
+                      <Button
+                        variant="secondary"
+                        // nowrap rather than a narrower padding override:
+                        // two padding utilities of equal specificity on
+                        // one element resolve by CSS source order, which
+                        // is not something to bet a layout on. With
+                        // flex-1 and nowrap the button simply sizes to
+                        // its label instead.
+                        className="flex-1 whitespace-nowrap"
+                        onClick={() => checkInMutation.mutate(false)}
+                        disabled={checkInMutation.isPending}
+                      >
+                        Undo check-in
+                      </Button>
+                    ) : (
+                      <Button
+                        className="flex-1"
+                        onClick={() => checkInMutation.mutate(true)}
+                        disabled={checkInMutation.isPending}
+                      >
+                        {checkInMutation.isPending ? "Checking in…" : "Check In"}
+                      </Button>
+                    )}
                   </div>
                   <button
                     type="button"

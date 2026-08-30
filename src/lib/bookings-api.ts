@@ -33,6 +33,13 @@ export interface Booking {
   /** ISO 8601 */
   endAt: string;
   status: BookingStatus;
+  /**
+   * When the front desk marked the client as arrived, or null if they
+   * have not. Deliberately not a status — see the backend's
+   * setBookingCheckedIn; someone standing in the shop is still a
+   * "confirmed" appointment until the work is done.
+   */
+  checkedInAt: string | null;
   notes: string | null;
   createdAt: string;
   updatedAt: string;
@@ -168,6 +175,23 @@ export function updateBooking(
 export function cancelBooking(accessToken: string, bookingId: string): Promise<Booking> {
   return request(`/bookings/${bookingId}/cancel`, {
     method: "POST",
+    headers: authHeaders(accessToken),
+  });
+}
+
+/**
+ * Mark the client as arrived, or take it back.
+ *
+ * Idempotent both ways, and checking in twice keeps the first timestamp —
+ * so the desk can tap it without worrying about what it was before.
+ */
+export function setBookingCheckedIn(
+  accessToken: string,
+  bookingId: string,
+  checkedIn: boolean,
+): Promise<Booking> {
+  return request(`/bookings/${bookingId}/check-in`, {
+    method: checkedIn ? "POST" : "DELETE",
     headers: authHeaders(accessToken),
   });
 }

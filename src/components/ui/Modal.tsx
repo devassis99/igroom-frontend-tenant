@@ -66,7 +66,29 @@ export function Modal({ open, onClose, children, width = 440, variant = "center"
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-50 flex bg-tn-backdrop backdrop-blur-[6px] ${
+      // A dark scrim and no `backdrop-filter`.
+      //
+      // The blur that used to be here was the whole reason the sheet
+      // looked jerky. A full-viewport backdrop-filter is re-rasterised on
+      // every frame anything above it moves, and a 520px panel sliding
+      // across it moves a lot. Measured on a 4x-throttled CPU (roughly
+      // the laptop on a shop's counter), opening this dropped six frames
+      // out of thirty-eight, the worst at 50ms, in a cluster squarely in
+      // the middle of the travel — which is what the eye reads as a
+      // stutter rather than as slowness. Without it the same animation
+      // holds a flat 17ms from first frame to last.
+      //
+      // Things that were tried and did *not* help, so nobody spends the
+      // afternoon on them again: making the panel a sibling of the
+      // backdrop rather than a child; not animating the backdrop's
+      // opacity; dropping the radius to 3px. All still dropped five to
+      // seven frames. The cost is the filter itself, not how it is
+      // arranged.
+      //
+      // tn-backdrop is a 45% dark scrim, which separates the panel from
+      // the page perfectly well on its own — and is exactly what
+      // ManageStaffSetsModal and StaffFilterBar's overlay already use.
+      className={`fixed inset-0 z-50 flex bg-tn-backdrop ${
         isSheet ? "justify-end" : "items-center justify-center p-8"
       }`}
       style={{

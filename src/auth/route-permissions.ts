@@ -44,10 +44,16 @@ export interface GatedRoute {
 export const ROUTE_PERMISSIONS: GatedRoute[] = [
   { to: "/calendar", permission: "bookings.view" },
   { to: "/waitlist", permission: "bookings.view" },
+  { to: "/register", permission: "pos.register" },
+  { to: "/close-of-day", permission: "pos.close" },
   { to: "/analytics", permission: "bookings.view" },
   { to: "/services", permission: "services.view" },
   { to: "/staff", permission: "staff.view" },
   { to: "/customers", permission: "customers.view" },
+  { to: "/payouts", permission: "billing.view" },
+  // The old path still forwards to /payouts (see routes/router.tsx), and
+  // is gated the same so an old bookmark is refused here rather than
+  // bounced to a page it would be refused on anyway.
   { to: "/payments", permission: "billing.view" },
   { to: "/locations", permission: "locations.view" },
   { to: "/settings/staff", permission: "staff.view" },

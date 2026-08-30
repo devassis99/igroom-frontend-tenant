@@ -24,6 +24,13 @@ export type WaitlistStatus = "waiting" | "notified" | "seated" | "served" | "can
 
 export interface NowServingEntry {
   entryId: string;
+  /**
+   * Which table this row came from. Not inferable from `bookingId` — a
+   * seated walk-in has one too, because seating creates a real booking —
+   * and it decides whether Complete / No-show should call the waitlist
+   * or the bookings API.
+   */
+  source: "queue" | "appointment";
   bookingId: string | null;
   customerName: string;
   customerPhone: string | null;
@@ -78,6 +85,30 @@ export interface WaitlistChair {
   } | null;
 }
 
+/**
+ * A booked client who has been checked in but whose appointment has not
+ * started yet — in the shop, not in the queue.
+ *
+ * Deliberately its own list rather than a row in `waiting`: a queue
+ * position is an ordering with a moving estimate, an appointment has a
+ * time. Mixing them would put appointments into the wait arithmetic and
+ * quote every walk-in a longer wait for people who are not queuing.
+ */
+export interface WaitlistArrival {
+  bookingId: string;
+  customerName: string;
+  customerPhone: string | null;
+  serviceName: string;
+  durationMinutes: number;
+  staffUserId: string;
+  staffName: string | null;
+  startAt: string;
+  checkedInAt: string | null;
+  waitingMinutes: number;
+  /** Negative while they are early, positive once the shop is running late. */
+  minutesLateStarting: number;
+}
+
 export interface WaitlistBoard {
   locationId: string;
   shopName: string;
@@ -88,6 +119,8 @@ export interface WaitlistBoard {
   estimatedWaitMinutes: number;
   nowServing: NowServingEntry[];
   waiting: WaitingEntry[];
+  /** Checked-in appointments whose time has not come round yet. */
+  arrivals: WaitlistArrival[];
   chairs: WaitlistChair[];
 }
 

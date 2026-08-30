@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { StatusPill } from "@/components/ui/StatusPill";
+import { ArrivedDot } from "@/components/calendar/ArrivedDot";
 import {
   listBookingsPaged,
   updateBooking,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/bookings-api";
 import { BOOKING_STATUS_BAR, BOOKING_STATUS_TONE } from "@/lib/booking-status";
 import { formatListDateHeader, formatTimeLabel, startOfDay } from "@/lib/calendar-dates";
+import { invalidateVisitCaches } from "@/lib/visit-cache";
 
 type Tab = "upcoming" | "past";
 type OpenMode = "detail" | "reschedule" | "cancel";
@@ -52,8 +54,7 @@ export function AppointmentListView({
     mutationFn: ({ id, status }: { id: string; status: "completed" | "no_show" }) =>
       updateBooking(accessToken, id, { status }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookings-list"] });
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      void invalidateVisitCaches(queryClient);
     },
   });
 
@@ -210,6 +211,7 @@ export function AppointmentListView({
                         <div className="h-9 w-9 flex-none rounded-full bg-[oklch(88%_0.02_40)]" />
                         <div className="min-w-0 flex-1">
                           <p className="m-0 truncate font-sans text-[13px] font-semibold text-tn-ink">
+                            <ArrivedDot checkedInAt={booking.checkedInAt} />
                             {booking.customerName}
                             <span className="font-normal text-tn-muted-5">
                               {" "}
@@ -363,19 +365,23 @@ export function AppointmentListView({
                                   >
                                     Mark completed
                                   </Button>
-                                  <Button
-                                    variant="danger-outline"
-                                    className="!bg-tn-danger-bg hover:!opacity-80"
-                                    disabled={markStatusMutation.isPending}
-                                    onClick={() =>
-                                      markStatusMutation.mutate({
-                                        id: booking.id,
-                                        status: "no_show",
-                                      })
-                                    }
-                                  >
-                                    Mark no-show
-                                  </Button>
+                                  {/* Same rule as AppointmentModal: an arrival and a
+                                      no-show can't both be true of one visit. */}
+                                  {!booking.checkedInAt && (
+                                    <Button
+                                      variant="danger-outline"
+                                      className="!bg-tn-danger-bg hover:!opacity-80"
+                                      disabled={markStatusMutation.isPending}
+                                      onClick={() =>
+                                        markStatusMutation.mutate({
+                                          id: booking.id,
+                                          status: "no_show",
+                                        })
+                                      }
+                                    >
+                                      Mark no-show
+                                    </Button>
+                                  )}
                                   <Button
                                     variant="secondary"
                                     className="!bg-tn-surface hover:!bg-tn-page"

@@ -30,6 +30,13 @@ export interface RegisterLocation {
   timezone: string | null;
 }
 
+/**
+ * Where the service itself has got to, derived server-side from the
+ * booking's status, its check-in and the clock. Only "completed" can be
+ * rung up — money comes after the work.
+ */
+export type ServiceState = "not_arrived" | "waiting" | "in_service" | "unfinished" | "completed";
+
 export interface RegisterAppointment {
   bookingId: string;
   startAt: string;
@@ -41,6 +48,10 @@ export interface RegisterAppointment {
   staffUserId: string | null;
   staffName: string | null;
   status: string;
+  serviceState: ServiceState;
+  /** False until a barber marks the service complete; the reason says what is still owed. */
+  payable: boolean;
+  notPayableReason: string | null;
   /** What the marketplace already collected — 0, a deposit, or the whole price. */
   paidOnlineCents: number;
   onlinePaymentType: "deposit" | "full" | null;

@@ -6,6 +6,7 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { LocationFilterPopover } from "@/components/ui/LocationFilterPopover";
 import { TimezonePicker } from "@/components/ui/TimezonePicker";
 import { AppointmentModal } from "@/components/calendar/AppointmentModal";
+import { ArrivedDot } from "@/components/calendar/ArrivedDot";
 import { AppointmentListView } from "@/components/calendar/AppointmentListView";
 import { AddBookingModal } from "@/components/calendar/AddBookingModal";
 import { StaffFilterBar } from "@/components/calendar/StaffFilterBar";
@@ -141,6 +142,35 @@ interface AddBookingRequest {
   defaultStaffId?: string;
   defaultTime?: string;
 }
+
+/**
+ * One horizontal band of a half-hour row: either an appointment or a gap.
+ *
+ * `from`/`to` are minutes into the row, 0–30. Every row is exactly
+ * DAY_SLOT_HEIGHT_PX tall, so those minutes map straight onto a
+ * percentage of the row and a band can be drawn at its true length.
+ *
+ * Splitting rows into bands rather than treating each as wholly free or
+ * wholly taken is what lets a 15-minute trim at 9:00 leave 9:15 bookable
+ * instead of writing off the whole half hour.
+ */
+interface SlotSegment {
+  from: number;
+  to: number;
+  /** Absent on a gap. */
+  booking?: Booking;
+  /** The row this appointment starts in — the one that draws the label. */
+  isStart?: boolean;
+  /** The last row it reaches, so the block rounds off its bottom. */
+  isLast?: boolean;
+}
+
+/** Two digits, two digits — the `HH:mm` half of a slot key. */
+function slotKeyForMinutes(minutes: number): string {
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+}
+
+const SLOT_MINUTES = 30;
 
 /** Matches the mockup's T7 / T7-week / T7-month Calendar frames, plus the T7c/d/e appointment modal — now backed by real igroom-backend data instead of hardcoded arrays. */
 export function CalendarPage() {
@@ -584,20 +614,84 @@ export function CalendarPage() {
   // point reserving the space.
   const dayGridColumns = `${DAY_GUTTER_WIDTH_PX}px repeat(${Math.max(dayColumns.length, 1)}, ${DAY_COLUMN_WIDTH})${canManageStaff ? ` ${DAY_INVITE_COLUMN_WIDTH}` : ""}`;
 
-  /** [staffId__slotHHmm] -> booking, floored to the slot it starts in — lets a booking at 1:05 still land in the 1:00 row. */
-  const dayBookingsBySlot = useMemo(() => {
-    const map = new Map<string, Booking>();
-    if (view !== "day") return map;
+  /**
+   * `staffId__HH:mm` -> that row split into appointment bands and gaps.
+   *
+   * Two things this fixes, both of which come from the grid drawing
+   * half-hour rows while appointments are made in fifteens.
+   *
+   * An appointment is recorded against every row it *runs through*, not
+   * just the one it starts in. Before that, a 90-minute cut at 7:30
+   * filled only the 7:30 row and left 8:00 and 8:30 looking free with a
+   * "+" on them — clicking it opened the Add Booking sheet, which then
+   * refused with "that staff member already has a booking overlapping
+   * this time". The grid was inviting a booking the API would always
+   * reject.
+   *
+   * And the leftovers of a partly-used row stay bookable. A 15-minute
+   * trim at 9:00 leaves the chair free from 9:15, so the bottom half of
+   * that row offers a "+" that opens at 9:15 — the TimePicker already
+   * works in fifteens, so that is a time somebody can actually pick.
+   *
+   * What counts as busy is deliberately the rule the API enforces in
+   * bookings.service.ts's assertSlotFree, because a calendar that
+   * disagrees with the server about what is free is worse than one that
+   * simply looks coarse:
+   *
+   *  - anything except `cancelled` reserves the chair — a no-show still
+   *    holds its slot until somebody re-books it;
+   *  - overlap is half-open, so a cut ending exactly at 8:00 leaves the
+   *    8:00 row free. That is why the last covered minute is `end - 1`.
+   *
+   * A cancelled appointment still draws in its own starting row (it is
+   * useful to see) but claims nothing after it.
+   */
+  const daySlotSegments = useMemo(() => {
+    const out = new Map<string, SlotSegment[]>();
+    if (view !== "day") return out;
+
+    const busy = new Map<string, SlotSegment[]>();
     for (const booking of bookings) {
       const start = new Date(booking.startAt);
+      const end = new Date(booking.endAt);
       const { hour, minute } = zonedHourMinute(start, timezone);
-      const minutesSinceMidnight = hour * 60 + minute;
-      const flooredMinutes = Math.floor(minutesSinceMidnight / 30) * 30;
-      const hh = String(Math.floor(flooredMinutes / 60)).padStart(2, "0");
-      const mm = String(flooredMinutes % 60).padStart(2, "0");
-      map.set(`${booking.staffUserId}__${hh}:${mm}`, booking);
+      const startMinutes = hour * 60 + minute;
+      const durationMinutes = Math.max(1, Math.round((end.getTime() - start.getTime()) / 60_000));
+      const endMinutes = startMinutes + durationMinutes;
+
+      const blocks = booking.status !== "cancelled";
+      const firstSlot = Math.floor(startMinutes / SLOT_MINUTES) * SLOT_MINUTES;
+      const lastSlot = blocks
+        ? Math.floor((endMinutes - 1) / SLOT_MINUTES) * SLOT_MINUTES
+        : firstSlot;
+
+      for (let m = firstSlot; m <= lastSlot; m += SLOT_MINUTES) {
+        // An appointment running past midnight stops at the bottom of the
+        // grid; the remainder belongs to the next day's column, which this
+        // view does not draw.
+        if (m >= 24 * 60) break;
+        const key = `${booking.staffUserId}__${slotKeyForMinutes(m)}`;
+        const from = Math.max(startMinutes, m) - m;
+        const to = Math.min(endMinutes, m + SLOT_MINUTES) - m;
+        const bands = busy.get(key) ?? [];
+        bands.push({ from, to, booking, isStart: m === firstSlot, isLast: m === lastSlot });
+        busy.set(key, bands);
+      }
     }
-    return map;
+
+    for (const [key, bands] of busy) {
+      bands.sort((a, b) => a.from - b.from);
+      const segments: SlotSegment[] = [];
+      let cursor = 0;
+      for (const band of bands) {
+        if (band.from > cursor) segments.push({ from: cursor, to: band.from });
+        segments.push(band);
+        cursor = Math.max(cursor, band.to);
+      }
+      if (cursor < SLOT_MINUTES) segments.push({ from: cursor, to: SLOT_MINUTES });
+      out.set(key, segments);
+    }
+    return out;
   }, [bookings, view, timezone]);
 
   // Ticks every 30s while Day view is open so the red current-time line
@@ -1112,8 +1206,13 @@ export function CalendarPage() {
                     return (
                       <div
                         key={slotKey}
-                        className={`grid min-h-16 ${rowBg}`}
-                        style={{ gridTemplateColumns: dayGridColumns }}
+                        // Exactly one slot tall rather than "at least": the blocks below
+                        // are positioned as a percentage of the row, so the row has
+                        // to be a known height for a percentage to mean thirty
+                        // minutes. nowLineOffsetPx already assumed this — it just
+                        // had no way to guarantee it.
+                        className={`grid ${rowBg}`}
+                        style={{ gridTemplateColumns: dayGridColumns, height: DAY_SLOT_HEIGHT_PX }}
                       >
                         <button
                           type="button"
@@ -1137,7 +1236,10 @@ export function CalendarPage() {
                           {formatTimeLabel(slot, timezone)}
                         </button>
                         {dayColumns.map((member) => {
-                          const booking = dayBookingsBySlot.get(`${member.id}__${hh}:${mm}`);
+                          const segments = daySlotSegments.get(`${member.id}__${hh}:${mm}`) ?? [
+                            { from: 0, to: SLOT_MINUTES },
+                          ];
+                          const hasBooking = segments.some((seg) => seg.booking);
                           // Ghost columns (a staffUserId seen on a booking but no
                           // longer in the active roster) can't be picked as an
                           // "assign to" target for a *new* booking — only real,
@@ -1147,42 +1249,124 @@ export function CalendarPage() {
                           // the day (see isSlotOutsideShift) — a visual "they're not
                           // scheduled then" cue, not a hard block: it stays clickable so
                           // an unplanned or one-off booking can still be added.
-                          const outsideShift = !booking && isSlotOutsideShift(member.id, hh, mm);
+                          const outsideShift = !hasBooking && isSlotOutsideShift(member.id, hh, mm);
+                          // An appointment carrying on into the next row shouldn't
+                          // have a gridline drawn through it — otherwise a
+                          // 90-minute cut reads as three stacked appointments.
+                          const joinsBelow = segments.some(
+                            (seg) => seg.booking && !seg.isLast && seg.to === SLOT_MINUTES,
+                          );
+                          const slotStartMinutes = slotZoned.hour * 60 + slotZoned.minute;
                           return (
                             <div
                               key={member.id}
-                              className={`border-l border-tn-border-soft p-2 ${rowIndex < daySlots.length - 1 ? "border-b border-tn-border-soft" : ""} ${outsideShift ? "bg-black/5" : ""}`}
+                              // No vertical padding: the bands inside are placed as
+                              // a share of the row, and padding would make that
+                              // share stand for slightly fewer minutes than it says.
+                              className={`relative border-l border-tn-border-soft px-2 ${
+                                rowIndex < daySlots.length - 1 && !joinsBelow
+                                  ? "border-b border-tn-border-soft"
+                                  : ""
+                              } ${outsideShift ? "bg-black/5" : ""}`}
                             >
-                              {booking ? (
-                                <button
-                                  type="button"
-                                  onClick={() => openBooking(booking)}
-                                  className={`w-full rounded-md p-2 text-left font-sans text-xs font-medium text-tn-ink-soft ${BOOKING_STATUS_BLOCK[booking.status]}`}
-                                >
-                                  {booking.customerName}
-                                  <br />
-                                  {booking.serviceName}
-                                </button>
-                              ) : isActiveStaff ? (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setAddRequest({
-                                      defaultDate: cursorDate,
-                                      defaultStaffId: member.id,
-                                      defaultTime: `${hh}:${mm}`,
-                                    })
-                                  }
-                                  className="h-full w-full cursor-pointer rounded-md border border-dashed border-transparent text-transparent hover:border-tn-input-border hover:text-tn-faint-2"
-                                  aria-label={
-                                    outsideShift
-                                      ? `Add booking for ${member.name} at ${formatTimeLabel(slot, timezone)} (outside their shift)`
-                                      : `Add booking for ${member.name} at ${formatTimeLabel(slot, timezone)}`
-                                  }
-                                >
-                                  +
-                                </button>
-                              ) : null}
+                              {segments.map((seg) => {
+                                const topPct = (seg.from / SLOT_MINUTES) * 100;
+                                const heightPct = ((seg.to - seg.from) / SLOT_MINUTES) * 100;
+                                const style = { top: `${topPct}%`, height: `${heightPct}%` };
+                                const heightPx =
+                                  ((seg.to - seg.from) / SLOT_MINUTES) * DAY_SLOT_HEIGHT_PX;
+
+                                if (seg.booking) {
+                                  const booking = seg.booking;
+                                  // Below about half a row there is no room for two
+                                  // lines, so the service joins the name on one
+                                  // rather than being clipped mid-word.
+                                  const isShort = heightPx < 34;
+                                  return (
+                                    <button
+                                      key={`${booking.id}-${seg.from}`}
+                                      type="button"
+                                      onClick={() => openBooking(booking)}
+                                      // Continuation rows are reachable by mouse but
+                                      // taken out of the tab order: one appointment
+                                      // should be one stop, not three.
+                                      tabIndex={seg.isStart ? undefined : -1}
+                                      aria-label={
+                                        seg.isStart
+                                          ? undefined
+                                          : `${booking.customerName} · ${booking.serviceName}, continues through ${formatTimeLabel(slot, timezone)}`
+                                      }
+                                      style={style}
+                                      className={`absolute inset-x-2 overflow-hidden text-left font-sans font-medium text-tn-ink-soft ${
+                                        isShort
+                                          ? "px-2 py-0.5 text-[11px] leading-tight"
+                                          : "p-2 text-xs"
+                                      } ${seg.isStart ? "rounded-t-md" : ""} ${
+                                        seg.isLast ? "rounded-b-md" : ""
+                                      } ${BOOKING_STATUS_BLOCK[booking.status]}`}
+                                    >
+                                      {seg.isStart &&
+                                        (isShort ? (
+                                          <span className="block truncate">
+                                            <ArrivedDot checkedInAt={booking.checkedInAt} />
+                                            {booking.customerName} · {booking.serviceName}
+                                          </span>
+                                        ) : (
+                                          <>
+                                            <ArrivedDot checkedInAt={booking.checkedInAt} />
+                                            {booking.customerName}
+                                            <br />
+                                            {booking.serviceName}
+                                          </>
+                                        ))}
+                                    </button>
+                                  );
+                                }
+
+                                // A sliver too small to aim at is worse than no
+                                // target — it looks like a rendering fault and
+                                // catches stray clicks.
+                                if (!isActiveStaff || seg.to - seg.from < 10) return null;
+
+                                const startsAt = slotKeyForMinutes(slotStartMinutes + seg.from);
+                                const label = formatTimeLabel(
+                                  new Date(slot.getTime() + seg.from * 60_000),
+                                  timezone,
+                                );
+                                return (
+                                  <button
+                                    key={`free-${seg.from}`}
+                                    type="button"
+                                    onClick={() =>
+                                      setAddRequest({
+                                        defaultDate: cursorDate,
+                                        defaultStaffId: member.id,
+                                        // The gap's real start, not the row's — the
+                                        // whole point is that 9:15 is bookable.
+                                        defaultTime: startsAt,
+                                      })
+                                    }
+                                    // The small inset comes out of the band's own
+                                    // height rather than from a margin. A margin on
+                                    // an absolutely positioned box shifts it without
+                                    // shrinking it, so `my-1` pushed this 4px down
+                                    // and left it 4px longer than its slot — the
+                                    // dashed target bled into the row below.
+                                    style={{
+                                      top: `calc(${topPct}% + 3px)`,
+                                      height: `calc(${heightPct}% - 6px)`,
+                                    }}
+                                    className="absolute inset-x-2 cursor-pointer rounded-md border border-dashed border-transparent text-transparent hover:border-tn-input-border hover:text-tn-faint-2"
+                                    aria-label={
+                                      outsideShift
+                                        ? `Add booking for ${member.name} at ${label} (outside their shift)`
+                                        : `Add booking for ${member.name} at ${label}`
+                                    }
+                                  >
+                                    +
+                                  </button>
+                                );
+                              })}
                             </div>
                           );
                         })}
@@ -1295,6 +1479,7 @@ export function CalendarPage() {
                           onClick={() => setSelectedBooking(booking)}
                           className={`rounded-md p-1.5 text-left font-sans text-[11px] font-medium text-tn-ink-soft ${BOOKING_STATUS_BLOCK[booking.status]}`}
                         >
+                          <ArrivedDot checkedInAt={booking.checkedInAt} />
                           {formatTimeLabel(new Date(booking.startAt), timezone)}{" "}
                           {booking.customerName}
                           <br />

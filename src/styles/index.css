@@ -348,37 +348,6 @@ body {
 }
 
 /*
- * The chair rings on the Waitlist board, drawn from empty to wherever
- * the appointment actually is.
- *
- * `stroke-dashoffset` rather than `stroke-dasharray`: the dash pattern
- * stays a single full-circumference segment and only its starting
- * offset moves, so the arc grows from its origin instead of a dash
- * pattern being re-tiled around the circle, which is what animating the
- * array looks like.
- *
- * The class is added a frame *after* the empty value is committed — a
- * transition needs a painted "before" state to run from, and applying
- * both in one frame gets you the end value with no animation at all.
- * See SegmentedControl for the same two-frame dance.
- *
- * Slower and gentler than the rest of the motion here on purpose. The
- * segmented thumb is a response to a click and has to feel immediate;
- * this is ambient — nobody is waiting on it — so it eases out of rest
- * rather than snapping away from it.
- *
- * The curve is close to symmetric on purpose. An ease-out spends most
- * of its duration on a tail that covers a few pixels of arc — you
- * cannot see it, so the whole thing reads as fast however long the
- * number says it is. This one is at half travel at half time, and
- * still has 14% of the arc left in the last 15% of the duration, so
- * the sweep is visible for very nearly the whole 2.8s.
- */
-.tn-ring-draw {
-  transition: stroke-dashoffset 5000ms cubic-bezier(0.45, 0.05, 0.5, 0.95);
-}
-
-/*
  * Motion here is decoration — it helps you follow a swap, it never
  * carries information — so anyone who has asked their OS for less of it
  * gets the end state directly.
@@ -391,8 +360,7 @@ body {
     animation: none;
   }
 
-  .tn-segmented-thumb,
-  .tn-ring-draw {
+  .tn-segmented-thumb {
     transition: none;
   }
 }

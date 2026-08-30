@@ -13,6 +13,7 @@ import {
   openTicket,
   posKeys,
   type RegisterAppointment,
+  type ServiceState,
 } from "@/lib/pos-api";
 
 /**
@@ -27,6 +28,12 @@ import {
  * The day list re-reads on a timer for the same reason the waitlist board
  * does: two people work this screen at once on a Saturday, and a stale
  * "unpaid" chip is how the same haircut gets charged twice.
+ *
+ * Money comes after the work. Every appointment of the day is listed,
+ * but only one a barber has marked complete can be rung up — the rest
+ * carry their state and a disabled button that says what has to happen
+ * first. The register never declares the service finished; that belongs
+ * to whoever did it, on the calendar or on the queue.
  */
 const POLL_MS = 20_000;
 
@@ -38,6 +45,40 @@ function errorMessage(error: unknown): string | null {
 
 function timeLabel(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+/**
+ * Where the service has got to, for every row that is not finished yet.
+ *
+ * Completed rows show nothing here — for those the payment chip is the
+ * whole story, and a second chip saying "completed" beside a "PAID"
+ * one is noise.
+ */
+const SERVICE_STATE_LABEL: Record<Exclude<ServiceState, "completed">, string> = {
+  not_arrived: "NOT ARRIVED",
+  waiting: "WAITING",
+  in_service: "IN SERVICE",
+  unfinished: "NOT FINISHED",
+};
+
+function ServiceChip({ state }: { state: ServiceState }) {
+  if (state === "completed") return null;
+  /*
+   * "unfinished" is the one that needs chasing rather than waiting on —
+   * the window has passed and nobody closed it — so it is the only one
+   * given any urgency.
+   */
+  const tone =
+    state === "unfinished"
+      ? "bg-tn-danger-bg text-tn-danger"
+      : state === "in_service"
+        ? "bg-tn-gold-bg text-tn-gold"
+        : "bg-tn-page text-tn-muted-3";
+  return (
+    <span className={`rounded-full px-2.5 py-1 font-sans text-[11px] font-semibold ${tone}`}>
+      {SERVICE_STATE_LABEL[state]}
+    </span>
+  );
 }
 
 /**
@@ -242,6 +283,7 @@ export function RegisterPage() {
                       {appointment.staffName ? ` · ${appointment.staffName}` : ""}
                     </p>
                   </div>
+                  <ServiceChip state={appointment.serviceState} />
                   <PaymentChip appointment={appointment} />
                   {!isDone && (
                     <Button
@@ -252,10 +294,29 @@ export function RegisterPage() {
                           ? setActiveTicketId(appointment.ticketId)
                           : open.mutate(appointment)
                       }
-                      disabled={open.isPending}
+                      /*
+                       * A ticket already open stays reachable whatever
+                       * the booking says — somebody is mid-sale on it,
+                       * and stranding them behind a status is worse
+                       * than the rule it would be enforcing.
+                       */
+                      disabled={
+                        open.isPending ||
+                        (!appointment.payable && appointment.ticketStatus !== "open")
+                      }
+                      title={
+                        appointment.payable
+                          ? undefined
+                          : (appointment.notPayableReason ?? undefined)
+                      }
                     >
                       {appointment.ticketStatus === "open" ? "Back to ticket" : "Finish & pay →"}
                     </Button>
+                  )}
+                  {!isDone && !appointment.payable && appointment.notPayableReason && (
+                    <p className="m-0 w-full font-sans text-[11px] text-tn-muted-3">
+                      {appointment.notPayableReason}
+                    </p>
                   )}
                 </div>
               );

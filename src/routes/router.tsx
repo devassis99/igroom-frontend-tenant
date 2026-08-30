@@ -140,8 +140,17 @@ export const router = createBrowserRouter([
             lazy: () => import("@/pages/CustomersPage").then((m) => ({ Component: m.default })),
           },
           {
-            path: "payments",
+            path: "payouts",
             lazy: () => import("@/pages/PaymentsPage").then((m) => ({ Component: m.default })),
+          },
+          // Renamed from /payments once the register shipped — "Payments"
+          // two rows under a till reads as "the takings", which is
+          // Register's job. Same forwarding treatment as
+          // /settings/staff/roles below: bookmarks and any link already
+          // out there keep working rather than 404ing.
+          {
+            path: "payments",
+            loader: () => redirect("/payouts"),
           },
           {
             path: "integrations",

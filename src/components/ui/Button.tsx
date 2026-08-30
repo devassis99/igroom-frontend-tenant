@@ -30,7 +30,7 @@ export function Button({
   return (
     <button
       type="button"
-      className={`cursor-pointer font-sans font-semibold ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]} ${className}`}
+      className={`cursor-pointer font-sans font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]} ${className}`}
       {...props}
     />
   );
