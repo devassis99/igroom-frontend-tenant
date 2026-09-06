@@ -80,3 +80,19 @@ if ! grep -q '^VITE_API_BASE_URL=' "$ENV_FILE"; then
   echo "error: the secret has no VITE_API_BASE_URL" >&2
   exit 1
 fi
+
+# An unfilled value is worse than a missing one, and this check exists
+# because it happened: terraform seeds each of these secrets with
+# REPLACE_ME so a fresh environment is never half-configured in silence.
+# Nothing rejected those, so the build succeeded, the bundle shipped, and
+# the app died in the browser on src/lib/env.ts's own validation — a
+# white screen reachable only by loading the site. Key names only; a
+# value has never belonged in a log line.
+UNFILLED=$(sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*REPLACE_ME.*/\1/p' "$ENV_FILE" | tr '\n' ' ')
+if [ -n "$UNFILLED" ]; then
+  echo "error: $SECRETS_MANAGER_SECRET_ID still holds terraform's placeholders: $UNFILLED" >&2
+  echo "  Fill it before deploying:" >&2
+  echo "    aws secretsmanager put-secret-value --region \"\$AWS_REGION\" \\" >&2
+  echo "      --secret-id $SECRETS_MANAGER_SECRET_ID --secret-string '{\"KEY\":\"value\", ...}'" >&2
+  exit 1
+fi
