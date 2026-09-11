@@ -348,6 +348,80 @@ body {
 }
 
 /*
+ * The availability editor's action bar, its day clash panels, and the
+ * undo line a fix leaves behind.
+ *
+ * All three appear in response to something that was just typed rather
+ * than to a navigation, and all three arrive *underneath* the thing that
+ * caused them — the bar under the week, the panel under its day row. So
+ * they rise into place instead of being there suddenly: the movement is
+ * what ties the new box to the row above it, and without it a red panel
+ * blinking into the middle of a list reads as the page having jumped.
+ *
+ * Shorter and shallower than tn-content-in, which is a whole view
+ * arriving. This is one box joining a page that is otherwise standing
+ * still, and it has to be quick enough not to delay somebody who is
+ * mid-edit.
+ */
+@keyframes tn-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* `backwards`, not `both`, for the containing-block reason spelled out on .tn-content-in above. */
+.tn-rise-in {
+  animation: tn-rise-in 180ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/*
+ * A count appearing on something that was already on screen — the clash
+ * badge on an availability tab.
+ *
+ * Scales up from nothing rather than fading, because it is small enough
+ * that a fade at this size is almost invisible, and the point of the
+ * badge is to be noticed on a tab nobody is looking at.
+ */
+@keyframes tn-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.tn-pop-in {
+  animation: tn-pop-in 200ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+/*
+ * Opening and closing a day's clash panel.
+ *
+ * The 0fr → 1fr grid row is the one way to animate to a height nobody
+ * has measured: the panel's content decides its own height, and a
+ * max-height guess either clips a long explanation or makes a short one
+ * spend most of the animation empty. The child of this must be
+ * overflow:hidden for it to work.
+ */
+.tn-collapsible {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tn-collapsible[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+
+/*
  * Motion here is decoration — it helps you follow a swap, it never
  * carries information — so anyone who has asked their OS for less of it
  * gets the end state directly.
@@ -356,11 +430,14 @@ body {
   .tn-content-in,
   .tn-underline-in,
   .tn-view-in-forward,
-  .tn-view-in-back {
+  .tn-view-in-back,
+  .tn-rise-in,
+  .tn-pop-in {
     animation: none;
   }
 
-  .tn-segmented-thumb {
+  .tn-segmented-thumb,
+  .tn-collapsible {
     transition: none;
   }
 }

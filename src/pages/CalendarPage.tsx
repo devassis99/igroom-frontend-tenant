@@ -791,6 +791,31 @@ export function CalendarPage() {
     return (minutesFromStart / 30) * DAY_SLOT_HEIGHT_PX;
   }, [view, daySlots, cursorDate, now, timezone]);
 
+  /**
+   * Whether the Day grid has been put where it belongs yet.
+   *
+   * The scroll below already runs in a layout effect, so it never paints
+   * a frame at the top *once it can run at all*. The jump people saw was
+   * earlier than that: arriving from another page, the grid renders
+   * immediately with its default 9–19 rows while staff and shifts are
+   * still in flight, sits at the top for as long as that takes, and then
+   * jerks down when the data lands and the effect finally fires. Nothing
+   * about that first view is worth looking at — the rows are a guess and
+   * the columns aren't there — so it is held back until the real one is
+   * ready, and faded in rather than switched on.
+   *
+   * With a warm cache the effect runs in the same commit and this flips
+   * before the first paint, so there is nothing to see. The timeout
+   * below is the safety net: a query that never settles must not leave
+   * somebody staring at an empty card.
+   */
+  const [dayGridPlaced, setDayGridPlaced] = useState(false);
+  useEffect(() => {
+    if (dayGridPlaced) return;
+    const timer = setTimeout(() => setDayGridPlaced(true), 1500);
+    return () => clearTimeout(timer);
+  }, [dayGridPlaced]);
+
   // Arms the scroll-to-now effect below once per Day-view entry/day
   // switch/timezone/location change — reset here, consumed (and flipped
   // back on) there, so that effect can tell "haven't landed on `now` yet
@@ -807,8 +832,14 @@ export function CalendarPage() {
   // The grid below is deliberately no longer keyed on selectedLocationId,
   // so that flip no longer remounts the scroll container underneath this.
   const scrolledToNowRef = useRef(false);
-  useEffect(() => {
+  // Layout, not a plain effect: on a day switch with warm data the
+  // scroll below runs in this same commit, so re-arming before paint
+  // means the old day's position is never shown under the new day's
+  // rows. A plain effect would re-arm a frame late and put back the
+  // flicker this is here to remove.
+  useLayoutEffect(() => {
     scrolledToNowRef.current = false;
+    setDayGridPlaced(false);
   }, [view, cursorDate, timezone, selectedLocationId]);
 
   // Lands the current time roughly a third of the way down the visible
@@ -834,12 +865,22 @@ export function CalendarPage() {
   // Running before paint means the first frame the user sees is already in
   // the right place.
   useLayoutEffect(() => {
-    if (view !== "day" || scrolledToNowRef.current) return;
+    if (view !== "day") {
+      setDayGridPlaced(true);
+      return;
+    }
+    if (scrolledToNowRef.current) return;
     if (staffQuery.isPending || !shiftsSettled) return;
-    if (nowLineOffsetPx === null || !dayScrollRef.current) return;
-    const container = dayScrollRef.current;
-    container.scrollTop = Math.max(0, nowLineOffsetPx - container.clientHeight / 3);
+    if (!dayScrollRef.current) return;
+    // A day that isn't today has no "now" to land on. It still counts as
+    // placed — the top of the grid is the right answer there, and the
+    // alternative is holding a perfectly good calendar back forever.
+    if (nowLineOffsetPx !== null) {
+      const container = dayScrollRef.current;
+      container.scrollTop = Math.max(0, nowLineOffsetPx - container.clientHeight / 3);
+    }
     scrolledToNowRef.current = true;
+    setDayGridPlaced(true);
   }, [view, staffQuery.isPending, shiftsSettled, nowLineOffsetPx, selectedLocationId]);
 
   // Clear the row highlight(s) on any day/view change — otherwise a row
@@ -1037,7 +1078,13 @@ export function CalendarPage() {
               <div
                 ref={dayScrollRef}
                 onScroll={handleDayScroll}
-                className="max-h-[640px] overflow-auto"
+                // Laid out but not shown until the scroll has landed —
+                // the container has to have its real height for
+                // scrollTop to mean anything, so this is opacity rather
+                // than a conditional render. See dayGridPlaced.
+                className={`max-h-[640px] overflow-auto transition-opacity duration-200 ${
+                  dayGridPlaced ? "opacity-100" : "opacity-0"
+                }`}
               >
                 <div
                   className="sticky top-0 z-20 grid border-b border-tn-border-softer bg-tn-table-head"

@@ -99,6 +99,18 @@ export interface CollisionPanelProps {
   onSaveAnyway?: () => void;
   saving?: boolean;
   onDismiss?: () => void;
+  /**
+   * Why this panel is on screen at all.
+   *
+   * Since the editor started running the same check while the week is
+   * being typed, a refusal at save time means something changed outside
+   * this form between the last check and the save — the other shop's
+   * hours were edited, or a booking was taken. That is a different fact
+   * from "these hours clash", and a manager who has just watched the bar
+   * say the week was clean deserves to be told which of the two they are
+   * looking at.
+   */
+  note?: string;
 }
 
 /**
@@ -127,6 +139,7 @@ export function CollisionPanel({
   onSaveAnyway,
   saving,
   onDismiss,
+  note,
 }: CollisionPanelProps) {
   const primary = collisions[0];
   if (!primary) return null;
@@ -155,7 +168,8 @@ export function CollisionPanel({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="m-0 font-sans text-sm font-semibold text-tn-danger">
-            {isOverlap ? "Can’t save these hours" : "These shifts leave no time to travel"}
+            {note ??
+              (isOverlap ? "Can’t save these hours" : "These shifts leave no time to travel")}
           </p>
           <p className="m-0 mt-1 font-sans text-xs leading-relaxed text-tn-ink-soft">
             {isOverlap ? (
