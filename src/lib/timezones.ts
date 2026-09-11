@@ -80,6 +80,37 @@ export function zoneOffsetMinutes(zone: string | null, at: Date = new Date()): n
   }
 }
 
+/**
+ * Today's calendar date on `zone`, as "YYYY-MM-DD".
+ *
+ * A shop's day is the shop's own day: at 23:00 in Karachi it is already
+ * tomorrow's date there while the browser sitting in London still says
+ * today, and an override list filtered by the browser's date would drop
+ * a shop's current day an hour early (or keep yesterday's an hour late).
+ * Built from Intl parts rather than toISOString, which only ever answers
+ * in UTC. An unset or unusable zone falls back to UTC, like the rest of
+ * this file.
+ */
+export function todayIsoIn(zone: string | null, at: Date = new Date()): string {
+  if (!zone) return at.toISOString().slice(0, 10);
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: zone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(at);
+    const get = (type: string) => parts.find((p) => p.type === type)?.value;
+    const year = get("year");
+    const month = get("month");
+    const day = get("day");
+    if (!year || !month || !day) return at.toISOString().slice(0, 10);
+    return `${year}-${month}-${day}`;
+  } catch {
+    return at.toISOString().slice(0, 10);
+  }
+}
+
 /** "09:30" -> 570. The one place time strings become comparable numbers. */
 export function toMinutes(hhmm: string): number {
   const [h = 0, m = 0] = hhmm.split(":").map(Number);

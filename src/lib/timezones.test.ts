@@ -4,6 +4,7 @@ import {
   fromMinutes,
   rangesOverlap,
   to12Hour,
+  todayIsoIn,
   toMinutes,
   utcOffsetLabel,
   zoneOffsetMinutes,
@@ -177,5 +178,26 @@ describe("utcOffsetLabel", () => {
   it("labels the shop tabs in the UTC±n form the mockup uses", () => {
     expect(utcOffsetLabel("Asia/Karachi")).toBe("UTC+5");
     expect(utcOffsetLabel(null)).toBe("UTC");
+  });
+});
+
+describe("todayIsoIn", () => {
+  it("reads the shop's own date, not the browser's, late in the shop's evening", () => {
+    // 21:00 UTC is already the 25th in Karachi (UTC+5) while UTC is still on the 24th.
+    expect(todayIsoIn("Asia/Karachi", new Date("2026-08-24T21:00:00Z"))).toBe("2026-08-25");
+  });
+
+  it("reads a shop west of UTC as still on the previous date", () => {
+    // 03:00 UTC on the 25th is 20:00 on the 24th in Los Angeles.
+    expect(todayIsoIn("America/Los_Angeles", new Date("2026-08-25T03:00:00Z"))).toBe("2026-08-24");
+  });
+
+  it("falls back to UTC for an unset or unusable zone", () => {
+    expect(todayIsoIn(null, new Date("2026-08-24T21:00:00Z"))).toBe("2026-08-24");
+    expect(todayIsoIn("Not/AZone", new Date("2026-08-24T21:00:00Z"))).toBe("2026-08-24");
+  });
+
+  it("pads a single-digit month and day, so the string sorts against an override date", () => {
+    expect(todayIsoIn("Asia/Karachi", new Date("2026-03-05T12:00:00Z"))).toBe("2026-03-05");
   });
 });

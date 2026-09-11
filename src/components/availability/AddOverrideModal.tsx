@@ -11,6 +11,8 @@ interface AddOverrideModalProps {
   onClose: () => void;
   onSubmit: (input: UpsertOverrideInput) => void;
   submitting: boolean;
+  /** Earliest pickable date, "YYYY-MM-DD" — today on the shop's own clock, passed in because only the editor knows which tab's shop this is. Falls back to the browser's today. */
+  minDate?: string;
 }
 
 /** Today, as "YYYY-MM-DD" in the browser's local timezone — the picker's min, so an override can't be backdated. */
@@ -29,7 +31,13 @@ function todayIso(): string {
  * earlier override rather than erroring, so this doubles as the "edit an
  * existing override" flow too.
  */
-export function AddOverrideModal({ open, onClose, onSubmit, submitting }: AddOverrideModalProps) {
+export function AddOverrideModal({
+  open,
+  onClose,
+  onSubmit,
+  submitting,
+  minDate,
+}: AddOverrideModalProps) {
   const [date, setDate] = useState("");
   const [isUnavailable, setIsUnavailable] = useState(true);
   const [startTime, setStartTime] = useState("09:00");
@@ -67,7 +75,12 @@ export function AddOverrideModal({ open, onClose, onSubmit, submitting }: AddOve
               Clear/Today row, its own idea of dd/mm/yyyy — inside a modal
               whose every other control is ours, and the two didn't look
               like the same product. Same swap TimePicker made next to it. */}
-          <DatePicker label="Override date" value={date} onChange={setDate} min={todayIso()} />
+          <DatePicker
+            label="Override date"
+            value={date}
+            onChange={setDate}
+            min={minDate ?? todayIso()}
+          />
         </Field>
 
         <div className="flex flex-col gap-2">

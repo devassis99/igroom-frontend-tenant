@@ -13,6 +13,7 @@ import {
   friendlyZoneLabel,
   rangesOverlap,
   to12Hour,
+  todayIsoIn,
   utcOffsetLabel,
   wallClockAt,
   zoneAbbreviation,
@@ -744,7 +745,17 @@ export function StaffAvailabilityEditor({
     setRefusal(null);
   }
 
-  const overrides = activeSchedule?.overrides ?? [];
+  // Overrides the manager can still act on: today's, and everything
+  // after it. A date that has already gone by is a record of what
+  // happened, not a setting — it can't be edited into anything and
+  // removing it changes nothing — so listing it only grows the panel
+  // week by week with rows nobody can use. "Today" is read on the shop's
+  // own clock, matching the date the Add modal will let them pick, so a
+  // tab in another timezone doesn't drop its current day early.
+  const todayAtShop = todayIsoIn(activeZone);
+  const overrides = (activeSchedule?.overrides ?? []).filter(
+    (override) => override.date >= todayAtShop,
+  );
 
   if (availabilityQuery.isError) {
     return (
@@ -1184,6 +1195,7 @@ export function StaffAvailabilityEditor({
         onClose={() => setOverrideModalOpen(false)}
         onSubmit={(input) => addOverrideMutation.mutate(input)}
         submitting={addOverrideMutation.isPending}
+        minDate={todayAtShop}
       />
 
       <ConfirmModal
