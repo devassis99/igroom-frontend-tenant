@@ -70,7 +70,13 @@ export function UtilisationCell({ location }: { location: AccountLocation }) {
     return <span className="font-sans text-xs text-tn-faint">Not your location</span>;
   }
   if (location.slotsCapacity === 0) {
-    return <span className="font-sans text-xs text-tn-faint">Not bookable</span>;
+    // "Closed today" is a fact about the calendar; "Not bookable" sounds
+    // like a fault, and is only true of a branch that has no hours at all.
+    return (
+      <span className="font-sans text-xs text-tn-faint">
+        {location.closedToday ? "Closed today" : "Not bookable"}
+      </span>
+    );
   }
 
   const ratio = Math.min(1, location.slotsBooked / location.slotsCapacity);

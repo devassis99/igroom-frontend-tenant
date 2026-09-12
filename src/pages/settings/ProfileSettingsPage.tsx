@@ -1,15 +1,34 @@
 import { useState } from "react";
+import { Link } from "react-router";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { Field, formInputClass, formSelectClass } from "@/components/ui/FormField";
+import { ImageUpload } from "@/components/ui/ImageUpload";
 import { PreviewAsCustomerModal } from "@/components/settings/PreviewAsCustomerModal";
 import { useAuthStore } from "@/auth/auth-store";
+import { usePermissions } from "@/auth/use-permissions";
+import { updateCoverPhoto } from "@/lib/accounts-api";
 
-const GALLERY_TAGS = ["Classic Haircut", "Interior", "Marcus Webb", "Skin Fade"];
-
-/** Matches the mockup's T12 Profile page (Business Information + Public Profile / gallery). */
+/** The mockup's T12 Profile page: the business's own details, and the one cover photo every branch's page leads with. */
 export function ProfileSettingsPage() {
   const owner = useAuthStore((s) => s.owner);
+  const accessToken = useAuthStore((s) => s.accessToken) ?? "";
+  const { account } = usePermissions();
+  const queryClient = useQueryClient();
   const [previewOpen, setPreviewOpen] = useState(false);
+
+  /**
+   * Saving the key is a separate step from uploading the bytes, and both
+   * live here rather than inside ImageUpload: the component knows how to
+   * get a file into storage, and this page knows what that file *is*.
+   * Invalidating the permissions query is what refreshes the cover
+   * everywhere else it appears, since that is where the account row is
+   * read from.
+   */
+  const saveCover = useMutation({
+    mutationFn: (imageKey: string | null) => updateCoverPhoto(accessToken, imageKey),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["me", "permissions"] }),
+  });
 
   return (
     <div className="flex flex-col gap-8">
@@ -63,44 +82,41 @@ export function ProfileSettingsPage() {
           What customers see on the iGroom app when they find your shop.
         </p>
 
-        <div
-          className="flex h-[140px] items-center justify-center rounded-2xl font-sans text-xs text-tn-muted-5"
-          style={{
-            background:
-              "repeating-linear-gradient(45deg, oklch(90% 0.015 65), oklch(90% 0.015 65) 8px, oklch(94% 0.01 70) 8px, oklch(94% 0.01 70) 16px)",
+        <ImageUpload
+          purpose="shop-cover"
+          accessToken={accessToken}
+          currentUrl={account?.coverPhotoUrl ?? null}
+          label="Cover photo"
+          hint="One photograph for the business — every branch's page leads with it. Landscape works best; 4 MB maximum."
+          onUploaded={async (key) => {
+            await saveCover.mutateAsync(key);
           }}
-        >
-          cover photo
-          <Button variant="secondary" size="sm" className="ml-3 bg-tn-surface">
-            Replace
-          </Button>
-        </div>
+          onRemove={async () => {
+            await saveCover.mutateAsync(null);
+          }}
+          disabled={saveCover.isPending}
+        />
+        {saveCover.isError && (
+          <p className="m-0 font-sans text-[11px] text-tn-danger">
+            {saveCover.error instanceof Error
+              ? saveCover.error.message
+              : "Couldn’t save that — try again."}
+          </p>
+        )}
 
-        <div className="flex items-center justify-between">
-          <span className="font-sans text-sm font-semibold text-tn-ink">Gallery</span>
-          <span className="font-sans text-xs text-tn-muted-5">12 photos</span>
-        </div>
-        <div className="grid grid-cols-4 gap-2.5">
-          {GALLERY_TAGS.map((tag) => (
-            <div
-              key={tag}
-              className="flex aspect-square flex-col items-center justify-end rounded-xl bg-tn-page p-2 text-center"
-            >
-              <span className="rounded-md bg-tn-surface px-1.5 py-0.5 font-sans text-[10px] font-medium text-tn-muted-3">
-                {tag}
-              </span>
-            </div>
-          ))}
-          <button
-            type="button"
-            className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-tn-input-border font-sans text-xs text-tn-muted-5"
-          >
-            <span className="text-lg">+</span>
-            Add
-          </button>
-        </div>
+        {/* The gallery moved, and this is the sentence that says where.
+            One business has one cover — that is this page, beside the
+            name and the description — but the rooms are not shared:
+            Shoreditch and Peckham are different buildings, and a customer
+            who opened Peckham's link and saw Shoreditch's window has been
+            shown the wrong shop. Each branch keeps its own photographs on
+            its own Gallery tab. */}
         <p className="m-0 font-sans text-xs text-tn-muted-6">
-          Tag a photo to a service or team member so it can appear next to them in the app.
+          Photos of the shop itself live with the branch they were taken in —{" "}
+          <Link to="/locations" className="font-semibold text-tn-ink">
+            Locations
+          </Link>{" "}
+          → a branch → Gallery.
         </p>
       </section>
 

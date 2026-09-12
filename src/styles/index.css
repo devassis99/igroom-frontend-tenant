@@ -82,6 +82,30 @@ body {
   font-family: var(--font-sans);
 }
 
+/*
+ * The app's focus ring.
+ *
+ * There wasn't one. Inputs style their own focus (outline-none plus a
+ * gold border — see FormField), but every button fell through to
+ * Chrome's default double blue ring, which is the wrong colour for this
+ * palette entirely and reads as a rendering fault rather than as focus:
+ * an appointment block in the calendar, focused again after its modal
+ * closed, came back wearing a blue rectangle nobody had asked for.
+ *
+ * `:focus-visible`, not `:focus`, so a plain mouse click never draws it
+ * — it appears for keyboard navigation and when focus is moved by the
+ * app, which is exactly when somebody needs to be told where they are.
+ *
+ * Wrapped in :where() so it has zero specificity: any component that
+ * styles its own focus (or opts out with outline-none) simply wins,
+ * without needing !important or a longer selector. This is a default,
+ * not a decree.
+ */
+:where(a, button, summary, [role="button"], [tabindex]):focus-visible {
+  outline: 2px solid var(--color-tn-gold);
+  outline-offset: 2px;
+}
+
 @keyframes tn-spin {
   to {
     transform: rotate(360deg);
@@ -463,4 +487,53 @@ body {
 .leaflet-container {
   z-index: 0;
   isolation: isolate;
+}
+
+/*
+ * The Staff tab's any-barber reserve.
+ *
+ * A real <input type="range"> rather than a div with a drag handler: it
+ * arrives with keyboard support, a value announced to screen readers, and
+ * the platform's own hit area on a touchscreen, none of which a div ever
+ * gets quite right. Only the paint is ours — the track's fill is an
+ * inline gradient (CSS can't read a value), and the thumb is drawn small
+ * because the number beside the label is what an owner actually reads.
+ */
+.tn-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+}
+
+.tn-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.tn-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-tn-surface);
+  border: 2px solid var(--color-tn-gold);
+  box-shadow: 0 1px 3px rgb(40 30 10 / 0.25);
+}
+
+.tn-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-tn-surface);
+  border: 2px solid var(--color-tn-gold);
+  box-shadow: 0 1px 3px rgb(40 30 10 / 0.25);
+}
+
+.tn-range:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--color-tn-gold);
+  outline-offset: 2px;
 }

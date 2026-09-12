@@ -160,7 +160,15 @@ export interface MeResponse {
    * which Settings › Availability both shows and edits (see
    * collisions-api.ts's updateSchedulingSettings).
    */
-  account: (Record<string, unknown> & { locationChangeBufferMinutes?: number }) | null;
+  account:
+    | (Record<string, unknown> & {
+        locationChangeBufferMinutes?: number;
+        /** The account's half of every public booking link — fixed at signup. */
+        slug?: string;
+        /** A signed URL for the business's cover photograph, or null. Not a permanent address. */
+        coverPhotoUrl?: string | null;
+      })
+    | null;
   /** The full location rows for staffUser.locationIds, ordered by name. */
   locations: Record<string, unknown>[];
 }
@@ -358,5 +366,24 @@ export function updateOwnProfile(accessToken: string, patch: OwnProfileInput): P
     method: "PATCH",
     body: patch,
     headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+/**
+ * The business's one photograph — what every branch's page leads with.
+ *
+ * Takes the object key from an upload, not a URL: the bytes are already
+ * in storage by the time this is called, and this only records which
+ * object they are. Passing null removes the cover, and the old object is
+ * deleted with it.
+ */
+export function updateCoverPhoto(
+  accessToken: string,
+  imageKey: string | null,
+): Promise<{ coverPhotoUrl: string | null }> {
+  return request("/accounts/settings/cover-photo", {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: { imageKey },
   });
 }

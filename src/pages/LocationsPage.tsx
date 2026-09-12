@@ -258,6 +258,12 @@ export function LocationsPage() {
             key={selected.id}
             location={selected}
             canManage={canManageLocations}
+            /* How many branches the brand link has to choose between —
+               the one thing about that link an owner cannot work out
+               from the branch they happen to be looking at. */
+            liveBranchCount={
+              locations.filter((row) => row.onlineBookingEnabled && row.status === "active").length
+            }
           />
         </div>
 
@@ -391,6 +397,21 @@ export function LocationsPage() {
                             .filter(Boolean)
                             .join(" · ")}
                     </span>
+                    {/* The one state an owner cannot see from anywhere
+                        else, and the one that makes their own link
+                        answer "this shop isn't taking bookings online".
+                        It lives on the branch's Details tab, which is
+                        exactly where nobody looks when the link they
+                        pasted into a bio comes back dead — and with the
+                        switch off on every branch, the brand link stops
+                        working too. Shown under "needs setup" because a
+                        branch with no hours can't take a booking at all
+                        yet; this one could, and has been told not to. */}
+                    {!loc.needsSetup && !loc.onlineBookingEnabled && loc.status === "active" && (
+                      <span className="mt-0.5 w-fit rounded-full bg-tn-neutral-bg px-1.5 py-0.5 font-sans text-[10px] font-semibold text-tn-muted-5">
+                        Booking link off
+                      </span>
+                    )}
                     {/* Ranked below "needs setup", not merged into it: a
                         shop with no hours at all isn't bookable yet,
                         while this one is bookable and wrong, which is

@@ -1,15 +1,17 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { LocationFilterPopover } from "@/components/ui/LocationFilterPopover";
-import { TimezonePicker } from "@/components/ui/TimezonePicker";
 import { AppointmentModal } from "@/components/calendar/AppointmentModal";
 import { ArrivedDot } from "@/components/calendar/ArrivedDot";
 import { AppointmentListView } from "@/components/calendar/AppointmentListView";
 import { AddBookingModal } from "@/components/calendar/AddBookingModal";
+import { useAppChrome } from "@/components/layout/AppShell";
 import { StaffFilterBar } from "@/components/calendar/StaffFilterBar";
+import { WeekActivityRail } from "@/components/calendar/WeekActivityRail";
+import { WeekGrid } from "@/components/calendar/WeekGrid";
 import { ManageStaffSetsModal } from "@/components/calendar/ManageStaffSetsModal";
 import { useAuthStore } from "@/auth/auth-store";
 import { usePermissions } from "@/auth/use-permissions";
@@ -31,6 +33,7 @@ import {
 } from "@/lib/bookings-api";
 import { listLocations, type AccountLocation } from "@/lib/locations-api";
 import { BOOKING_STATUS_BLOCK } from "@/lib/booking-status";
+import { todayIsoIn } from "@/lib/timezones";
 import { staffAvatarColor } from "@/lib/staff-avatar-color";
 import {
   addDays,
@@ -39,15 +42,15 @@ import {
   formatDayNavLabel,
   formatMonthNavLabel,
   formatTimeLabel,
-  formatWeekColumnLabel,
   formatWeekNavLabel,
   formatUtcOffset,
   getDaySlots,
   getMonthGrid,
-  isSameDay,
   isSameMonth,
   startOfDay,
   startOfWeek,
+  calendarDateKey,
+  zonedTimeToUtc,
   zonedHourMinute,
 } from "@/lib/calendar-dates";
 
@@ -175,11 +178,27 @@ const SLOT_MINUTES = 30;
 /** Matches the mockup's T7 / T7-week / T7-month Calendar frames, plus the T7c/d/e appointment modal — now backed by real igroom-backend data instead of hardcoded arrays. */
 export function CalendarPage() {
   const accessToken = useAuthStore((s) => s.accessToken);
+  const { setNavCollapsed } = useAppChrome();
   const { has: hasPermission } = usePermissions();
   const canManageStaff = hasPermission("staff.manage");
   const location = useLocation();
 
-  const [view, setView] = useState<View>("day");
+  /**
+   * "Day" unless a link asked for something else.
+   *
+   * The Staff tab's "See the week by barber" is the reason this reads the
+   * query string at all: a button that promises the week and lands on
+   * today is a button that has to be followed by a second click nobody
+   * was told about. Read once, at mount — this is a starting position,
+   * not a binding, so switching views afterwards doesn't rewrite the URL
+   * and the back button doesn't undo a view change.
+   */
+  const [view, setView] = useState<View>(() => {
+    const requested = new URLSearchParams(window.location.search).get("view");
+    return requested === "week" || requested === "month" || requested === "list"
+      ? requested
+      : "day";
+  });
   const [cursorDate, setCursorDate] = useState(() => new Date());
   // Which way the grid below should animate in on its next render — "next"
   // slides in from the right, "prev" from the left (paging forward/back in
@@ -195,12 +214,9 @@ export function CalendarPage() {
   // to the caller's own location server-side, see bookings.service.ts's
   // resolveLocationId) until the effect below picks a default once
   // `locations` has loaded.
-  const [selectedLocationId, setSelectedLocationId] = useState("");
-  // null = "follow the selected location's own timezone" (or the
-  // browser's, if the location has none set) — set once the picker below
-  // is used explicitly, and then sticks even if the location changes,
-  // same override-wins-over-default relationship as PhoneInput's country.
-  const [timezoneOverride, setTimezoneOverride] = useState<string | null>(null);
+  const [selectedLocationId, setSelectedLocationId] = useState(
+    () => new URLSearchParams(window.location.search).get("location") ?? "",
+  );
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [selectedBookingMode, setSelectedBookingMode] = useState<BookingModalMode>("detail");
   const [addRequest, setAddRequest] = useState<AddBookingRequest | null>(null);
@@ -230,7 +246,7 @@ export function CalendarPage() {
     setSelectedBookingMode(mode);
   }
 
-  /** Sets the staff filter AND persists it, so a manual pick sticks around past a refresh — same "explicit override wins and sticks" relationship as timezoneOverride above. */
+  /** Sets the staff filter AND persists it, so a manual pick sticks around past a refresh. */
   function applyStaffSelection(ids: string[]) {
     setSelectedStaffIdsState(ids);
     if (!selectedLocationId) return;
@@ -240,21 +256,6 @@ export function CalendarPage() {
       // Private browsing / quota exceeded — the pick still applies this session, it just won't survive a refresh.
     }
   }
-
-  const range = useMemo(() => {
-    if (view === "day") {
-      const start = startOfDay(cursorDate);
-      return { start, end: addDays(start, 1) };
-    }
-    if (view === "week") {
-      return { start: startOfWeek(cursorDate), end: endOfWeekExclusive(cursorDate) };
-    }
-    const weeks = getMonthGrid(cursorDate);
-    // getMonthGrid always returns full 7-day weeks, so these indices are never actually out of bounds.
-    const first = weeks[0]![0]!;
-    const last = weeks[weeks.length - 1]![6]!;
-    return { start: first, end: addDays(last, 1) };
-  }, [view, cursorDate]);
 
   const locationsQuery = useQuery({
     queryKey: ["locations"],
@@ -271,17 +272,90 @@ export function CalendarPage() {
   const allLocations = locationsQuery.data?.locations ?? EMPTY_LOCATIONS;
   const locations = useMemo(() => allLocations.filter((l) => l.inScope), [allLocations]);
 
-  // Day/Week grid's wall-clock zone — an explicit pick from the picker
-  // below wins outright, otherwise it follows the selected location's own
-  // timezone (see locations-api.ts), falling back to the browser's when
-  // that location has none configured (e.g. an older location row from
-  // before the field existed).
+  /**
+   * The wall-clock zone every grid, label and conversion on this page
+   * runs on: the selected location's own, falling back to the browser's
+   * when that location has none configured (an older row from before the
+   * field existed).
+   *
+   * There used to be a third tier above these — a per-session override
+   * from a picker in the toolbar. It was removed rather than fixed. As a
+   * reading aid it was redundant, since the shop's own zone is the one
+   * answer anybody wants; and it was not only a reading aid, because
+   * Add Booking and Reschedule convert through this same value, so a
+   * control that looked like a display toggle quietly decided what got
+   * written to the database. Its own state reset on reload while the
+   * bookings it produced did not. Changing a shop's timezone now happens
+   * in exactly one place — the location's own settings — where it is
+   * saved, shared, and visible to everyone.
+   */
   const selectedLocation = locations.find((l) => l.id === selectedLocationId);
-  const rawTimezone = timezoneOverride ?? selectedLocation?.timezone ?? BROWSER_TIMEZONE;
+  const rawTimezone = selectedLocation?.timezone ?? BROWSER_TIMEZONE;
   // A bad value (see isValidTimeZone above) falls all the way back to the
   // browser's own zone rather than crashing the whole page — better to
   // show the wrong-but-plausible zone than an error boundary.
   const timezone = isValidTimeZone(rawTimezone) ? rawTimezone : BROWSER_TIMEZONE;
+
+  /**
+   * The window to ask the API for, in the *shop's* day — not the
+   * browser's.
+   *
+   * This used to be `startOfDay(cursorDate)`, which is midnight where the
+   * person sitting at the screen is, while every pixel on the grid is
+   * placed by the shop's own clock (see `timezone` below). The two agree
+   * only when the manager happens to be in the same zone as the shop, and
+   * disagree by exactly the offset otherwise — so a London shop's
+   * midnight appointment on the 12th fell inside a UTC browser's window
+   * for the 11th and was drawn at the top of Friday, on a day it does not
+   * happen. An owner abroad, or a shop whose timezone was set by hand
+   * (Valencia is on "London" here), hits it without travelling anywhere.
+   *
+   * Midnight is resolved per calendar date rather than by adding 24
+   * hours, so a week containing a clock change still starts and ends on
+   * the shop's own midnights.
+   */
+  const midnightAt = useCallback(
+    (day: Date) => zonedTimeToUtc(day.getFullYear(), day.getMonth(), day.getDate(), 0, 0, timezone),
+    [timezone],
+  );
+
+  /**
+   * Does this instant fall on the day the grid is showing — on the
+   * *shop's* calendar?
+   *
+   * `isSameDay(start, cursorDate)` was comparing browser-local dates
+   * while every other line in these memos reads the booking through
+   * `timezone`. With the viewer an hour behind the shop, a midnight
+   * appointment on the 13th is the 12th locally, so it was fetched (the
+   * column header counted it: "1 booked") and then silently dropped by
+   * this test — a booking that exists, is counted, and has no card. The
+   * emptiest possible bug report.
+   *
+   * cursorDate is a local Date whose *parts* are the day being viewed, so
+   * its own calendar key is the right side of the comparison; the
+   * booking's side has to be read on the shop's clock.
+   */
+  const isOnCursorDay = useCallback(
+    (instant: Date) => todayIsoIn(timezone, instant) === calendarDateKey(cursorDate),
+    [timezone, cursorDate],
+  );
+
+  const range = useMemo(() => {
+    if (view === "day") {
+      return { start: midnightAt(cursorDate), end: midnightAt(addDays(cursorDate, 1)) };
+    }
+    if (view === "week") {
+      return {
+        start: midnightAt(startOfWeek(cursorDate)),
+        end: midnightAt(endOfWeekExclusive(cursorDate)),
+      };
+    }
+    const weeks = getMonthGrid(cursorDate);
+    // getMonthGrid always returns full 7-day weeks, so these indices are never actually out of bounds.
+    const first = weeks[0]![0]!;
+    const last = weeks[weeks.length - 1]![6]!;
+    return { start: midnightAt(first), end: midnightAt(addDays(last, 1)) };
+  }, [view, cursorDate, midnightAt]);
 
   // Default to the account's primary location the moment the list loads —
   // same "default to primary, let them change it" pattern as
@@ -453,6 +527,22 @@ export function CalendarPage() {
    * "override > configured default > fallback" shape as the timezone
    * resolution above.
    */
+  /**
+   * The root nav folds to its icon rail while the calendar is open.
+   *
+   * The grid is the widest thing in the app — seven day columns, or one
+   * fixed-width column per barber — and it is the page where 144px of
+   * chrome costs a whole column. Driven by mounting rather than by the
+   * click that got here, so arriving from the sidebar, from a bookmark,
+   * or by typing the URL all behave the same. The toggle still works:
+   * expanding by hand clears this (see AppShell's toggleCollapsed), and
+   * leaving the page restores whatever the owner had before.
+   */
+  useEffect(() => {
+    setNavCollapsed(true);
+    return () => setNavCollapsed(false);
+  }, [setNavCollapsed]);
+
   const effectiveStaffIds = useMemo(() => {
     if (selectedStaffIds !== null) return new Set(selectedStaffIds);
     const defaultSet = staffSets.find((s) => s.isDefault);
@@ -560,7 +650,8 @@ export function CalendarPage() {
 
     for (const booking of bookings) {
       const start = new Date(booking.startAt);
-      if (!isSameDay(start, cursorDate)) continue; // overlaps in from the prior day — not this day's row range
+      // Overlaps in from the prior day — not this day's row range.
+      if (!isOnCursorDay(start)) continue;
       const end = new Date(booking.endAt);
       const startZoned = zonedHourMinute(start, timezone);
       const endZoned = zonedHourMinute(end, timezone);
@@ -569,7 +660,7 @@ export function CalendarPage() {
       maxHour = Math.max(maxHour, Math.min(endHourCeil, 24));
     }
     return getDaySlots(cursorDate, minHour, Math.max(maxHour, minHour + 1), 30, timezone);
-  }, [cursorDate, bookings, timezone, shiftsByStaffId]);
+  }, [cursorDate, bookings, timezone, shiftsByStaffId, isOnCursorDay]);
 
   /**
    * Columns for the Day view. Bookings only ever come back from the API
@@ -586,6 +677,16 @@ export function CalendarPage() {
    * column stays visible regardless of the picker, since it isn't
    * selectable there in the first place and hiding it would just make an
    * existing booking silently vanish.
+   *
+   * Ordered by who is actually in today. Past five members the grid
+   * scrolls, and the columns that scroll off are the ones nobody looked
+   * at — so the first screen has to be the people a booking can be put
+   * against. Somebody who is off today is still worth a column (their
+   * existing appointments live in it, and a manager may need to add one
+   * anyway), just not the first one. Alphabetical by name is what the
+   * roster arrives in, and that ordering is kept inside each group so a
+   * column doesn't move around from one day to the next for any reason
+   * other than the rota.
    */
   const dayColumns = useMemo(() => {
     const known = new Map(staff.map((member) => [member.id, member]));
@@ -600,10 +701,20 @@ export function CalendarPage() {
         ghostIds.add(booking.staffUserId);
       }
     }
-    return Array.from(known.values()).filter(
+    const visible = Array.from(known.values()).filter(
       (member) => ghostIds.has(member.id) || effectiveStaffIds.has(member.id),
     );
-  }, [staff, bookings, effectiveStaffIds]);
+
+    /** The same test the column header's subtitle uses — see formatShiftSummary. */
+    const worksToday = (staffUserId: string): boolean => {
+      const shift = shiftsByStaffId.get(staffUserId);
+      return shift !== undefined && !shift.isOff && shift.ranges.length > 0;
+    };
+
+    // Array.prototype.sort is stable, so equal members keep the roster's
+    // own order rather than being reshuffled.
+    return visible.sort((a, b) => Number(worksToday(b.id)) - Number(worksToday(a.id)));
+  }, [staff, bookings, effectiveStaffIds, shiftsByStaffId]);
 
   // Shared by the header row and every hour row below so the two grids stay
   // pixel-for-pixel aligned — fixed-width columns (see DAY_COLUMN_WIDTH)
@@ -772,16 +883,80 @@ export function CalendarPage() {
   }
 
   /**
+   * One block per appointment, placed over the whole grid rather than
+   * cut into a piece per row.
+   *
+   * The grid draws half-hour rows; an appointment is whatever length it
+   * is. It used to be rendered per row — a 90-minute cut was three
+   * separate buttons stacked to look like one, held together by
+   * suppressing the gridline between them. That worked until anything
+   * treated them as the separate elements they were: each piece took
+   * focus on its own, so closing the detail modal put a focus ring
+   * around one third of an appointment, and a screen reader met the same
+   * booking three times.
+   *
+   * Positioned in pixels down the rows container, exactly like the "now"
+   * line above — the same DAY_SLOT_HEIGHT_PX-per-row assumption both
+   * rest on, which is why the row height is fixed rather than a minimum.
+   *
+   * Two appointments can't overlap for one member (the API's
+   * assertSlotFree refuses it), so one block per booking never has to
+   * share its column with another.
+   */
+  const dayBookingBlocks = useMemo(() => {
+    if (view !== "day" || daySlots.length === 0) return [];
+    const first = zonedHourMinute(daySlots[0]!, timezone);
+    const gridStartMinutes = first.hour * 60 + first.minute;
+    const gridMinutes = daySlots.length * SLOT_MINUTES;
+    const columnIndexById = new Map(dayColumns.map((member, index) => [member.id, index]));
+
+    const blocks: { booking: Booking; columnIndex: number; topPx: number; heightPx: number }[] = [];
+    for (const booking of bookings) {
+      const columnIndex = columnIndexById.get(booking.staffUserId);
+      if (columnIndex === undefined) continue;
+      const start = new Date(booking.startAt);
+      // Overlaps in from the prior day — not this day's block, same rule
+      // daySlots follows when deciding the row range.
+      if (!isOnCursorDay(start)) continue;
+
+      const end = new Date(booking.endAt);
+      const startZoned = zonedHourMinute(start, timezone);
+      const startMinutes = startZoned.hour * 60 + startZoned.minute;
+      const durationMinutes = Math.max(1, Math.round((end.getTime() - start.getTime()) / 60_000));
+      // A cancelled appointment is drawn where it was booked but claims
+      // nothing after it — the same rule daySlotSegments applies when
+      // deciding what is still free, kept here so the block doesn't sit
+      // over half a morning of slots that are open again.
+      const drawnMinutes =
+        booking.status === "cancelled"
+          ? Math.min(durationMinutes, SLOT_MINUTES - (startMinutes % SLOT_MINUTES))
+          : durationMinutes;
+
+      const from = Math.max(0, startMinutes - gridStartMinutes);
+      const to = Math.min(gridMinutes, startMinutes - gridStartMinutes + drawnMinutes);
+      if (to <= from) continue;
+
+      blocks.push({
+        booking,
+        columnIndex,
+        topPx: (from / SLOT_MINUTES) * DAY_SLOT_HEIGHT_PX,
+        heightPx: ((to - from) / SLOT_MINUTES) * DAY_SLOT_HEIGHT_PX,
+      });
+    }
+    return blocks;
+  }, [view, daySlots, bookings, timezone, dayColumns, isOnCursorDay]);
+
+  /**
    * Pixel offset of "now" within the Day view's slot rows, or null when
    * `now` isn't actually on the visible day (per the existing
-   * browser-local day-identity rule, same as daySlots/isSameDay above) or
+   * shop-local day-identity rule, same as daySlots/dayBookingBlocks above) or
    * falls outside the grid's visible hour range. Assumes every row is
    * exactly DAY_SLOT_HEIGHT_PX tall — true as long as row content doesn't
    * wrap onto a second line.
    */
   const nowLineOffsetPx = useMemo(() => {
     if (view !== "day" || daySlots.length === 0) return null;
-    if (!isSameDay(cursorDate, now)) return null;
+    if (!isOnCursorDay(now)) return null;
     const first = zonedHourMinute(daySlots[0]!, timezone);
     const nowZoned = zonedHourMinute(now, timezone);
     const minutesFromStart =
@@ -789,7 +964,7 @@ export function CalendarPage() {
     const totalMinutes = daySlots.length * 30;
     if (minutesFromStart < 0 || minutesFromStart > totalMinutes) return null;
     return (minutesFromStart / 30) * DAY_SLOT_HEIGHT_PX;
-  }, [view, daySlots, cursorDate, now, timezone]);
+  }, [view, daySlots, now, timezone, isOnCursorDay]);
 
   /**
    * Whether the Day grid has been put where it belongs yet.
@@ -898,7 +1073,7 @@ export function CalendarPage() {
   const bookingsByDay = useMemo(() => {
     const map = new Map<string, Booking[]>();
     for (const booking of bookings) {
-      const key = startOfDay(new Date(booking.startAt)).toDateString();
+      const key = todayIsoIn(timezone, new Date(booking.startAt));
       const list = map.get(key) ?? [];
       list.push(booking);
       map.set(key, list);
@@ -907,7 +1082,51 @@ export function CalendarPage() {
       list.sort((a, b) => a.startAt.localeCompare(b.startAt));
     }
     return map;
-  }, [bookings]);
+    // `timezone` decides which day a booking lands in — an 11pm Friday
+    // appointment is Saturday in a zone five hours ahead — so leaving it
+    // out kept the previous zone's buckets on screen.
+  }, [bookings, timezone]);
+
+  /**
+   * The week, narrowed by the same picker Day view uses.
+   *
+   * `bookingsByDay` above stays unfiltered because Month and List read it
+   * and neither offers a staff filter — narrowing it there would hide
+   * appointments from views that never asked to hide any. A ghost staff
+   * member (one deactivated after their booking was made) isn't in
+   * effectiveStaffIds and isn't selectable either, so their bookings are
+   * let through rather than silently disappearing from the week.
+   */
+  const weekBookings = useMemo(() => {
+    const rosterIds = new Set(staff.map((member) => member.id));
+    return bookings.filter(
+      (booking) =>
+        !rosterIds.has(booking.staffUserId) || effectiveStaffIds.has(booking.staffUserId),
+    );
+  }, [bookings, staff, effectiveStaffIds]);
+
+  const weekBookingsByDay = useMemo(() => {
+    const map = new Map<string, Booking[]>();
+    for (const booking of weekBookings) {
+      const key = todayIsoIn(timezone, new Date(booking.startAt));
+      const list = map.get(key) ?? [];
+      list.push(booking);
+      map.set(key, list);
+    }
+    for (const list of map.values()) list.sort((a, b) => a.startAt.localeCompare(b.startAt));
+    return map;
+  }, [weekBookings, timezone]);
+
+  /** Distinct barbers with work in the visible week — the rail's "N on rota". */
+  const weekStaffOnRota = useMemo(
+    () =>
+      new Set(
+        weekBookings
+          .filter((booking) => booking.status !== "cancelled")
+          .map((booking) => booking.staffUserId),
+      ).size,
+    [weekBookings],
+  );
 
   const monthWeeks = useMemo(() => getMonthGrid(cursorDate), [cursorDate]);
 
@@ -951,7 +1170,6 @@ export function CalendarPage() {
               includeAllOption={false}
             />
           )}
-          <TimezonePicker value={timezone} onChange={setTimezoneOverride} />
         </div>
         <div className="flex items-center gap-3.5">
           {view !== "list" && (
@@ -1051,7 +1269,10 @@ export function CalendarPage() {
           </div>
         )}
 
-        {view === "day" && (staffQuery.isPending || staff.length > 0) && (
+        {/* Week view reads the same selection Day view does, so switching
+            between the two keeps whoever you had picked rather than
+            silently widening back to the whole shop. */}
+        {(view === "day" || view === "week") && (staffQuery.isPending || staff.length > 0) && (
           <div className="flex flex-col gap-3">
             <StaffFilterBar
               allStaff={staff}
@@ -1068,85 +1289,89 @@ export function CalendarPage() {
               isSaving={createStaffSetMutation.isPending}
             />
 
-            <div className="relative flex flex-col overflow-hidden rounded-2xl border border-tn-border">
-              {/* Fixed-height, self-scrolling grid (independent of the page's own scroll container) so the
+            {/* The per-barber grid is Day view's. Week draws its own
+                columns below and only shares the picker above. */}
+            {view === "day" && (
+              <>
+                <div className="relative flex flex-col overflow-hidden rounded-2xl border border-tn-border">
+                  {/* Fixed-height, self-scrolling grid (independent of the page's own scroll container) so the
                   header row below can stay pinned while the hour rows scroll under it, and so the
                   auto-scroll-to-now effect has a predictable container to act on. Columns are fixed-width
                   (see DAY_COLUMN_WIDTH) rather than `1fr`, so a location with enough staff overflows this
                   container's own width too — `overflow-auto` (not just -y) is what turns that into a
                   horizontal scrollbar instead of squeezing every column unreadably thin. */}
-              <div
-                ref={dayScrollRef}
-                onScroll={handleDayScroll}
-                // Laid out but not shown until the scroll has landed —
-                // the container has to have its real height for
-                // scrollTop to mean anything, so this is opacity rather
-                // than a conditional render. See dayGridPlaced.
-                className={`max-h-[640px] overflow-auto transition-opacity duration-200 ${
-                  dayGridPlaced ? "opacity-100" : "opacity-0"
-                }`}
-              >
-                <div
-                  className="sticky top-0 z-20 grid border-b border-tn-border-softer bg-tn-table-head"
-                  style={{ gridTemplateColumns: dayGridColumns }}
-                >
-                  {/* The one cell that's sticky on BOTH axes — pinned to the top via the row above and to
+                  <div
+                    ref={dayScrollRef}
+                    onScroll={handleDayScroll}
+                    // Laid out but not shown until the scroll has landed —
+                    // the container has to have its real height for
+                    // scrollTop to mean anything, so this is opacity rather
+                    // than a conditional render. See dayGridPlaced.
+                    className={`max-h-[640px] overflow-auto transition-opacity duration-200 ${
+                      dayGridPlaced ? "opacity-100" : "opacity-0"
+                    }`}
+                  >
+                    <div
+                      className="sticky top-0 z-20 grid border-b border-tn-border-softer bg-tn-table-head"
+                      style={{ gridTemplateColumns: dayGridColumns }}
+                    >
+                      {/* The one cell that's sticky on BOTH axes — pinned to the top via the row above and to
                       the left here, so it stays put as the corner anchor while the rest of the header (and
                       every row's own gutter cell below) scrolls sideways underneath it. Needs its own
                       opaque background (matching the header row's) since sticky positioning takes it out of
                       the row's normal paint order. */}
-                  <div className="sticky left-0 z-10 flex items-center justify-center bg-tn-table-head p-2 text-center font-sans text-[11px] font-medium text-tn-muted-5">
-                    {formatUtcOffset(timezone)}
-                  </div>
-                  {staffQuery.isPending && (
-                    <div className="border-l border-tn-border-soft p-3 font-sans text-[13px] text-tn-muted-5">
-                      Loading staff…
-                    </div>
-                  )}
-                  {!staffQuery.isPending && dayColumns.length === 0 && (
-                    <div className="border-l border-tn-border-soft p-3 font-sans text-[13px] text-tn-muted-5">
-                      No staff selected — use the Staff picker above to choose who to show.
-                    </div>
-                  )}
-                  {dayColumns.map((member) => {
-                    const shift = shiftsByStaffId.get(member.id);
-                    const bookingCount = bookingCountByStaffId.get(member.id) ?? 0;
-                    return (
-                      <div
-                        key={member.id}
-                        className="flex min-w-0 items-center gap-2.5 border-l border-tn-border-soft p-3"
-                      >
-                        <span
-                          className="h-8 w-8 shrink-0 rounded-full"
-                          style={{ background: staffAvatarColor(member.id) }}
-                        />
-                        <span className="flex min-w-0 flex-col">
-                          <span className="truncate font-sans text-[13px] font-semibold text-tn-ink">
-                            {member.name}
-                          </span>
-                          <span className="truncate font-sans text-[10.5px] text-tn-muted-5">
-                            {formatShiftSummary(shift)}
-                            {bookingCount > 0 ? ` · ${bookingCount} booked` : ""}
-                          </span>
-                        </span>
+                      <div className="sticky left-0 z-10 flex items-center justify-center bg-tn-table-head p-2 text-center font-sans text-[11px] font-medium text-tn-muted-5">
+                        {formatUtcOffset(timezone)}
                       </div>
-                    );
-                  })}
-                  {canManageStaff && (
-                    <Link
-                      to="/staff"
-                      className="flex items-center gap-2 border-l border-dashed border-tn-input-border p-3 font-sans text-[13px] font-semibold text-tn-blue no-underline hover:bg-tn-page"
-                    >
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-dashed border-tn-blue text-xs">
-                        +
-                      </span>
-                      Add team member
-                    </Link>
-                  )}
-                </div>
+                      {staffQuery.isPending && (
+                        <div className="border-l border-tn-border-soft p-3 font-sans text-[13px] text-tn-muted-5">
+                          Loading staff…
+                        </div>
+                      )}
+                      {!staffQuery.isPending && dayColumns.length === 0 && (
+                        <div className="border-l border-tn-border-soft p-3 font-sans text-[13px] text-tn-muted-5">
+                          No staff selected — use the Staff picker above to choose who to show.
+                        </div>
+                      )}
+                      {dayColumns.map((member) => {
+                        const shift = shiftsByStaffId.get(member.id);
+                        const bookingCount = bookingCountByStaffId.get(member.id) ?? 0;
+                        return (
+                          <div
+                            key={member.id}
+                            className="flex min-w-0 items-center gap-2.5 border-l border-tn-border-soft p-3"
+                          >
+                            <span
+                              className="h-8 w-8 shrink-0 rounded-full"
+                              style={{ background: staffAvatarColor(member.id) }}
+                            />
+                            <span className="flex min-w-0 flex-col">
+                              <span className="truncate font-sans text-[13px] font-semibold text-tn-ink">
+                                {member.name}
+                              </span>
+                              <span className="truncate font-sans text-[10.5px] text-tn-muted-5">
+                                {formatShiftSummary(shift)}
+                                {bookingCount > 0 ? ` · ${bookingCount} booked` : ""}
+                              </span>
+                            </span>
+                          </div>
+                        );
+                      })}
+                      {canManageStaff && (
+                        <Link
+                          to="/staff"
+                          className="flex items-center gap-2 border-l border-dashed border-tn-input-border p-3 font-sans text-[13px] font-semibold text-tn-blue no-underline hover:bg-tn-page"
+                        >
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-dashed border-tn-blue text-xs">
+                            +
+                          </span>
+                          Add team member
+                        </Link>
+                      )}
+                    </div>
 
-                <div className="relative">
-                  {/* Google Calendar-style "now" line — a dot at the hour gutter's right edge plus a line
+                    <div className="relative">
+                      {/* Google Calendar-style "now" line — a dot at the hour gutter's right edge plus a line
                       spanning the staff columns, positioned in px (see DAY_SLOT_HEIGHT_PX/nowLineOffsetPx)
                       rather than as a real grid row, so it can sit *between* two rows without disturbing
                       the booking grid's own layout. Wrapped in the same dayGridColumns grid the rows/header
@@ -1154,27 +1379,82 @@ export function CalendarPage() {
                       the way across the invite/"Add team member" track too) and spanned only through the
                       last real staff track, so — like the past-dulled row background and the invite overlay
                       itself — the line stops where the actual staff columns end. */}
-                  {nowLineOffsetPx !== null && (
-                    <div
-                      className="pointer-events-none absolute inset-x-0 z-[5] grid"
-                      style={{ top: nowLineOffsetPx, gridTemplateColumns: dayGridColumns }}
-                    >
-                      <div
-                        className="flex items-center"
-                        style={{
-                          gridColumn: canManageStaff
-                            ? `1 / ${Math.max(dayColumns.length, 1) + 2}`
-                            : "1 / -1",
-                          marginLeft: DAY_GUTTER_WIDTH_PX,
-                        }}
-                      >
-                        <span className="h-2.5 w-2.5 shrink-0 -translate-x-1/2 rounded-full bg-tn-danger" />
-                        <span className="h-px flex-1 bg-tn-danger" />
-                      </div>
-                    </div>
-                  )}
+                      {/* One element per appointment, laid over the rows in the
+                      same dayGridColumns template the header and rows use, so
+                      it lands in its member's column whatever the columns have
+                      grown to. pointer-events-none on the track and back on for
+                      the block itself, so the empty part of the overlay row
+                      doesn't swallow clicks meant for the free slots beside
+                      it. z-[3]: above the rows, below the gutter's sticky time
+                      labels (z-4) and the "now" line (z-5). */}
+                      {dayBookingBlocks.map(({ booking, columnIndex, topPx, heightPx }) => {
+                        // Below about half a row there is no room for two lines, so
+                        // the service joins the name on one rather than being
+                        // clipped mid-word.
+                        const isShort = heightPx < 34;
+                        return (
+                          <div
+                            key={booking.id}
+                            className="pointer-events-none absolute inset-x-0 z-[3] grid"
+                            style={{
+                              top: topPx,
+                              height: heightPx,
+                              gridTemplateColumns: dayGridColumns,
+                            }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => openBooking(booking)}
+                              style={{ gridColumn: columnIndex + 2 }}
+                              // mx-2 rather than inset-x-2: the block is a grid
+                              // item here, not an absolutely-positioned one, and
+                              // this is the same 8px the row cells pad by.
+                              // The focus ring is drawn inside its own edge — see
+                              // the note in index.css — since a block flush to the
+                              // row below would otherwise have it clipped.
+                              className={`pointer-events-auto mx-2 h-full overflow-hidden rounded-md text-left font-sans font-medium text-tn-ink-soft focus-visible:[outline-offset:-2px] ${
+                                isShort ? "px-2 py-0.5 text-[11px] leading-tight" : "p-2 text-xs"
+                              } ${BOOKING_STATUS_BLOCK[booking.status]}`}
+                            >
+                              {isShort ? (
+                                <span className="block truncate">
+                                  <ArrivedDot checkedInAt={booking.checkedInAt} />
+                                  {booking.customerName} · {booking.serviceName}
+                                </span>
+                              ) : (
+                                <>
+                                  <ArrivedDot checkedInAt={booking.checkedInAt} />
+                                  {booking.customerName}
+                                  <br />
+                                  {booking.serviceName}
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        );
+                      })}
 
-                  {/* The invite prompt itself — an overlay using the exact same
+                      {nowLineOffsetPx !== null && (
+                        <div
+                          className="pointer-events-none absolute inset-x-0 z-[5] grid"
+                          style={{ top: nowLineOffsetPx, gridTemplateColumns: dayGridColumns }}
+                        >
+                          <div
+                            className="flex items-center"
+                            style={{
+                              gridColumn: canManageStaff
+                                ? `1 / ${Math.max(dayColumns.length, 1) + 2}`
+                                : "1 / -1",
+                              marginLeft: DAY_GUTTER_WIDTH_PX,
+                            }}
+                          >
+                            <span className="h-2.5 w-2.5 shrink-0 -translate-x-1/2 rounded-full bg-tn-danger" />
+                            <span className="h-px flex-1 bg-tn-danger" />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* The invite prompt itself — an overlay using the exact same
                       dayGridColumns template as the header/rows rather than any
                       measured pixel math, so it lands in the invite track no
                       matter how wide the staff columns before it have grown.
@@ -1196,348 +1476,277 @@ export function CalendarPage() {
                       moved down a level. Centering the card inside that inner
                       band reproduces the mockup's centered look while it stays in
                       view instead of scrolling away with the hour rows beneath it. */}
-                  {canManageStaff && (
-                    <div className="pointer-events-none sticky top-0 z-[6] h-0">
-                      <div
-                        className="grid h-[640px]"
-                        style={{ gridTemplateColumns: dayGridColumns }}
-                      >
-                        <div
-                          className="pointer-events-auto flex flex-col items-center gap-2 self-center justify-self-center rounded-2xl border border-dashed border-tn-input-border bg-tn-page px-6 py-8 text-center"
-                          // The `repeat(...)` count in dayGridColumns floors at 1 staff
-                          // track even when dayColumns is empty (an all-deselected
-                          // picker) — match that floor here too, or this would target
-                          // one track short of where the invite column actually is.
-                          style={{ gridColumn: Math.max(dayColumns.length, 1) + 2 }}
-                        >
-                          <span className="font-sans text-[14px] font-semibold text-tn-ink">
-                            One column per team member
-                          </span>
-                          <span className="max-w-[260px] font-sans text-xs text-tn-muted-5">
-                            Invite your barbers and each gets a 200px column here. Past five,
-                            columns hold their width and the grid scrolls — the staff picker above
-                            chooses who&rsquo;s in view.
-                          </span>
-                          <Link
-                            to="/staff"
-                            className="mt-1 cursor-pointer rounded-lg border-none bg-tn-dark px-4 py-2.5 font-sans text-[13px] font-semibold text-tn-on-dark no-underline"
+                      {canManageStaff && (
+                        <div className="pointer-events-none sticky top-0 z-[6] h-0">
+                          <div
+                            className="grid h-[640px]"
+                            style={{ gridTemplateColumns: dayGridColumns }}
                           >
-                            Invite staff
-                          </Link>
+                            <div
+                              className="pointer-events-auto flex flex-col items-center gap-2 self-center justify-self-center rounded-2xl border border-dashed border-tn-input-border bg-tn-page px-6 py-8 text-center"
+                              // The `repeat(...)` count in dayGridColumns floors at 1 staff
+                              // track even when dayColumns is empty (an all-deselected
+                              // picker) — match that floor here too, or this would target
+                              // one track short of where the invite column actually is.
+                              style={{ gridColumn: Math.max(dayColumns.length, 1) + 2 }}
+                            >
+                              <span className="font-sans text-[14px] font-semibold text-tn-ink">
+                                One column per team member
+                              </span>
+                              <span className="max-w-[260px] font-sans text-xs text-tn-muted-5">
+                                Invite your barbers and each gets a 200px column here. Past five,
+                                columns hold their width and the grid scrolls — the staff picker
+                                above chooses who&rsquo;s in view.
+                              </span>
+                              <Link
+                                to="/staff"
+                                className="mt-1 cursor-pointer rounded-lg border-none bg-tn-dark px-4 py-2.5 font-sans text-[13px] font-semibold text-tn-on-dark no-underline"
+                              >
+                                Invite staff
+                              </Link>
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      )}
+
+                      {daySlots.map((slot, rowIndex) => {
+                        const slotZoned = zonedHourMinute(slot, timezone);
+                        const hh = String(slotZoned.hour).padStart(2, "0");
+                        const mm = String(slotZoned.minute).padStart(2, "0");
+                        const slotKey = slot.toISOString();
+                        const isRowSelected = selectedRowSlotKeys.has(slotKey);
+                        // Dulled once the slot's actual instant has passed — covers both "this
+                        // whole day is behind us" (every slot on it is already before `now`)
+                        // and "today, but this hour already happened" with a single comparison,
+                        // since `slot`/`now` are absolute instants regardless of which zone
+                        // they're displayed in.
+                        const isPastSlot = slot.getTime() < now.getTime();
+                        // Also doubles as the sticky gutter button's own background below — a sticky
+                        // cell needs an opaque fill of its own (it's out of the row's normal paint
+                        // order), and using the row's actual color rather than a fixed one keeps the
+                        // pinned time label matching whatever state the row it belongs to is in.
+                        const rowBg = isRowSelected
+                          ? "bg-tn-blue-bg"
+                          : isPastSlot
+                            ? "bg-black/10"
+                            : "bg-tn-surface";
+                        return (
+                          <div
+                            key={slotKey}
+                            // Exactly one slot tall rather than "at least": the blocks below
+                            // are positioned as a percentage of the row, so the row has
+                            // to be a known height for a percentage to mean thirty
+                            // minutes. nowLineOffsetPx already assumed this — it just
+                            // had no way to guarantee it.
+                            className={`grid ${rowBg}`}
+                            style={{
+                              gridTemplateColumns: dayGridColumns,
+                              height: DAY_SLOT_HEIGHT_PX,
+                            }}
+                          >
+                            <button
+                              type="button"
+                              disabled={isPastSlot}
+                              onClick={() =>
+                                setSelectedRowSlotKeys((keys) => {
+                                  const next = new Set(keys);
+                                  if (next.has(slotKey)) next.delete(slotKey);
+                                  else next.add(slotKey);
+                                  return next;
+                                })
+                              }
+                              aria-pressed={isRowSelected}
+                              aria-label={
+                                isPastSlot
+                                  ? `${formatTimeLabel(slot, timezone)} has already passed — row selection isn't available for past times`
+                                  : `Select the ${formatTimeLabel(slot, timezone)} row`
+                              }
+                              className={`sticky left-0 z-[4] select-none border-none ${rowBg} p-2.5 text-left font-sans text-xs font-medium text-tn-muted-5 ${isRowSelected ? "text-tn-blue" : isPastSlot ? "cursor-not-allowed text-tn-faint-2" : ""} ${rowIndex < daySlots.length - 1 ? "border-b border-tn-border-soft" : ""}`}
+                            >
+                              {formatTimeLabel(slot, timezone)}
+                            </button>
+                            {dayColumns.map((member) => {
+                              const segments = daySlotSegments.get(`${member.id}__${hh}:${mm}`) ?? [
+                                { from: 0, to: SLOT_MINUTES },
+                              ];
+                              const hasBooking = segments.some((seg) => seg.booking);
+                              // Ghost columns (a staffUserId seen on a booking but no
+                              // longer in the active roster) can't be picked as an
+                              // "assign to" target for a *new* booking — only real,
+                              // currently-active staff can.
+                              const isActiveStaff = staff.some((s) => s.id === member.id);
+                              // Greyed when this slot falls outside the member's shift for
+                              // the day (see isSlotOutsideShift) — a visual "they're not
+                              // scheduled then" cue, not a hard block: it stays clickable so
+                              // an unplanned or one-off booking can still be added.
+                              const outsideShift =
+                                !hasBooking && isSlotOutsideShift(member.id, hh, mm);
+                              // An appointment carrying on into the next row shouldn't
+                              // have a gridline drawn through it — otherwise a
+                              // 90-minute cut reads as three stacked appointments.
+                              const joinsBelow = segments.some(
+                                (seg) => seg.booking && !seg.isLast && seg.to === SLOT_MINUTES,
+                              );
+                              const slotStartMinutes = slotZoned.hour * 60 + slotZoned.minute;
+                              return (
+                                <div
+                                  key={member.id}
+                                  // No vertical padding: the bands inside are placed as
+                                  // a share of the row, and padding would make that
+                                  // share stand for slightly fewer minutes than it says.
+                                  className={`relative border-l border-tn-border-soft px-2 ${
+                                    rowIndex < daySlots.length - 1 && !joinsBelow
+                                      ? "border-b border-tn-border-soft"
+                                      : ""
+                                  } ${outsideShift ? "bg-black/5" : ""}`}
+                                >
+                                  {segments.map((seg) => {
+                                    // The appointment itself is drawn once, over the
+                                    // whole grid — see dayBookingBlocks above. All
+                                    // that is left for a row to do is offer the
+                                    // parts of it nobody has booked.
+                                    if (seg.booking) return null;
+
+                                    const topPct = (seg.from / SLOT_MINUTES) * 100;
+                                    const heightPct = ((seg.to - seg.from) / SLOT_MINUTES) * 100;
+
+                                    // A sliver too small to aim at is worse than no
+                                    // target — it looks like a rendering fault and
+                                    // catches stray clicks.
+                                    if (!isActiveStaff || seg.to - seg.from < 10) return null;
+
+                                    const startsAt = slotKeyForMinutes(slotStartMinutes + seg.from);
+                                    const label = formatTimeLabel(
+                                      new Date(slot.getTime() + seg.from * 60_000),
+                                      timezone,
+                                    );
+                                    return (
+                                      <button
+                                        key={`free-${seg.from}`}
+                                        type="button"
+                                        onClick={() =>
+                                          setAddRequest({
+                                            defaultDate: cursorDate,
+                                            defaultStaffId: member.id,
+                                            // The gap's real start, not the row's — the
+                                            // whole point is that 9:15 is bookable.
+                                            defaultTime: startsAt,
+                                          })
+                                        }
+                                        // The small inset comes out of the band's own
+                                        // height rather than from a margin. A margin on
+                                        // an absolutely positioned box shifts it without
+                                        // shrinking it, so `my-1` pushed this 4px down
+                                        // and left it 4px longer than its slot — the
+                                        // dashed target bled into the row below.
+                                        style={{
+                                          top: `calc(${topPct}% + 3px)`,
+                                          height: `calc(${heightPct}% - 6px)`,
+                                        }}
+                                        className="absolute inset-x-2 cursor-pointer rounded-md border border-dashed border-transparent text-transparent hover:border-tn-input-border hover:text-tn-faint-2"
+                                        aria-label={
+                                          outsideShift
+                                            ? `Add booking for ${member.name} at ${label} (outside their shift)`
+                                            : `Add booking for ${member.name} at ${label}`
+                                        }
+                                      >
+                                        +
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })}
+                            {canManageStaff && (
+                              // The invite/ghost track (see the "One column per team
+                              // member" overlay above) isn't tied to any staff member's
+                              // time or booking state, so it shouldn't pick up the row's
+                              // own `rowBg` (past-dulled / selected) tint. Without an
+                              // explicit cell here, `dayColumns.map` above leaves that
+                              // track's slice of the row empty, and the row div's own
+                              // background — sized to span every `dayGridColumns` track,
+                              // invite track included — shows through. This cell just
+                              // paints over that slice with the neutral default so only
+                              // real staff columns ever look dulled/selected.
+                              // No `border-b` here (unlike the real staff cells) — this
+                              // track has no per-slot content of its own, so the repeating
+                              // hour dividers just read as a broken/half-finished grid;
+                              // it reads cleaner as one continuous blank strip.
+                              <div
+                                className="border-l border-tn-border-soft bg-tn-surface"
+                                style={{ gridColumn: Math.max(dayColumns.length, 1) + 2 }}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
+                  </div>
+
+                  {/* Right-edge fade cueing "there's more to scroll to" — fades out once the grid's
+                  scrolled all the way, so it never sits there implying overflow that's gone. */}
+                  {dayHasOverflow && dayScrollProgress < 0.98 && (
+                    <div className="pointer-events-none absolute inset-y-0 right-0 z-[6] w-10 bg-gradient-to-l from-tn-surface to-transparent" />
                   )}
 
-                  {daySlots.map((slot, rowIndex) => {
-                    const slotZoned = zonedHourMinute(slot, timezone);
-                    const hh = String(slotZoned.hour).padStart(2, "0");
-                    const mm = String(slotZoned.minute).padStart(2, "0");
-                    const slotKey = slot.toISOString();
-                    const isRowSelected = selectedRowSlotKeys.has(slotKey);
-                    // Dulled once the slot's actual instant has passed — covers both "this
-                    // whole day is behind us" (every slot on it is already before `now`)
-                    // and "today, but this hour already happened" with a single comparison,
-                    // since `slot`/`now` are absolute instants regardless of which zone
-                    // they're displayed in.
-                    const isPastSlot = slot.getTime() < now.getTime();
-                    // Also doubles as the sticky gutter button's own background below — a sticky
-                    // cell needs an opaque fill of its own (it's out of the row's normal paint
-                    // order), and using the row's actual color rather than a fixed one keeps the
-                    // pinned time label matching whatever state the row it belongs to is in.
-                    const rowBg = isRowSelected
-                      ? "bg-tn-blue-bg"
-                      : isPastSlot
-                        ? "bg-black/10"
-                        : "bg-tn-surface";
-                    return (
-                      <div
-                        key={slotKey}
-                        // Exactly one slot tall rather than "at least": the blocks below
-                        // are positioned as a percentage of the row, so the row has
-                        // to be a known height for a percentage to mean thirty
-                        // minutes. nowLineOffsetPx already assumed this — it just
-                        // had no way to guarantee it.
-                        className={`grid ${rowBg}`}
-                        style={{ gridTemplateColumns: dayGridColumns, height: DAY_SLOT_HEIGHT_PX }}
-                      >
-                        <button
-                          type="button"
-                          disabled={isPastSlot}
-                          onClick={() =>
-                            setSelectedRowSlotKeys((keys) => {
-                              const next = new Set(keys);
-                              if (next.has(slotKey)) next.delete(slotKey);
-                              else next.add(slotKey);
-                              return next;
-                            })
-                          }
-                          aria-pressed={isRowSelected}
-                          aria-label={
-                            isPastSlot
-                              ? `${formatTimeLabel(slot, timezone)} has already passed — row selection isn't available for past times`
-                              : `Select the ${formatTimeLabel(slot, timezone)} row`
-                          }
-                          className={`sticky left-0 z-[4] select-none border-none ${rowBg} p-2.5 text-left font-sans text-xs font-medium text-tn-muted-5 ${isRowSelected ? "text-tn-blue" : isPastSlot ? "cursor-not-allowed text-tn-faint-2" : ""} ${rowIndex < daySlots.length - 1 ? "border-b border-tn-border-soft" : ""}`}
-                        >
-                          {formatTimeLabel(slot, timezone)}
-                        </button>
-                        {dayColumns.map((member) => {
-                          const segments = daySlotSegments.get(`${member.id}__${hh}:${mm}`) ?? [
-                            { from: 0, to: SLOT_MINUTES },
-                          ];
-                          const hasBooking = segments.some((seg) => seg.booking);
-                          // Ghost columns (a staffUserId seen on a booking but no
-                          // longer in the active roster) can't be picked as an
-                          // "assign to" target for a *new* booking — only real,
-                          // currently-active staff can.
-                          const isActiveStaff = staff.some((s) => s.id === member.id);
-                          // Greyed when this slot falls outside the member's shift for
-                          // the day (see isSlotOutsideShift) — a visual "they're not
-                          // scheduled then" cue, not a hard block: it stays clickable so
-                          // an unplanned or one-off booking can still be added.
-                          const outsideShift = !hasBooking && isSlotOutsideShift(member.id, hh, mm);
-                          // An appointment carrying on into the next row shouldn't
-                          // have a gridline drawn through it — otherwise a
-                          // 90-minute cut reads as three stacked appointments.
-                          const joinsBelow = segments.some(
-                            (seg) => seg.booking && !seg.isLast && seg.to === SLOT_MINUTES,
-                          );
-                          const slotStartMinutes = slotZoned.hour * 60 + slotZoned.minute;
-                          return (
-                            <div
-                              key={member.id}
-                              // No vertical padding: the bands inside are placed as
-                              // a share of the row, and padding would make that
-                              // share stand for slightly fewer minutes than it says.
-                              className={`relative border-l border-tn-border-soft px-2 ${
-                                rowIndex < daySlots.length - 1 && !joinsBelow
-                                  ? "border-b border-tn-border-soft"
-                                  : ""
-                              } ${outsideShift ? "bg-black/5" : ""}`}
-                            >
-                              {segments.map((seg) => {
-                                const topPct = (seg.from / SLOT_MINUTES) * 100;
-                                const heightPct = ((seg.to - seg.from) / SLOT_MINUTES) * 100;
-                                const style = { top: `${topPct}%`, height: `${heightPct}%` };
-                                const heightPx =
-                                  ((seg.to - seg.from) / SLOT_MINUTES) * DAY_SLOT_HEIGHT_PX;
-
-                                if (seg.booking) {
-                                  const booking = seg.booking;
-                                  // Below about half a row there is no room for two
-                                  // lines, so the service joins the name on one
-                                  // rather than being clipped mid-word.
-                                  const isShort = heightPx < 34;
-                                  return (
-                                    <button
-                                      key={`${booking.id}-${seg.from}`}
-                                      type="button"
-                                      onClick={() => openBooking(booking)}
-                                      // Continuation rows are reachable by mouse but
-                                      // taken out of the tab order: one appointment
-                                      // should be one stop, not three.
-                                      tabIndex={seg.isStart ? undefined : -1}
-                                      aria-label={
-                                        seg.isStart
-                                          ? undefined
-                                          : `${booking.customerName} · ${booking.serviceName}, continues through ${formatTimeLabel(slot, timezone)}`
-                                      }
-                                      style={style}
-                                      className={`absolute inset-x-2 overflow-hidden text-left font-sans font-medium text-tn-ink-soft ${
-                                        isShort
-                                          ? "px-2 py-0.5 text-[11px] leading-tight"
-                                          : "p-2 text-xs"
-                                      } ${seg.isStart ? "rounded-t-md" : ""} ${
-                                        seg.isLast ? "rounded-b-md" : ""
-                                      } ${BOOKING_STATUS_BLOCK[booking.status]}`}
-                                    >
-                                      {seg.isStart &&
-                                        (isShort ? (
-                                          <span className="block truncate">
-                                            <ArrivedDot checkedInAt={booking.checkedInAt} />
-                                            {booking.customerName} · {booking.serviceName}
-                                          </span>
-                                        ) : (
-                                          <>
-                                            <ArrivedDot checkedInAt={booking.checkedInAt} />
-                                            {booking.customerName}
-                                            <br />
-                                            {booking.serviceName}
-                                          </>
-                                        ))}
-                                    </button>
-                                  );
-                                }
-
-                                // A sliver too small to aim at is worse than no
-                                // target — it looks like a rendering fault and
-                                // catches stray clicks.
-                                if (!isActiveStaff || seg.to - seg.from < 10) return null;
-
-                                const startsAt = slotKeyForMinutes(slotStartMinutes + seg.from);
-                                const label = formatTimeLabel(
-                                  new Date(slot.getTime() + seg.from * 60_000),
-                                  timezone,
-                                );
-                                return (
-                                  <button
-                                    key={`free-${seg.from}`}
-                                    type="button"
-                                    onClick={() =>
-                                      setAddRequest({
-                                        defaultDate: cursorDate,
-                                        defaultStaffId: member.id,
-                                        // The gap's real start, not the row's — the
-                                        // whole point is that 9:15 is bookable.
-                                        defaultTime: startsAt,
-                                      })
-                                    }
-                                    // The small inset comes out of the band's own
-                                    // height rather than from a margin. A margin on
-                                    // an absolutely positioned box shifts it without
-                                    // shrinking it, so `my-1` pushed this 4px down
-                                    // and left it 4px longer than its slot — the
-                                    // dashed target bled into the row below.
-                                    style={{
-                                      top: `calc(${topPct}% + 3px)`,
-                                      height: `calc(${heightPct}% - 6px)`,
-                                    }}
-                                    className="absolute inset-x-2 cursor-pointer rounded-md border border-dashed border-transparent text-transparent hover:border-tn-input-border hover:text-tn-faint-2"
-                                    aria-label={
-                                      outsideShift
-                                        ? `Add booking for ${member.name} at ${label} (outside their shift)`
-                                        : `Add booking for ${member.name} at ${label}`
-                                    }
-                                  >
-                                    +
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          );
-                        })}
-                        {canManageStaff && (
-                          // The invite/ghost track (see the "One column per team
-                          // member" overlay above) isn't tied to any staff member's
-                          // time or booking state, so it shouldn't pick up the row's
-                          // own `rowBg` (past-dulled / selected) tint. Without an
-                          // explicit cell here, `dayColumns.map` above leaves that
-                          // track's slice of the row empty, and the row div's own
-                          // background — sized to span every `dayGridColumns` track,
-                          // invite track included — shows through. This cell just
-                          // paints over that slice with the neutral default so only
-                          // real staff columns ever look dulled/selected.
-                          // No `border-b` here (unlike the real staff cells) — this
-                          // track has no per-slot content of its own, so the repeating
-                          // hour dividers just read as a broken/half-finished grid;
-                          // it reads cleaner as one continuous blank strip.
-                          <div
-                            className="border-l border-tn-border-soft bg-tn-surface"
-                            style={{ gridColumn: Math.max(dayColumns.length, 1) + 2 }}
-                          />
-                        )}
+                  {dayHasOverflow && (
+                    <div className="flex items-center gap-2.5 border-t border-tn-border-softer bg-tn-page px-3 py-1.5">
+                      <div className="h-1 flex-1 overflow-hidden rounded-full bg-tn-border-soft">
+                        <div
+                          className="h-full rounded-full bg-tn-ink-soft"
+                          style={{ width: `${Math.max(8, dayScrollProgress * 100)}%` }}
+                        />
                       </div>
-                    );
-                  })}
+                      <span className="shrink-0 font-sans text-[10.5px] text-tn-muted-5">
+                        {dayColumnsInView} of {dayColumns.length} columns in view
+                      </span>
+                    </div>
+                  )}
                 </div>
-              </div>
 
-              {/* Right-edge fade cueing "there's more to scroll to" — fades out once the grid's
-                  scrolled all the way, so it never sits there implying overflow that's gone. */}
-              {dayHasOverflow && dayScrollProgress < 0.98 && (
-                <div className="pointer-events-none absolute inset-y-0 right-0 z-[6] w-10 bg-gradient-to-l from-tn-surface to-transparent" />
-              )}
-
-              {dayHasOverflow && (
-                <div className="flex items-center gap-2.5 border-t border-tn-border-softer bg-tn-page px-3 py-1.5">
-                  <div className="h-1 flex-1 overflow-hidden rounded-full bg-tn-border-soft">
-                    <div
-                      className="h-full rounded-full bg-tn-ink-soft"
-                      style={{ width: `${Math.max(8, dayScrollProgress * 100)}%` }}
-                    />
-                  </div>
-                  <span className="shrink-0 font-sans text-[10.5px] text-tn-muted-5">
-                    {dayColumnsInView} of {dayColumns.length} columns in view
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {dayHasOverflow && dayScrollProgress < 0.98 && (
-              <button
-                type="button"
-                onClick={() => jumpDayColumns(1)}
-                aria-label="Scroll to more staff columns"
-                className="fixed bottom-8 right-8 z-20 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-none bg-tn-dark text-tn-on-dark shadow-[0_14px_30px_-10px_rgba(40,30,10,0.5)]"
-              >
-                ›
-              </button>
+                {dayHasOverflow && dayScrollProgress < 0.98 && (
+                  <button
+                    type="button"
+                    onClick={() => jumpDayColumns(1)}
+                    aria-label="Scroll to more staff columns"
+                    className="fixed bottom-8 right-8 z-20 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-none bg-tn-dark text-tn-on-dark shadow-[0_14px_30px_-10px_rgba(40,30,10,0.5)]"
+                  >
+                    ›
+                  </button>
+                )}
+              </>
             )}
-          </div>
-        )}
 
-        {view === "week" && (
-          <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
-            {/* Same self-scrolling-card-with-sticky-header pattern as Day view above, so a week with
-                enough bookings to need scrolling still keeps MON..SUN pinned at the top. */}
-            <div className="max-h-[640px] overflow-y-auto">
-              <div className="sticky top-0 z-10 grid grid-cols-7 border-b border-tn-border-softer bg-tn-surface">
-                {weekDays.map((day) => {
-                  const isToday = isSameDay(day, new Date());
-                  // Whole day already behind "today" — the past days at the start of
-                  // this week's strip, dulled the same way Month view fades out days
-                  // outside the current month.
-                  const isPastDay = !isToday && day < startOfDay(new Date());
-                  return (
-                    <div
-                      key={day.toDateString()}
-                      className={`border-l border-tn-border-soft px-3 py-2.5 font-sans text-[11px] font-medium ${
-                        isToday
-                          ? "bg-tn-gold-bg-soft text-tn-gold font-semibold"
-                          : isPastDay
-                            ? "text-tn-faint-2"
-                            : "text-tn-muted-5"
-                      }`}
-                    >
-                      {formatWeekColumnLabel(day)}
-                    </div>
-                  );
-                })}
+            {view === "week" && (
+              <div className="flex items-start gap-4">
+                <div className="min-w-0 flex-1">
+                  <WeekGrid
+                    days={weekDays}
+                    bookingsByDay={weekBookingsByDay}
+                    timezone={timezone}
+                    weekBookings={weekBookings}
+                    onSelectBooking={setSelectedBooking}
+                    onOpenDay={(day) => {
+                      setNavDirection("fade");
+                      setCursorDate(day);
+                      setView("day");
+                    }}
+                  />
+                </div>
+                {/* Hidden on narrow screens rather than stacked under the
+                    grid: it is context for the week, and a summary a reader
+                    has to scroll past seven columns to reach is a summary
+                    nobody reads. */}
+                <div className="hidden xl:block">
+                  <WeekActivityRail
+                    weekLabel={navLabel}
+                    bookings={weekBookings}
+                    staffOnRota={weekStaffOnRota}
+                    timezone={timezone}
+                  />
+                </div>
               </div>
-              <div className="grid min-h-[360px] grid-cols-7">
-                {weekDays.map((day) => {
-                  const dayBookings = bookingsByDay.get(day.toDateString()) ?? [];
-                  const isPastDay = !isSameDay(day, new Date()) && day < startOfDay(new Date());
-                  return (
-                    <div
-                      key={day.toDateString()}
-                      className={`flex flex-col gap-1.5 border-l border-tn-border-soft p-2 ${isPastDay ? "bg-black/10" : ""}`}
-                    >
-                      {dayBookings.length === 0 && (
-                        <span className="text-center font-sans text-[11px] text-tn-faint">
-                          No bookings
-                        </span>
-                      )}
-                      {dayBookings.map((booking) => (
-                        <button
-                          key={booking.id}
-                          type="button"
-                          onClick={() => setSelectedBooking(booking)}
-                          className={`rounded-md p-1.5 text-left font-sans text-[11px] font-medium text-tn-ink-soft ${BOOKING_STATUS_BLOCK[booking.status]}`}
-                        >
-                          <ArrivedDot checkedInAt={booking.checkedInAt} />
-                          {formatTimeLabel(new Date(booking.startAt), timezone)}{" "}
-                          {booking.customerName}
-                          <br />
-                          {booking.serviceName}
-                        </button>
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -1564,13 +1773,16 @@ export function CalendarPage() {
                 {monthWeeks.map((week) =>
                   week.map((day) => {
                     const isOut = !isSameMonth(day, cursorDate);
-                    const isToday = isSameDay(day, new Date());
+                    // "Today" is the shop's today. Near midnight the two
+                    // disagree, and the highlight belongs on the column the
+                    // shop is actually trading in.
+                    const isToday = calendarDateKey(day) === todayIsoIn(timezone);
                     // Same "already happened" fade as Day/Week view, so a past date
                     // in the current month reads as past even though it's still
                     // "in month" (unlike isOut, which only flags the leading/trailing
                     // days that spill in from adjacent months).
                     const isPastDay = !isToday && day < startOfDay(new Date());
-                    const count = bookingsByDay.get(day.toDateString())?.length ?? 0;
+                    const count = bookingsByDay.get(calendarDateKey(day))?.length ?? 0;
                     // Loosely-full days read as busier at a glance — matches the
                     // mockup's month grid, where 1-2 bookings sit in a muted
                     // gray chip and 3+ get the gold treatment.
@@ -1628,6 +1840,7 @@ export function CalendarPage() {
             accessToken={accessToken ?? ""}
             locationId={selectedLocationId}
             onOpenBooking={openBooking}
+            timezone={timezone}
           />
         )}
       </div>
@@ -1639,6 +1852,7 @@ export function CalendarPage() {
         staff={staff}
         accessToken={accessToken ?? ""}
         initialMode={selectedBookingMode}
+        timezone={timezone}
       />
 
       <AddBookingModal

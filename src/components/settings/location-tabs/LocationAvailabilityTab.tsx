@@ -190,7 +190,7 @@ export function LocationAvailabilityTab({ location }: { location: AccountLocatio
           ) : (
             <>
               Nobody works here yet — assign someone in{" "}
-              <Link to="/settings/staff" className="font-semibold text-tn-ink">
+              <Link to="/staff" className="font-semibold text-tn-ink">
                 Staff Management
               </Link>{" "}
               and their hours will show up here.

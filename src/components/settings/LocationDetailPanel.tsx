@@ -11,14 +11,23 @@ import { LocationAvailabilityTab } from "@/components/settings/location-tabs/Loc
 import { LocationStaffTab } from "@/components/settings/location-tabs/LocationStaffTab";
 import { LocationServicesTab } from "@/components/settings/location-tabs/LocationServicesTab";
 import { LocationPayoutsTab } from "@/components/settings/location-tabs/LocationPayoutsTab";
+import { LocationGalleryTab } from "@/components/settings/location-tabs/LocationGalleryTab";
 import { useAuthStore } from "@/auth/auth-store";
-import { env } from "@/lib/env";
 import {
   reverseGeocodeLocation,
   type GeocodeResult,
   updateLocation,
   type AccountLocation,
 } from "@/lib/locations-api";
+import { Toggle } from "@/components/ui/Toggle";
+import { usePermissions } from "@/auth/use-permissions";
+import {
+  branchBookingUrl,
+  shopLinkOpensBranch,
+  displayUrl,
+  hasOwnBranchLink,
+  publicBookingUrl,
+} from "@/lib/public-link";
 
 const TABS = [
   { key: "details", label: "Details" },
@@ -26,16 +35,13 @@ const TABS = [
   { key: "staff", label: "Staff" },
   { key: "services", label: "Services & pricing" },
   { key: "payouts", label: "Payouts" },
+  // Last, after the takings: the gallery is the only tab that changes
+  // what a stranger sees rather than how the shop runs, and it is the one
+  // an owner visits once and then rarely again.
+  { key: "gallery", label: "Gallery" },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
-
-/** Same URL the QR encodes — null when no public booking site is configured (see env.ts). */
-function bookingUrlFor(location: AccountLocation): string | null {
-  const base = env.VITE_BOOKING_BASE_URL;
-  if (!base) return null;
-  return `${base.replace(/\/+$/, "")}/l/${location.id}`;
-}
 
 function money(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
@@ -54,13 +60,20 @@ function money(cents: number): string {
 export function LocationDetailPanel({
   location,
   canManage,
+  liveBranchCount,
 }: {
   location: AccountLocation;
   canManage: boolean;
+  /** Branches of this account whose public link is open — what the brand link has to choose between. */
+  liveBranchCount: number;
 }) {
   const accessToken = useAuthStore((s) => s.accessToken);
   const queryClient = useQueryClient();
+  const { account } = usePermissions();
   const [tab, setTab] = useState<TabKey>("details");
+  // The account half of every public booking link. One value for the
+  // whole business — the branch half is on the location itself.
+  const accountSlug = account?.slug ?? null;
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
@@ -126,14 +139,17 @@ export function LocationDetailPanel({
           <DetailsTab
             location={location}
             canManage={canManage}
+            liveBranchCount={liveBranchCount}
             accessToken={accessToken ?? ""}
+            accountSlug={accountSlug}
             onSaved={() => void queryClient.invalidateQueries({ queryKey: ["locations"] })}
           />
         )}
         {tab === "availability" && <LocationAvailabilityTab location={location} />}
-        {tab === "staff" && <LocationStaffTab location={location} />}
+        {tab === "staff" && <LocationStaffTab location={location} canManage={canManage} />}
         {tab === "services" && <LocationServicesTab location={location} canManage={canManage} />}
         {tab === "payouts" && <LocationPayoutsTab location={location} />}
+        {tab === "gallery" && <LocationGalleryTab location={location} canManage={canManage} />}
       </div>
     </div>
   );
@@ -143,12 +159,17 @@ export function LocationDetailPanel({
 function DetailsTab({
   location,
   canManage,
+  liveBranchCount,
   accessToken,
+  accountSlug,
   onSaved,
 }: {
   location: AccountLocation;
   canManage: boolean;
+  liveBranchCount: number;
   accessToken: string;
+  /** The account's own half of every public link — fixed at signup, same for every branch. */
+  accountSlug: string | null;
   onSaved: () => void;
 }) {
   const [name, setName] = useState(location.name);
@@ -268,7 +289,8 @@ function DetailsTab({
 
   const canSave =
     canManage && name.trim().length > 0 && address.trim().length > 0 && isPhoneValid(phone);
-  const bookingUrl = bookingUrlFor(location);
+  const bookingUrl = branchBookingUrl(accountSlug, location);
+  const shopUrl = publicBookingUrl(accountSlug);
 
   return (
     <div className="flex flex-col gap-5">
@@ -443,7 +465,21 @@ function DetailsTab({
             </p>
           </div>
 
-          <BookingLinkCard location={location} url={bookingUrl} />
+          <BookingLinkCard
+            location={location}
+            url={bookingUrl}
+            shopUrl={shopUrl}
+            liveBranchCount={liveBranchCount}
+            canManage={canManage}
+            accessToken={accessToken}
+            onSaved={onSaved}
+          />
+          <OnlineDepositCard
+            location={location}
+            canManage={canManage}
+            accessToken={accessToken}
+            onSaved={onSaved}
+          />
         </div>
       </div>
     </div>
@@ -464,12 +500,105 @@ function Figure({ value, label }: { value: string; label: string }) {
  *
  * Shows the real code when there's somewhere for it to point, and says so
  * plainly when there isn't — a printed QR that resolves to nothing is
- * worse than no QR, and the public page this would target doesn't exist
- * yet.
+ * worse than no QR.
+ *
+ * The link is now the shop's own slug rather than the location uuid it
+ * used to be. That matters beyond tidiness: this string ends up in an
+ * Instagram bio and on a Google listing, where it is read by people and
+ * outlives anything we control. "igroom.io/thegentry" is something an
+ * owner will happily paste and a customer can type off a poster; a uuid
+ * is neither.
  */
-function BookingLinkCard({ location, url }: { location: AccountLocation; url: string | null }) {
+/**
+ * Whether a booking from the public link has to leave a deposit.
+ *
+ * Per branch, not per account, and off by default. Asking a stranger who
+ * arrived from an Instagram bio for a card before they have ever sat in
+ * the chair is the single most effective way to not get the booking —
+ * but a shop that keeps getting stood up on a Saturday has the opposite
+ * problem, and a busy high-street branch and a quiet suburban one don't
+ * have the same one. So it is a switch, and the shop decides.
+ *
+ * Saved on its own rather than with the Details form's Save button: it
+ * is a policy, not a detail, and somebody flipping it has not
+ * necessarily finished editing the address.
+ */
+function OnlineDepositCard({
+  location,
+  canManage,
+  accessToken,
+  onSaved,
+}: {
+  location: AccountLocation;
+  canManage: boolean;
+  accessToken: string;
+  onSaved: () => void;
+}) {
+  const [error, setError] = useState<string | null>(null);
+  const save = useMutation({
+    mutationFn: (next: boolean) =>
+      updateLocation(accessToken, location.id, { requireDepositOnline: next }),
+    onSuccess: () => {
+      setError(null);
+      onSaved();
+    },
+    onError: (err: unknown) =>
+      setError(err instanceof Error ? err.message : "Couldn’t save that — try again."),
+  });
+
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-tn-border px-4 py-3.5">
+      <p className="m-0 font-sans text-xs font-semibold text-tn-ink">Online bookings</p>
+      {/* Toggle brings its own label row, so the consequence goes
+          underneath rather than inside it — and it is written as what
+          actually happens, not as the setting's name repeated. */}
+      <Toggle
+        checked={location.requireDepositOnline}
+        disabled={!canManage || save.isPending}
+        onChange={(next) => save.mutate(next)}
+        label="Ask for a deposit"
+      />
+      <p className="m-0 font-sans text-[11px] leading-relaxed text-tn-muted-5">
+        {location.requireDepositOnline
+          ? "A card is taken before the slot is held. Fewer no-shows — and fewer bookings."
+          : "Customers book with a name and a number, and pay at the shop."}
+      </p>
+      {error && <p className="m-0 font-sans text-[11px] text-tn-danger">{error}</p>}
+    </div>
+  );
+}
+
+function BookingLinkCard({
+  location,
+  url,
+  shopUrl,
+  liveBranchCount,
+  canManage,
+  accessToken,
+  onSaved,
+}: {
+  location: AccountLocation;
+  /** This branch's own link — the shop's bare link for the primary branch. */
+  url: string | null;
+  /** The shop's bare link, shown beside a branch link so the difference is visible. */
+  shopUrl: string | null;
+  /** How many branches of this account are open for bookings — see the brand-link line below. */
+  liveBranchCount: number;
+  canManage: boolean;
+  accessToken: string;
+  onSaved: () => void;
+}) {
   const [svg, setSvg] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const enabled = location.onlineBookingEnabled;
+
+  const setEnabled = useMutation({
+    mutationFn: (next: boolean) =>
+      updateLocation(accessToken, location.id, { onlineBookingEnabled: next }),
+    // The switch lives on the location row this panel was handed, so the
+    // locations list is what has to be refetched for the card to redraw.
+    onSuccess: () => onSaved(),
+  });
 
   useEffect(() => {
     if (!url) {
@@ -513,15 +642,100 @@ function BookingLinkCard({ location, url }: { location: AccountLocation; url: st
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-tn-border px-4 py-3.5">
-      <p className="m-0 font-sans text-xs font-semibold text-tn-ink">Booking link &amp; QR</p>
+      <div className="flex flex-col gap-1">
+        <p className="m-0 font-sans text-xs font-semibold text-tn-ink">Booking link &amp; QR</p>
+        {/* Said plainly, because this is the one thing on the page an
+            owner is meant to take somewhere else — into an Instagram
+            bio, a Google listing, a WhatsApp reply. */}
+        <p className="m-0 font-sans text-[11px] leading-relaxed text-tn-muted-5">
+          Paste this anywhere customers find you. It opens your shop&rsquo;s booking page — no app
+          and no account needed.
+        </p>
+      </div>
+
+      {/* The switch sits with the link rather than on a settings page,
+          because this is where somebody finds out the link doesn't work:
+          they copy it, open it, get "shop not found", and come back
+          here. The answer should be in the same card as the question.
+
+          Per branch, and this is the card for one branch — the flagship
+          can be live months before the new door across town, and a
+          branch mid-refit can go dark without taking the others with
+          it. */}
+      <div className="flex flex-col gap-1.5 rounded-xl border border-tn-border-soft bg-tn-page px-3 py-2.5">
+        <Toggle
+          checked={enabled}
+          disabled={!canManage || setEnabled.isPending}
+          onChange={(next) => setEnabled.mutate(next)}
+          label="Take bookings from this link"
+        />
+        <p className="m-0 font-sans text-[11px] leading-relaxed text-tn-muted-5">
+          {enabled
+            ? `${location.name} is taking bookings from this link. Your other branches have their own switch.`
+            : "This branch’s page is off, so the link below won’t open for anyone yet. Turn it on when its services and hours are ready."}
+        </p>
+        {setEnabled.isError && (
+          <p className="m-0 font-sans text-[11px] text-tn-danger">
+            Couldn&rsquo;t save that — try again.
+          </p>
+        )}
+      </div>
       {url === null ? (
         <p className="m-0 font-sans text-[11px] leading-relaxed text-tn-muted-5">
-          No public booking page is configured yet, so there&rsquo;s nothing for a code to point at.
-          Set <code className="font-mono text-[10px]">VITE_BOOKING_BASE_URL</code> once that page
-          exists.
+          No public booking site is configured yet, so there&rsquo;s nothing for a link or a code to
+          point at. Set <code className="font-mono text-[10px]">VITE_BOOKING_BASE_URL</code>.
         </p>
       ) : (
         <>
+          {/* The link itself, big enough to read back off the screen —
+              somebody dictating it over the phone is a real thing that
+              happens, and it is why the URL is words rather than a uuid. */}
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-tn-input-border bg-tn-page px-3 py-2.5">
+            <span className="min-w-0 flex-1 font-mono text-[11.5px] break-all text-tn-ink">
+              {displayUrl(url)}
+            </span>
+            <Button variant="secondary" size="sm" onClick={copy} className="flex-none">
+              {copied ? "Copied" : "Copy link"}
+            </Button>
+          </div>
+
+          {/* The shop's bare link, named underneath rather than offered
+              as the headline. For the primary branch it is a second way
+              into this same page and worth having — it is the string
+              that fits on a poster; for any other branch it is where
+              somebody lands if they hand out the wrong one. Either way
+              the link above is the one that says which door it opens. */}
+          {hasOwnBranchLink(location) && shopUrl ? (
+            <p className="m-0 font-sans text-[11px] leading-relaxed text-tn-muted-5">
+              This link opens {location.name} directly.{" "}
+              <span className="font-mono text-[11px] text-tn-ink-soft">{displayUrl(shopUrl)}</span>{" "}
+              {shopLinkOpensBranch(location)
+                ? "is the short version of it — the one to put on a poster."
+                : "opens your main branch."}
+            </p>
+          ) : null}
+
+          {/* What the *brand* link does, which is the one thing about it
+              an owner cannot work out from the branch in front of them.
+              It changes shape at two branches — one live branch and the
+              short link is that shop; two and it becomes a chooser — and
+              until this line existed the only way to find out was to open
+              it in a private window. */}
+          {shopUrl ? (
+            <p
+              className={`m-0 font-sans text-[11px] leading-relaxed ${
+                liveBranchCount === 0 ? "text-tn-gold" : "text-tn-muted-5"
+              }`}
+            >
+              <span className="font-mono text-[11px] text-tn-ink-soft">{displayUrl(shopUrl)}</span>{" "}
+              {liveBranchCount === 0
+                ? "opens nothing at the moment — no branch is taking bookings from its link."
+                : liveBranchCount === 1
+                  ? "goes straight to the one branch that’s live. Switch on a second and it becomes a “choose a shop” page."
+                  : `shows a “choose a shop” page — ${liveBranchCount} branches are live on it.`}
+            </p>
+          ) : null}
+
           {svg && (
             <div
               className="h-[132px] w-[132px] [&>svg]:h-full [&>svg]:w-full"
@@ -530,11 +744,15 @@ function BookingLinkCard({ location, url }: { location: AccountLocation; url: st
               dangerouslySetInnerHTML={{ __html: svg }}
             />
           )}
-          <span className="font-sans text-[11px] break-all text-tn-muted-5">{url}</span>
           <div className="flex gap-2">
-            <Button variant="secondary" size="sm" onClick={copy}>
-              {copied ? "Copied" : "Copy"}
-            </Button>
+            <a
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-lg border border-tn-input-border bg-tn-surface px-3.5 py-2 font-sans text-xs font-semibold text-tn-ink no-underline hover:bg-tn-page"
+            >
+              Open page
+            </a>
             <Button variant="secondary" size="sm" onClick={download} disabled={!svg}>
               Download QR
             </Button>

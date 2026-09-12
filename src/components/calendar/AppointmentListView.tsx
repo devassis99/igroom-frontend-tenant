@@ -11,7 +11,8 @@ import {
   type BookingReview,
 } from "@/lib/bookings-api";
 import { BOOKING_STATUS_BAR, BOOKING_STATUS_TONE } from "@/lib/booking-status";
-import { formatListDateHeader, formatTimeLabel, startOfDay } from "@/lib/calendar-dates";
+import { formatListDateHeader, formatTimeLabel } from "@/lib/calendar-dates";
+import { todayIsoIn } from "@/lib/timezones";
 import { invalidateVisitCaches } from "@/lib/visit-cache";
 
 type Tab = "upcoming" | "past";
@@ -22,6 +23,8 @@ interface AppointmentListViewProps {
   /** Empty string means "the caller's own location" (same fallback bookings.service.ts's resolveLocationId uses server-side). */
   locationId: string;
   onOpenBooking: (booking: Booking, mode: OpenMode) => void;
+  /** The shop's own clock. Which day a booking belongs to is read on it, not on the browser's. */
+  timezone: string | undefined;
 }
 
 const EMPTY_BOOKINGS: Booking[] = [];
@@ -39,6 +42,7 @@ export function AppointmentListView({
   accessToken,
   locationId,
   onOpenBooking,
+  timezone,
 }: AppointmentListViewProps) {
   const [tab, setTab] = useState<Tab>("upcoming");
   const [page, setPage] = useState(1);
@@ -102,17 +106,25 @@ export function AppointmentListView({
   const rangeStart = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
   const rangeEnd = Math.min(page * pageSize, totalCount);
 
+  /**
+   * Grouped by the shop's day, not the browser's.
+   *
+   * `startOfDay(new Date(startAt))` is midnight where the reader is
+   * sitting, so a midnight appointment at a shop an hour ahead filed
+   * itself under the previous date and appeared, with a perfectly correct
+   * time beside it, under the wrong heading.
+   */
   const groups = useMemo(() => {
     const map = new Map<string, { date: Date; bookings: Booking[] }>();
     for (const booking of bookings) {
-      const day = startOfDay(new Date(booking.startAt));
-      const key = day.toDateString();
+      const at = new Date(booking.startAt);
+      const key = todayIsoIn(timezone ?? null, at);
       const existing = map.get(key);
       if (existing) existing.bookings.push(booking);
-      else map.set(key, { date: day, bookings: [booking] });
+      else map.set(key, { date: at, bookings: [booking] });
     }
     return Array.from(map.values());
-  }, [bookings]);
+  }, [bookings, timezone]);
 
   function handleTabChange(next: Tab) {
     setTab(next);
@@ -173,9 +185,9 @@ export function AppointmentListView({
 
       <div className="flex flex-col gap-5">
         {groups.map((group) => (
-          <div key={group.date.toDateString()} className="flex flex-col gap-2">
+          <div key={todayIsoIn(timezone ?? null, group.date)} className="flex flex-col gap-2">
             <p className="m-0 font-sans text-[11px] font-semibold tracking-wide text-tn-muted-5">
-              {formatListDateHeader(group.date)}
+              {formatListDateHeader(group.date, timezone)}
             </p>
             <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
               {group.bookings.map((booking, i) => {
@@ -206,7 +218,7 @@ export function AppointmentListView({
                         className="flex flex-1 cursor-pointer items-center gap-4 px-[18px] py-3.5 text-left"
                       >
                         <span className="w-[110px] flex-none font-sans text-[13px] font-semibold text-tn-ink-soft">
-                          {formatTimeLabel(start)} – {formatTimeLabel(end)}
+                          {formatTimeLabel(start, timezone)} – {formatTimeLabel(end, timezone)}
                         </span>
                         <div className="h-9 w-9 flex-none rounded-full bg-[oklch(88%_0.02_40)]" />
                         <div className="min-w-0 flex-1">

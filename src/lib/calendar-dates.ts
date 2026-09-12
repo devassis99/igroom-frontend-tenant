@@ -277,3 +277,20 @@ export function getDaySlots(
   }
   return slots;
 }
+
+/**
+ * "2026-09-12" from a Date's own calendar parts.
+ *
+ * The key both halves of a day-bucketed map have to agree on. A column
+ * header holds a Date whose *parts* are the day it means (built by
+ * startOfWeek/addDays, so browser-local), while a booking is an instant
+ * that has to be read on the shop's clock — see timezones.ts's
+ * todayIsoIn. Printing each as the same yyyy-mm-dd string is what stops
+ * the two being compared through a Date whose midnight is in the wrong
+ * zone.
+ */
+export function calendarDateKey(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+}

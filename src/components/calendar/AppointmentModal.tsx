@@ -14,7 +14,8 @@ import {
   type BookingsStaffMember,
 } from "@/lib/bookings-api";
 import { BOOKING_STATUS_TONE } from "@/lib/booking-status";
-import { formatDateTimeLabel } from "@/lib/calendar-dates";
+import { formatDateTimeLabel, zonedHourMinute, zonedTimeToUtc } from "@/lib/calendar-dates";
+import { todayIsoIn } from "@/lib/timezones";
 import { invalidateVisitCaches } from "@/lib/visit-cache";
 
 type Mode = "detail" | "reschedule" | "cancel";
@@ -27,14 +28,29 @@ interface AppointmentModalProps {
   accessToken: string;
   /** Which of the three states to open into — defaults to "detail". The List view's inline Reschedule/Cancel row actions open straight into those modes instead of an extra click through the detail screen. */
   initialMode?: Mode;
+  /**
+   * The shop's own clock.
+   *
+   * Everything in here used to read and write the *browser's*. On the
+   * detail screen that meant the modal disagreed with the card behind it
+   * — a midnight appointment at a shop an hour ahead opened as "11 PM the
+   * day before" — and on the reschedule screen it was worse than a
+   * display bug: the new time was built in the manager's zone and saved,
+   * so moving an appointment to "3 PM" from another country moved it to a
+   * different hour than the one on screen.
+   */
+  timezone: string | undefined;
 }
 
-function toDateInputValue(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+/** The shop's calendar date for an instant, as the <input type="date"> value. */
+function toDateInputValue(date: Date, timezone: string | undefined): string {
+  return todayIsoIn(timezone ?? null, date);
 }
 
-function toTimeInputValue(date: Date): string {
-  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+/** The shop's wall clock for an instant, as the <input type="time"> value. */
+function toTimeInputValue(date: Date, timezone: string | undefined): string {
+  const { hour, minute } = zonedHourMinute(date, timezone);
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
 /**
@@ -54,6 +70,7 @@ export function AppointmentModal({
   staff,
   accessToken,
   initialMode,
+  timezone,
 }: AppointmentModalProps) {
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<Mode>("detail");
@@ -82,8 +99,8 @@ export function AppointmentModal({
   useEffect(() => {
     if (!open || !selected) return;
     const start = new Date(selected.startAt);
-    setNewDate(toDateInputValue(start));
-    setNewTime(toTimeInputValue(start));
+    setNewDate(toDateInputValue(start, timezone));
+    setNewTime(toTimeInputValue(start, timezone));
     setNewStaffId(selected.staffUserId);
     setMode(initialMode ?? "detail");
     setError(null);
@@ -101,7 +118,15 @@ export function AppointmentModal({
   const rescheduleMutation = useMutation({
     mutationFn: () => {
       if (!booking) return Promise.reject(new Error("No booking selected"));
-      const startAt = new Date(`${newDate}T${newTime}:00`);
+      // Read as the shop's wall clock, the same conversion
+      // AddBookingModal does — not `new Date("...T...")`, which resolves
+      // in whatever zone the manager's laptop is set to.
+      const [year, month, day] = newDate.split("-").map(Number);
+      const [hour, minute] = newTime.split(":").map(Number);
+      const startAt =
+        year && month && day
+          ? zonedTimeToUtc(year, month - 1, day, hour ?? 0, minute ?? 0, timezone ?? "UTC")
+          : new Date(`${newDate}T${newTime}:00`);
       return updateBooking(accessToken, booking.id, {
         startAt: startAt.toISOString(),
         staffUserId: newStaffId !== booking.staffUserId ? newStaffId : undefined,
@@ -241,7 +266,7 @@ export function AppointmentModal({
                 [
                   ["Service", booking.serviceName],
                   ["Barber", booking.staffName],
-                  ["Date & time", formatDateTimeLabel(start)],
+                  ["Date & time", formatDateTimeLabel(start, timezone)],
                   ["Duration", `${booking.durationMinutes} min`],
                   ...(booking.priceCents != null
                     ? ([["Price", `$${(booking.priceCents / 100).toFixed(2)}`]] as [
@@ -414,7 +439,7 @@ export function AppointmentModal({
                   {booking.customerName} · {booking.serviceName}
                 </p>
                 <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
-                  Currently {formatDateTimeLabel(start)} with {booking.staffName}
+                  Currently {formatDateTimeLabel(start, timezone)} with {booking.staffName}
                 </p>
               </div>
             </div>
@@ -478,7 +503,7 @@ export function AppointmentModal({
                   {booking.customerName} · {booking.serviceName}
                 </p>
                 <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
-                  {formatDateTimeLabel(start)} with {booking.staffName}
+                  {formatDateTimeLabel(start, timezone)} with {booking.staffName}
                 </p>
               </div>
             </div>

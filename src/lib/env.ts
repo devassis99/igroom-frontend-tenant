@@ -27,17 +27,22 @@ const envSchema = z.object({
     .string()
     .min(1, "VITE_STRIPE_PUBLISHABLE_KEY is required for the billing page"),
   /**
-   * Where a location's QR code should send a customer — the public
-   * booking site's origin, e.g. https://book.igroom.io. Codes resolve to
-   * `<base>/l/<locationId>`.
+   * Where a shop's public booking link points — the customer-facing
+   * site's origin. Links resolve to `<base>/<account slug>` and
+   * `<base>/<account slug>/<branch slug>`.
    *
-   * Optional, and the only optional var here, deliberately: that site
-   * doesn't exist yet, and the rest of the app works fine without it.
-   * Unset simply means the QR panel says it has nowhere to point rather
-   * than printing a code that leads nowhere — which is worse than no code
-   * at all once it's stuck to a shop window.
+   * Defaulted rather than optional, and defaulted to production rather
+   * than to localhost, because of what this string is *for*: it is
+   * copied out of this app and pasted into an Instagram bio, a Google
+   * listing, a printed card. A link that quietly reads
+   * "localhost:5175/thegentry" because a variable was forgotten is one
+   * somebody hands to a customer, and it is wrong in the one place
+   * nobody can correct it afterwards.
+   *
+   * Override it to preview against a local build of the customer app —
+   * but know that the link on screen is then the one that gets copied.
    */
-  VITE_BOOKING_BASE_URL: z.string().url().optional(),
+  VITE_BOOKING_BASE_URL: z.string().url().default("https://igroom.io"),
   // Mapbox *public* token (pk....) — safe in a browser bundle, but scope
   // it to this app's URLs in the Mapbox dashboard, since anyone can read
   // it from the page and bill map loads against your account. Used only

@@ -2,19 +2,13 @@ import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { env } from "@/lib/env";
 import type { AccountLocation } from "@/lib/locations-api";
+import { usePermissions } from "@/auth/use-permissions";
+import { branchBookingUrl } from "@/lib/public-link";
 
 interface QrCodeModalProps {
   location: AccountLocation | null;
   onClose: () => void;
-}
-
-/** Where a scan should land. Null when no public booking site is configured — see env.ts's VITE_BOOKING_BASE_URL. */
-function bookingUrlFor(location: AccountLocation): string | null {
-  const base = env.VITE_BOOKING_BASE_URL;
-  if (!base) return null;
-  return `${base.replace(/\/+$/, "")}/l/${location.id}`;
 }
 
 function fileNameFor(location: AccountLocation): string {
@@ -38,8 +32,12 @@ function fileNameFor(location: AccountLocation): string {
 export function QrCodeModal({ location, onClose }: QrCodeModalProps) {
   const [svg, setSvg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { account } = usePermissions();
 
-  const url = location ? bookingUrlFor(location) : null;
+  // The same link the Details tab offers to copy — a code and a pasted
+  // link that lead to different pages is the kind of difference nobody
+  // notices until a customer is standing in the wrong shop.
+  const url = location ? branchBookingUrl(account?.slug ?? null, location) : null;
 
   useEffect(() => {
     if (!url) {
