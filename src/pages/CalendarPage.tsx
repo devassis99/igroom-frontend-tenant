@@ -13,6 +13,7 @@ import { StaffFilterBar } from "@/components/calendar/StaffFilterBar";
 import { WeekActivityRail } from "@/components/calendar/WeekActivityRail";
 import { WeekGrid } from "@/components/calendar/WeekGrid";
 import { ManageStaffSetsModal } from "@/components/calendar/ManageStaffSetsModal";
+import { externalBusyKeys, listExternalBusy, type ExternalBusy } from "@/lib/integrations-api";
 import { useAuthStore } from "@/auth/auth-store";
 import { usePermissions } from "@/auth/use-permissions";
 import {
@@ -63,6 +64,8 @@ const EMPTY_STAFF: BookingsStaffMember[] = [];
 const EMPTY_BOOKINGS: Booking[] = [];
 const EMPTY_LOCATIONS: AccountLocation[] = [];
 const EMPTY_STAFF_SETS: StaffSet[] = [];
+/** Stable empty array, same reason as the others: a new [] each render restages every memo below it. */
+const EMPTY_EXTERNAL_BUSY: ExternalBusy[] = [];
 
 /** Per-location so switching locations doesn't carry over a staff selection that doesn't even apply there. */
 function staffSelectionStorageKey(locationId: string): string {
@@ -394,6 +397,44 @@ export function CalendarPage() {
   });
   const staff = staffQuery.data?.staff ?? EMPTY_STAFF;
 
+  /**
+   * Time a barber is out according to their own Google Calendar.
+   *
+   * The public booking page already refuses these slots — availability
+   * reads the same rows server-side. This query is the half the shop
+   * notices first: without it the front desk sees an empty afternoon,
+   * phones a customer, and books them into a barber who is at the
+   * dentist. Times only; see listExternalBusy on why the event's title
+   * stays in the barber's own account.
+   */
+  const externalBusyQuery = useQuery({
+    queryKey: externalBusyKeys.range(
+      selectedLocationId ?? "",
+      range.start.toISOString(),
+      range.end.toISOString(),
+    ),
+    queryFn: () =>
+      listExternalBusy(
+        accessToken ?? "",
+        selectedLocationId ?? "",
+        range.start.toISOString(),
+        range.end.toISOString(),
+      ),
+    enabled: !!accessToken && view !== "list" && !!selectedLocationId,
+    placeholderData: keepPreviousData,
+    /**
+     * The server re-reads Google on its own timer; this is the other half
+     * of the same promise.
+     *
+     * Without it the grid would hold whatever it fetched when the page
+     * opened, and a front desk that leaves the calendar up all day — which
+     * is every front desk — would never see a block appear. Cheap: one
+     * indexed range query against our own table, no third party involved.
+     */
+    refetchInterval: 60_000,
+  });
+  const externalBusy = externalBusyQuery.data ?? EMPTY_EXTERNAL_BUSY;
+
   const bookingsQuery = useQuery({
     queryKey: ["bookings", selectedLocationId, range.start.toISOString(), range.end.toISOString()],
     queryFn: () =>
@@ -716,6 +757,22 @@ export function CalendarPage() {
     return visible.sort((a, b) => Number(worksToday(b.id)) - Number(worksToday(a.id)));
   }, [staff, bookings, effectiveStaffIds, shiftsByStaffId]);
 
+  /**
+   * Who is in view, as a string — the React key that replays the grid's
+   * entrance when the staff set changes.
+   *
+   * Derived from dayColumns rather than from effectiveStaffIds because
+   * it has to match what is actually drawn: ghost columns (a booking
+   * whose barber has left the roster) are columns too, and the ordering
+   * moves with the rota. `dayColumns` is a fresh array on every refetch;
+   * this string is not, so a new booking arriving doesn't restage the
+   * whole grid — only a real change of column does.
+   */
+  const staffSignature = useMemo(
+    () => dayColumns.map((member) => member.id).join("|"),
+    [dayColumns],
+  );
+
   // Shared by the header row and every hour row below so the two grids stay
   // pixel-for-pixel aligned — fixed-width columns (see DAY_COLUMN_WIDTH)
   // mean this can genuinely overflow the card's width once there are enough
@@ -945,6 +1002,53 @@ export function CalendarPage() {
     }
     return blocks;
   }, [view, daySlots, bookings, timezone, dayColumns, isOnCursorDay]);
+
+  /**
+   * The same arithmetic dayBookingBlocks does, for external blocks.
+   *
+   * A separate pass rather than a merged list because the two are not the
+   * same kind of thing and must not end up looking like it: a booking is
+   * the shop's, has a customer and can be opened; this is a barber's own
+   * time, has no customer, and is drawn behind everything as a plain
+   * "unavailable" band.
+   */
+  const dayExternalBlocks = useMemo(() => {
+    if (view !== "day" || daySlots.length === 0) return [];
+    const first = zonedHourMinute(daySlots[0]!, timezone);
+    const gridStartMinutes = first.hour * 60 + first.minute;
+    const gridMinutes = daySlots.length * SLOT_MINUTES;
+    const columnIndexById = new Map(dayColumns.map((member, index) => [member.id, index]));
+
+    const blocks: { id: string; columnIndex: number; topPx: number; heightPx: number }[] = [];
+    for (const busy of externalBusy) {
+      const columnIndex = columnIndexById.get(busy.staffUserId);
+      if (columnIndex === undefined) continue;
+
+      const start = new Date(busy.startAt);
+      const end = new Date(busy.endAt);
+      const startZoned = zonedHourMinute(start, timezone);
+      // Unlike a booking, an external block is *clipped* rather than
+      // skipped when it began yesterday: an all-day event, or a flight
+      // that took off last night, genuinely covers this morning and the
+      // front desk needs to see that.
+      const startMinutes = isOnCursorDay(start)
+        ? startZoned.hour * 60 + startZoned.minute
+        : gridStartMinutes - 1;
+      const durationMinutes = Math.max(1, Math.round((end.getTime() - start.getTime()) / 60_000));
+
+      const from = Math.max(0, startMinutes - gridStartMinutes);
+      const to = Math.min(gridMinutes, startMinutes - gridStartMinutes + durationMinutes);
+      if (to <= from) continue;
+
+      blocks.push({
+        id: busy.id,
+        columnIndex,
+        topPx: (from / SLOT_MINUTES) * DAY_SLOT_HEIGHT_PX,
+        heightPx: ((to - from) / SLOT_MINUTES) * DAY_SLOT_HEIGHT_PX,
+      });
+    }
+    return blocks;
+  }, [view, daySlots, externalBusy, timezone, dayColumns, isOnCursorDay]);
 
   /**
    * Pixel offset of "now" within the Day view's slot rows, or null when
@@ -1312,7 +1416,19 @@ export function CalendarPage() {
                     }`}
                   >
                     <div
-                      className="sticky top-0 z-20 grid border-b border-tn-border-softer bg-tn-table-head"
+                      // Keyed on who's in view so the cells remount and
+                      // deal in again when the set changes — see
+                      // .tn-columns-in.
+                      //
+                      // Prefixed, and the body below carries its own
+                      // prefix, because these two are *siblings*: given
+                      // the same key they are two children of one parent
+                      // sharing it, which breaks React's reconciliation
+                      // rather than merely warning. The symptom was a
+                      // second header row stuck on "Loading staff…"
+                      // above the real one, forever.
+                      key={`head-${staffSignature}`}
+                      className="tn-columns-in sticky top-0 z-20 grid border-b border-tn-border-softer bg-tn-table-head"
                       style={{ gridTemplateColumns: dayGridColumns }}
                     >
                       {/* The one cell that's sticky on BOTH axes — pinned to the top via the row above and to
@@ -1370,7 +1486,15 @@ export function CalendarPage() {
                       )}
                     </div>
 
-                    <div className="relative">
+                    <div
+                      // Same signature as the header above, under its own
+                      // prefix — see that comment — so the body settles up
+                      // from dimmed while the headers deal in. Still
+                      // `relative`: every appointment block below is
+                      // positioned against this element.
+                      key={`body-${staffSignature}`}
+                      className="tn-grid-settle relative"
+                    >
                       {/* Google Calendar-style "now" line — a dot at the hour gutter's right edge plus a line
                       spanning the staff columns, positioned in px (see DAY_SLOT_HEIGHT_PX/nowLineOffsetPx)
                       rather than as a real grid row, so it can sit *between* two rows without disturbing
@@ -1387,6 +1511,41 @@ export function CalendarPage() {
                       doesn't swallow clicks meant for the free slots beside
                       it. z-[3]: above the rows, below the gutter's sticky time
                       labels (z-4) and the "now" line (z-5). */}
+                      {/*
+                        A barber's own calendar, drawn first and at z-[2]
+                        so a real appointment always paints over it.
+
+                        Hatched rather than filled, and unlabelled beyond
+                        "Busy": this is not the shop's time and carries no
+                        customer, so it must never read as an appointment
+                        somebody could open. pointer-events-none on
+                        purpose — the front desk can still click through
+                        to add a booking here, because a shop overriding
+                        its own barber's calendar is a decision they are
+                        allowed to make, and blocking the click would make
+                        the grid feel broken rather than informative.
+                      */}
+                      {dayExternalBlocks.map(({ id, columnIndex, topPx, heightPx }) => (
+                        <div
+                          key={id}
+                          className="pointer-events-none absolute inset-x-0 z-[2] grid"
+                          style={{
+                            top: topPx,
+                            height: heightPx,
+                            gridTemplateColumns: dayGridColumns,
+                          }}
+                        >
+                          <div
+                            className="tn-external-busy mx-[3px] overflow-hidden rounded-lg border border-dashed border-tn-border"
+                            style={{ gridColumn: columnIndex + 2 }}
+                          >
+                            <span className="block px-2 pt-1 font-sans text-[10.5px] font-semibold tracking-wide text-tn-muted-5 uppercase">
+                              Busy
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+
                       {dayBookingBlocks.map(({ booking, columnIndex, topPx, heightPx }) => {
                         // Below about half a row there is no room for two lines, so
                         // the service joins the name on one rather than being

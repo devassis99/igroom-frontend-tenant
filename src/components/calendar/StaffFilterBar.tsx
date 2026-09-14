@@ -152,7 +152,7 @@ export function StaffFilterBar({
         // span), past label-has-associated-control's default nesting depth,
         // so oxlint doesn't credit it as the label's accessible text.
         aria-label={member.name}
-        className={`flex cursor-pointer items-center gap-2.5 rounded-lg p-2 hover:bg-tn-page ${isPending ? "bg-tn-page" : ""}`}
+        className={`flex cursor-pointer items-center gap-2.5 rounded-lg p-2 transition-colors duration-150 hover:bg-tn-page ${isPending ? "bg-tn-page" : ""}`}
       >
         <input
           id={inputId}
@@ -183,10 +183,17 @@ export function StaffFilterBar({
       <button
         type="button"
         onClick={() => setPickerOpen((v) => !v)}
-        className="flex cursor-pointer items-center gap-2 rounded-full border-none bg-tn-dark px-3.5 py-2 font-sans text-[12.5px] font-semibold text-tn-on-dark"
+        className="flex cursor-pointer items-center gap-2 rounded-full border-none bg-tn-dark px-3.5 py-2 font-sans text-[12.5px] font-semibold text-tn-on-dark transition-[background-color,transform] duration-200 hover:bg-tn-ink active:scale-[0.97]"
       >
         Staff: {selectedStaffIds.length} of {allStaff.length}
-        <span className="text-[10px]">{pickerOpen ? "▲" : "▾"}</span>
+        {/* Rotated rather than swapped for a second glyph, so the arrow
+            turns with the panel instead of blinking into a new character. */}
+        <span
+          aria-hidden
+          className={`text-[10px] transition-transform duration-200 ${pickerOpen ? "rotate-180" : ""}`}
+        >
+          ▾
+        </span>
       </button>
 
       {staffSets.map((set) => {
@@ -198,7 +205,7 @@ export function StaffFilterBar({
             key={set.id}
             type="button"
             onClick={() => onApplySet(set)}
-            className={`cursor-pointer rounded-full border px-3.5 py-2 font-sans text-[12.5px] font-medium ${
+            className={`cursor-pointer rounded-full border px-3.5 py-2 font-sans text-[12.5px] font-medium transition-[background-color,border-color,color,transform] duration-200 active:scale-[0.97] ${
               isActive
                 ? "border-transparent bg-tn-blue-bg text-tn-blue"
                 : "border-tn-input-border bg-transparent text-tn-muted-1 hover:bg-tn-page"
@@ -216,7 +223,7 @@ export function StaffFilterBar({
           setSaveShared(false);
           setSaveDialogOpen(true);
         }}
-        className="cursor-pointer rounded-full border border-dashed border-tn-input-border bg-transparent px-3.5 py-2 font-sans text-[12.5px] font-medium text-tn-muted-5 hover:bg-tn-page"
+        className="cursor-pointer rounded-full border border-dashed border-tn-input-border bg-transparent px-3.5 py-2 font-sans text-[12.5px] font-medium text-tn-muted-5 transition-[background-color,color,transform] duration-200 hover:bg-tn-page hover:text-tn-ink active:scale-[0.97]"
       >
         + Save current
       </button>
@@ -224,7 +231,7 @@ export function StaffFilterBar({
       <button
         type="button"
         onClick={onOpenManageSets}
-        className="cursor-pointer border-none bg-transparent px-1 font-sans text-[12.5px] font-medium text-tn-blue"
+        className="cursor-pointer border-none bg-transparent px-1 font-sans text-[12.5px] font-medium text-tn-blue transition-opacity duration-200 hover:opacity-70"
       >
         Manage sets
       </button>
@@ -232,7 +239,12 @@ export function StaffFilterBar({
       <div className="flex-1" />
 
       {(hidingOffCount > 0 || hidingNoBookingsCount > 0) && (
-        <span className="font-sans text-xs text-tn-muted-6">
+        // Keyed on what it says, so the sentence fades in when the numbers
+        // change rather than silently reading differently underneath you.
+        <span
+          key={`hiding-${hidingOffCount}-${hidingNoBookingsCount}`}
+          className="tn-rise-in font-sans text-xs text-tn-muted-6"
+        >
           {hidingOffCount > 0 ? `Hiding ${hidingOffCount} off today` : ""}
           {hidingOffCount > 0 && hidingNoBookingsCount > 0 ? " · " : ""}
           {hidingNoBookingsCount > 0 ? `${hidingNoBookingsCount} with no bookings` : ""}
@@ -245,7 +257,7 @@ export function StaffFilterBar({
         // *tied* z-index it's the later element in the DOM (the grid header, which
         // renders after this whole component) that wins and paints on top,
         // bleeding through this panel. Needs to clear it outright, not just match it.
-        <div className="absolute left-0 top-[46px] z-30 flex w-[352px] flex-col gap-3 rounded-2xl border border-tn-input-border bg-tn-surface p-3.5 shadow-[0_26px_56px_-22px_rgba(40,30,10,0.45)]">
+        <div className="tn-picker-in absolute left-0 top-[46px] z-30 flex w-[352px] flex-col gap-3 rounded-2xl border border-tn-input-border bg-tn-surface p-3.5 shadow-[0_26px_56px_-22px_rgba(40,30,10,0.45)]">
           <div className="flex items-center justify-between">
             <span className="font-sans text-[13.5px] font-semibold text-tn-ink">Staff in view</span>
             <button
@@ -277,7 +289,7 @@ export function StaffFilterBar({
                 key={value}
                 type="button"
                 onClick={() => setQuickFilter(value)}
-                className={`cursor-pointer rounded-full px-2.5 py-1.5 font-sans text-[11.5px] font-medium ${
+                className={`cursor-pointer rounded-full px-2.5 py-1.5 font-sans text-[11.5px] font-medium transition-[background-color,border-color,color,transform] duration-200 active:scale-[0.96] ${
                   quickFilter === value
                     ? "border-none bg-tn-dark text-tn-on-dark"
                     : "border border-tn-input-border bg-transparent text-tn-muted-1"
@@ -322,7 +334,7 @@ export function StaffFilterBar({
               <button
                 type="button"
                 onClick={() => setPickerOpen(false)}
-                className="cursor-pointer rounded-lg border border-tn-input-border bg-transparent px-3.5 py-2 font-sans text-xs font-semibold text-tn-muted-1"
+                className="cursor-pointer rounded-lg border border-tn-input-border bg-transparent px-3.5 py-2 font-sans text-xs font-semibold text-tn-muted-1 transition-[background-color,transform] duration-200 hover:bg-tn-page active:scale-[0.97]"
               >
                 Cancel
               </button>
@@ -332,7 +344,7 @@ export function StaffFilterBar({
                   onApply(Array.from(pending));
                   setPickerOpen(false);
                 }}
-                className="cursor-pointer rounded-lg border-none bg-tn-dark px-3.5 py-2 font-sans text-xs font-semibold text-tn-on-dark"
+                className="cursor-pointer rounded-lg border-none bg-tn-dark px-3.5 py-2 font-sans text-xs font-semibold text-tn-on-dark transition-[background-color,transform] duration-200 hover:bg-tn-ink active:scale-[0.97]"
               >
                 Apply &middot; {pending.size}
               </button>

@@ -67,11 +67,12 @@ export function branchBookingUrl(
 /**
  * Whether the shop's bare link is a second way into *this* branch.
  *
- * True only for the primary while it is taking bookings, which is
- * exactly when the resolver sends a bare slug here.
+ * True only for the primary while it is open, which is exactly when the
+ * resolver sends a bare slug here. Status is the whole test: the branch's
+ * own link and its listing are one switch now, not two.
  */
 export function shopLinkOpensBranch(location: AccountLocation): boolean {
-  return location.isPrimary && location.onlineBookingEnabled;
+  return location.isPrimary && location.status === "active";
 }
 
 /** Whether this branch's link actually opens *this* branch, rather than falling back to the shop's. */

@@ -446,6 +446,107 @@ body {
 }
 
 /*
+ * Changing who is in the calendar.
+ * ================================
+ *
+ * Applying a staff set, ticking somebody out of the picker or clicking a
+ * saved-set chip rewrites the Day grid's columns instantly — a barber's
+ * whole column vanishes and everything to the right of it slides over,
+ * with no frame in between. Two of those in a row and you can no longer
+ * tell whether the set did anything, which is the complaint these are
+ * for.
+ *
+ * The columns can't be transitioned themselves: the grid's track *count*
+ * changes, and grid-template-columns only interpolates between templates
+ * with matching track counts. So the change is shown rather than
+ * tweened — the headers, which is where a column's identity actually
+ * lives, deal in one after another, and the body behind them settles up
+ * from dimmed. Both replay off a React key on the staff signature, so
+ * they fire on a real change of who's in view and not on a scroll, a
+ * refetch or a new booking.
+ */
+@keyframes tn-grid-settle {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/*
+ * Opacity only, no transform, and not for the usual containing-block
+ * reason: this element is the positioning parent for every appointment
+ * block laid over the grid, and a transform on it would also make it one
+ * for the calendar's `fixed` overlays.
+ */
+.tn-grid-settle {
+  animation: tn-grid-settle 260ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/*
+ * The header row's staff cells, dealt left to right. `:not(:first-child)`
+ * skips the timezone gutter, which is `position: sticky` on both axes and
+ * has no business moving; that makes the first staff column child 2, so
+ * the delays start at child 3. Capped at the eighth — past that the
+ * columns are off-screen anyway and a delay is just latency.
+ */
+.tn-columns-in > *:not(:first-child) {
+  animation: tn-rise-in 240ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.tn-columns-in > *:nth-child(3) {
+  animation-delay: 40ms;
+}
+.tn-columns-in > *:nth-child(4) {
+  animation-delay: 80ms;
+}
+.tn-columns-in > *:nth-child(5) {
+  animation-delay: 120ms;
+}
+.tn-columns-in > *:nth-child(6) {
+  animation-delay: 160ms;
+}
+.tn-columns-in > *:nth-child(7) {
+  animation-delay: 200ms;
+}
+.tn-columns-in > *:nth-child(n + 8) {
+  animation-delay: 240ms;
+}
+
+/*
+ * The staff picker itself, which opened with no animation at all while
+ * every other anchored panel in the app (TimePicker, DatePicker) used
+ * tn-popover-in. As a class rather than inline, since there is no
+ * per-render value to carry and an inline style object here is a new
+ * prop on every render of a panel that re-renders on every keystroke in
+ * its search box. No fill mode: the scale must not outlive the run, or
+ * the panel becomes a containing block for the save dialog's backdrop.
+ */
+.tn-picker-in {
+  animation: tn-popover-in 170ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/*
+ * Time a barber is out according to their own Google Calendar.
+ *
+ * Hatched rather than filled, because the one thing this must never look
+ * like is an appointment: it has no customer, nothing to open, and it
+ * belongs to the barber rather than to the shop. The stripes read as
+ * "unavailable" at a glance without competing with the real blocks
+ * painted over them.
+ */
+.tn-external-busy {
+  background-color: var(--color-tn-page);
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 5px,
+    color-mix(in oklch, var(--color-tn-ink) 9%, transparent) 5px,
+    color-mix(in oklch, var(--color-tn-ink) 9%, transparent) 10px
+  );
+}
+
+/*
  * Motion here is decoration — it helps you follow a swap, it never
  * carries information — so anyone who has asked their OS for less of it
  * gets the end state directly.
@@ -456,7 +557,10 @@ body {
   .tn-view-in-forward,
   .tn-view-in-back,
   .tn-rise-in,
-  .tn-pop-in {
+  .tn-pop-in,
+  .tn-grid-settle,
+  .tn-columns-in > *,
+  .tn-picker-in {
     animation: none;
   }
 

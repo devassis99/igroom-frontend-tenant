@@ -27,7 +27,14 @@ export interface AccountLocation {
    * Null for a branch created before links existed.
    */
   slug: string | null;
-  /** Whether this branch's public booking link opens at all. Per branch, not per account. */
+  /**
+   * Mirrors `status` and is not settable — read `status` instead.
+   *
+   * It was a switch of its own once, sitting beside the status switch
+   * with a label so similar that neither said which one a dead link was
+   * about. Still returned by the API; nothing in this app should branch
+   * on it.
+   */
   onlineBookingEnabled: boolean;
   /** Whether a booking made from this branch's public link has to leave a deposit first. Off by default. */
   requireDepositOnline: boolean;
@@ -106,8 +113,6 @@ export function createLocation(
 export interface LocationUpdateInput extends Partial<LocationInput> {
   /** Toggling a location Active/Inactive is just a PATCH through this same route — the primary location can't be set inactive (see locations.service.ts). */
   status?: "active" | "inactive";
-  /** Whether this branch takes bookings from its public link — see AccountLocation.onlineBookingEnabled. */
-  onlineBookingEnabled?: boolean;
   /** The per-branch online-deposit switch — see AccountLocation.requireDepositOnline. */
   requireDepositOnline?: boolean;
   /** Whether customers booking online may ask for a barber — see AccountLocation.barberChoice. */

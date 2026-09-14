@@ -17,7 +17,7 @@ interface IntegrationsModalProps {
  * points render identical content — see AppShell.tsx's note.
  */
 export function IntegrationsModal({ open, onClose }: IntegrationsModalProps) {
-  const { search, setSearch, category, setCategory, connectedCount, filtered } =
+  const { search, setSearch, category, setCategory, connectedCount, filtered, status, error } =
     useIntegrationsFilter();
   const activeShape = CATEGORIES.find((c) => c.label === category)?.shape ?? "square";
 
@@ -73,7 +73,12 @@ export function IntegrationsModal({ open, onClose }: IntegrationsModalProps) {
             </span>
           </div>
 
-          <IntegrationCardGrid integrations={filtered} search={search} />
+          {status === "error" && (
+            <p className="m-0 font-mono text-[11.5px] leading-relaxed break-words text-tn-danger">
+              {error?.message ?? "Couldn’t load your integrations"}
+            </p>
+          )}
+          <IntegrationCardGrid integrations={filtered} search={search} status={status} />
         </div>
       </div>
     </Modal>

@@ -391,7 +391,7 @@ function DetailsTab({
                   value={timezone}
                   onChange={setTimezone}
                   placeholder="Not set — bookings read in UTC"
-                  // Sized to sit level with BOOKING STATUS beside it and
+                  // Sized to sit level with BRANCH STATUS beside it and
                   // the NAME/ADDRESS inputs above — the default trigger is
                   // the compact chip from the availability header.
                   className={`w-full !justify-between !rounded-xl !px-3.5 !text-sm !font-normal ${formControlHeightClass}`}
@@ -399,18 +399,28 @@ function DetailsTab({
               </Field>
             </div>
             <div className="min-w-[180px] flex-1">
-              <Field label="BOOKING STATUS">
+              {/*
+               * The only switch on this branch, and it was two until
+               * recently: this one and a "Take bookings from this link"
+               * toggle on the sharing card beside it. Near-identical
+               * labels for two different columns, and they could
+               * disagree — a closed branch went on showing its link as
+               * live. Named for what it actually is now, which is the
+               * branch being open rather than one channel of it, with
+               * the reach spelled out underneath.
+               */}
+              <Field label="BRANCH STATUS">
                 <div
                   className={`flex items-center justify-between gap-3 rounded-xl border border-tn-input-border px-3.5 py-2.5 ${formControlHeightClass}`}
                 >
                   <span className="font-sans text-sm text-tn-ink">
-                    {active ? "Taking bookings" : "Not taking bookings"}
+                    {active ? "Open" : "Closed"}
                   </span>
                   <button
                     type="button"
                     role="switch"
                     aria-checked={active}
-                    aria-label="Taking bookings"
+                    aria-label="Branch open"
                     disabled={!canManage || location.isPrimary}
                     onClick={() => setActive((v) => !v)}
                     className={`relative h-[22px] w-9 flex-none cursor-pointer rounded-full border-none transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
@@ -425,11 +435,13 @@ function DetailsTab({
                   </button>
                 </div>
               </Field>
-              {location.isPrimary && (
-                <p className="m-0 pt-1 font-sans text-[11px] text-tn-muted-5">
-                  Your primary location can&rsquo;t stop taking bookings.
-                </p>
-              )}
+              <p className="m-0 pt-1 font-sans text-[11px] leading-relaxed text-tn-muted-5">
+                {location.isPrimary
+                  ? "Your primary location is always open — it's the one every booking falls back to."
+                  : active
+                    ? "Open: this branch takes bookings from its link and appears in search."
+                    : "Closed: its booking link won't open and it's hidden from search."}
+              </p>
             </div>
           </div>
 
@@ -471,8 +483,6 @@ function DetailsTab({
             shopUrl={shopUrl}
             liveBranchCount={liveBranchCount}
             canManage={canManage}
-            accessToken={accessToken}
-            onSaved={onSaved}
           />
           <OnlineDepositCard
             location={location}
@@ -568,37 +578,31 @@ function OnlineDepositCard({
   );
 }
 
+/**
+ * Read-only since the branch's status became the one switch: this card
+ * shows the link, the QR and what they currently open, and the thing
+ * that changes any of it is the status control on the form beside it.
+ */
 function BookingLinkCard({
   location,
   url,
   shopUrl,
   liveBranchCount,
   canManage,
-  accessToken,
-  onSaved,
 }: {
   location: AccountLocation;
   /** This branch's own link — the shop's bare link for the primary branch. */
   url: string | null;
   /** The shop's bare link, shown beside a branch link so the difference is visible. */
   shopUrl: string | null;
-  /** How many branches of this account are open for bookings — see the brand-link line below. */
+  /** How many branches of this account are open — see the brand-link line below. */
   liveBranchCount: number;
+  /** Only whether to point at the status control; nothing here writes. */
   canManage: boolean;
-  accessToken: string;
-  onSaved: () => void;
 }) {
   const [svg, setSvg] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const enabled = location.onlineBookingEnabled;
-
-  const setEnabled = useMutation({
-    mutationFn: (next: boolean) =>
-      updateLocation(accessToken, location.id, { onlineBookingEnabled: next }),
-    // The switch lives on the location row this panel was handed, so the
-    // locations list is what has to be refetched for the card to redraw.
-    onSuccess: () => onSaved(),
-  });
+  const open = location.status === "active";
 
   useEffect(() => {
     if (!url) {
@@ -653,33 +657,28 @@ function BookingLinkCard({
         </p>
       </div>
 
-      {/* The switch sits with the link rather than on a settings page,
-          because this is where somebody finds out the link doesn't work:
-          they copy it, open it, get "shop not found", and come back
-          here. The answer should be in the same card as the question.
-
-          Per branch, and this is the card for one branch — the flagship
-          can be live months before the new door across town, and a
-          branch mid-refit can go dark without taking the others with
-          it. */}
-      <div className="flex flex-col gap-1.5 rounded-xl border border-tn-border-soft bg-tn-page px-3 py-2.5">
-        <Toggle
-          checked={enabled}
-          disabled={!canManage || setEnabled.isPending}
-          onChange={(next) => setEnabled.mutate(next)}
-          label="Take bookings from this link"
-        />
-        <p className="m-0 font-sans text-[11px] leading-relaxed text-tn-muted-5">
-          {enabled
-            ? `${location.name} is taking bookings from this link. Your other branches have their own switch.`
-            : "This branch’s page is off, so the link below won’t open for anyone yet. Turn it on when its services and hours are ready."}
-        </p>
-        {setEnabled.isError && (
-          <p className="m-0 font-sans text-[11px] text-tn-danger">
-            Couldn&rsquo;t save that — try again.
+      {/* No switch here any more, and that is the point: this card used
+          to carry a "Take bookings from this link" toggle sitting a few
+          inches from the branch's own status switch, worded so alike
+          that neither told you which one your dead link was about. One
+          switch now, on the Details form; this says what it currently
+          means for the link, because this is where somebody finds out
+          the link doesn't work — they copy it, open it, get "shop not
+          found", and come back here. The answer should be in the same
+          card as the question, even when the control isn't. */}
+      {!open && (
+        <div className="flex flex-col gap-1.5 rounded-xl border border-tn-border-soft bg-tn-page px-3 py-2.5">
+          <p className="m-0 font-sans text-xs font-semibold text-tn-ink">
+            This link won&rsquo;t open
           </p>
-        )}
-      </div>
+          <p className="m-0 font-sans text-[11px] leading-relaxed text-tn-muted-5">
+            {location.name} is closed, so its page answers nothing and it stays out of search.
+            {canManage
+              ? " Set BRANCH STATUS to Open on the left when its services and hours are ready."
+              : " An owner or manager can reopen it."}
+          </p>
+        </div>
+      )}
       {url === null ? (
         <p className="m-0 font-sans text-[11px] leading-relaxed text-tn-muted-5">
           No public booking site is configured yet, so there&rsquo;s nothing for a link or a code to
