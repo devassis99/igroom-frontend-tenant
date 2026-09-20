@@ -448,11 +448,22 @@ export function StaffManagementPage() {
       <div className="flex items-center justify-between">
         <h1 className="m-0 font-sans text-2xl font-semibold text-tn-ink">Staff Management</h1>
         {activeTab === "members"
-          ? canManageStaff && <Button onClick={handleNewMember}>+ New Member</Button>
-          : canManageRoles && <Button onClick={openCreateRole}>+ New Role</Button>}
+          ? canManageStaff && (
+              <Button data-tour="staff-mgmt-add" onClick={handleNewMember}>
+                + New Member
+              </Button>
+            )
+          : canManageRoles && (
+              <Button data-tour="staff-mgmt-add" onClick={openCreateRole}>
+                + New Role
+              </Button>
+            )}
       </div>
 
-      <div className="flex items-center gap-6 border-b border-tn-border-soft">
+      <div
+        className="flex items-center gap-6 border-b border-tn-border-soft"
+        data-tour="staff-mgmt-tabs"
+      >
         <button
           type="button"
           onClick={() => setActiveTab("members")}

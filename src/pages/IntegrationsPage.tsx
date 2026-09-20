@@ -70,6 +70,7 @@ export function IntegrationsPage() {
             {category}
           </h1>
           <input
+            data-tour="integrations-search"
             type="text"
             placeholder="Search integrations"
             value={search}

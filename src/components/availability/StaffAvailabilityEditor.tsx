@@ -1494,7 +1494,7 @@ export function StaffAvailabilityEditor({
   return (
     // tn-content-in replays whenever a caller's key changes the staff
     // member being edited — see LocationAvailabilityTab / HoursSettingsPage.
-    <div className="tn-content-in flex flex-col gap-6">
+    <div className="tn-content-in flex flex-col gap-6" data-tour="hours-editor">
       {/* Standing collisions, from the nightly sweep. Above the grid
           rather than below it: this is a thing that is wrong now, not a
           note about what was just typed. Hidden while a refusal is on

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { StepProgress } from "@/components/ui/StepProgress";
 import { TimePicker } from "@/components/ui/TimePicker";
 import type { AvailabilityDay } from "@/lib/availability-api";
+import { TourProvider } from "@/tour";
 
 const DAY_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -85,6 +86,9 @@ export function StaffAvailabilityPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-tn-surface px-6 py-12">
+      {/* This screen is outside AppShell, so it mounts the walkthrough
+          itself. The overlay portals to the body either way. */}
+      <TourProvider />
       <div className="flex w-[460px] flex-col gap-[22px]">
         <div>
           <h1 className="m-0 mb-1.5 font-serif text-[28px] font-semibold text-tn-ink">

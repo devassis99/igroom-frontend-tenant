@@ -161,7 +161,12 @@ export function CloseOfDayPage() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={() => setRuleOpen(true)}>
+          <Button
+            data-tour="close-tip-rule"
+            variant="secondary"
+            size="sm"
+            onClick={() => setRuleOpen(true)}
+          >
             Tip split rule
           </Button>
           <span className="font-sans text-xs text-tn-muted-5">
@@ -182,7 +187,7 @@ export function CloseOfDayPage() {
         </p>
       )}
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+      <div data-tour="close-stats" className="grid grid-cols-1 gap-5 sm:grid-cols-3">
         <StatCard label="Tickets" value={String(day?.ticketCount ?? 0)} />
         <StatCard label="Taken" value={formatCents(day?.grossSalesCents ?? 0)} />
         <StatCard label="Tips" value={formatCents(day?.tipsCents ?? 0)} />
@@ -364,7 +369,11 @@ export function CloseOfDayPage() {
                 : ""}
             </p>
           ) : (
-            <Button onClick={() => finish.mutate()} disabled={finish.isPending || !day}>
+            <Button
+              data-tour="close-finish"
+              onClick={() => finish.mutate()}
+              disabled={finish.isPending || !day}
+            >
               Count the drawer &amp; close
             </Button>
           )}

@@ -105,7 +105,11 @@ export function StaffPage() {
     <div className="flex flex-col gap-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">Staff</h1>
-        {canManageStaff && <Button onClick={handleNewMember}>+ Add Staff</Button>}
+        {canManageStaff && (
+          <Button data-tour="staff-add" onClick={handleNewMember}>
+            + Add Staff
+          </Button>
+        )}
       </div>
 
       {performanceQuery.isError && (
@@ -150,7 +154,7 @@ export function StaffPage() {
       )}
 
       {team && (
-        <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
+        <div data-tour="staff-stats" className="grid grid-cols-2 gap-5 sm:grid-cols-4">
           <StatCard label="Team sales (this month)" value={dollars(team.teamSalesCents)} />
           <StatCard
             label="Avg ticket"
@@ -165,7 +169,10 @@ export function StaffPage() {
       )}
 
       {staff.length > 0 && (
-        <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
+        <div
+          data-tour="staff-table"
+          className="flex flex-col overflow-hidden rounded-2xl border border-tn-border"
+        >
           <div className="grid grid-cols-[1.6fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_0.8fr_auto] bg-tn-table-head px-[18px] py-3 font-sans text-xs font-semibold text-tn-muted-5">
             <span>STAFF</span>
             <span>BOOKINGS</span>

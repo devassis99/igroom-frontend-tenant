@@ -11,6 +11,7 @@ import {
 } from "@/lib/billing-api";
 import { createCheckoutSession } from "@/lib/accounts-api";
 import { ApiError } from "@/lib/http";
+import { TourProvider } from "@/tour";
 
 const CYCLES: BillingCycle[] = ["monthly", "quarterly", "biannual", "annual"];
 
@@ -161,6 +162,9 @@ export function ChoosePlanPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-8 bg-tn-plan-bg px-6 py-14">
+      {/* This screen is outside AppShell, so it mounts the walkthrough
+          itself. The overlay portals to the body either way. */}
+      <TourProvider />
       <div className="text-center">
         <h1 className="m-0 mb-1.5 font-serif text-[30px] font-semibold text-tn-on-dark">
           Choose your plan

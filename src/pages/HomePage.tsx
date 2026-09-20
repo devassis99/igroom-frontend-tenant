@@ -15,9 +15,13 @@ import { ResourcesSupportSection } from "@/components/dashboard/ResourcesSupport
 export function HomePage() {
   return (
     <div className="flex flex-col gap-7">
-      <LaunchChecklistCard />
+      <div data-tour="home-checklist">
+        <LaunchChecklistCard />
+      </div>
 
-      <ResourcesSupportSection />
+      <div data-tour="home-resources">
+        <ResourcesSupportSection />
+      </div>
     </div>
   );
 }

@@ -189,17 +189,20 @@ export function ServicesPage() {
         <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">Services</h1>
         <div className="flex items-center gap-3">
           <input
+            data-tour="services-search"
             type="text"
             placeholder="Search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="rounded-xl border border-tn-input-border px-3.5 py-2.5 font-sans text-sm text-tn-ink outline-none focus:border-2 focus:border-tn-gold"
           />
-          <Button onClick={() => setModalService(null)}>+ Add Service</Button>
+          <Button data-tour="services-add" onClick={() => setModalService(null)}>
+            + Add Service
+          </Button>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3" data-tour="services-tools">
         <Button variant="secondary" size="sm" onClick={() => setCategoriesOpen(true)}>
           Categories
         </Button>

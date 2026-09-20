@@ -56,7 +56,10 @@ export function SecuritySettingsPage() {
     <div className="flex flex-col gap-8">
       <h1 className="m-0 font-sans text-2xl font-semibold text-tn-ink">Security</h1>
 
-      <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
+      <div
+        data-tour="security-rows"
+        className="flex flex-col overflow-hidden rounded-2xl border border-tn-border"
+      >
         {rows.map((row, i) => (
           <button
             key={row.label}

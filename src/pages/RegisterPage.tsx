@@ -214,7 +214,12 @@ export function RegisterPage() {
             />
           )}
         </div>
-        <Button variant="secondary" onClick={() => open.mutate(null)} disabled={open.isPending}>
+        <Button
+          data-tour="register-counter-sale"
+          variant="secondary"
+          onClick={() => open.mutate(null)}
+          disabled={open.isPending}
+        >
           + Counter sale
         </Button>
       </div>
@@ -226,7 +231,7 @@ export function RegisterPage() {
       )}
 
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-3" data-tour="register-queue">
           <div className="flex items-baseline justify-between">
             <p className="m-0 font-sans text-xs font-semibold tracking-[0.1em] text-tn-muted-5">
               TODAY · {day?.shopName ?? "…"}

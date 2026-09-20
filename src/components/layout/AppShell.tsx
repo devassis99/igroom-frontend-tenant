@@ -4,6 +4,7 @@ import { useAuthStore } from "@/auth/auth-store";
 import { usePermissions } from "@/auth/use-permissions";
 import { requiredPermissionFor } from "@/auth/route-permissions";
 import { IntegrationsModal } from "@/components/integrations/IntegrationsModal";
+import { TourHelpButton, TourProvider } from "@/tour";
 import { AccountMenu } from "./AccountMenu";
 import { WhatsNewDrawer } from "./WhatsNewDrawer";
 
@@ -427,7 +428,7 @@ export function AppShell() {
           </button>
         </div>
 
-        <nav className="flex flex-col gap-0.5">
+        <nav className="flex flex-col gap-0.5" data-tour="app-nav">
           {visibleBands.map((band, bandIndex) => (
             <Fragment key={band[0]!.to}>
               {bandIndex > 0 && (
@@ -482,6 +483,11 @@ export function AppShell() {
 
         <div className="flex-1" />
 
+        {/* Above What's New, and in the same shape: both are "tell me
+            about this", and a help control anywhere but the sidebar is one
+            people look for in the sidebar anyway. */}
+        <TourHelpButton collapsed={collapsed} />
+
         <button
           ref={whatsNewTriggerRef}
           type="button"
@@ -500,7 +506,7 @@ export function AppShell() {
           </CollapsibleLabel>
         </button>
 
-        <div className="mb-1 flex flex-col gap-0.5">
+        <div className="mb-1 flex flex-col gap-0.5" data-tour="nav-setup">
           <button
             type="button"
             onClick={() => setIntegrationsOpen(true)}
@@ -538,7 +544,7 @@ export function AppShell() {
           </NavLink>
         </div>
 
-        <div className="relative px-6">
+        <div className="relative px-6" data-tour="nav-account">
           <button
             ref={accountTriggerRef}
             type="button"
@@ -606,6 +612,10 @@ export function AppShell() {
       </div>
 
       <IntegrationsModal open={integrationsOpen} onClose={() => setIntegrationsOpen(false)} />
+
+      {/* The first-visit walkthrough for whichever screen is showing.
+          Mounted by the shell, never by a page — see src/tour. */}
+      <TourProvider />
     </div>
   );
 }

@@ -160,7 +160,10 @@ export function SettingsLayout() {
 
   return (
     <div className="-my-8 flex min-h-screen">
-      <nav className="-ml-10 flex w-[240px] flex-none flex-col gap-6 border-r border-tn-border bg-tn-table-head py-8">
+      <nav
+        data-tour="settings-nav"
+        className="-ml-10 flex w-[240px] flex-none flex-col gap-6 border-r border-tn-border bg-tn-table-head py-8"
+      >
         <p className="m-0 px-4 font-serif text-[22px] font-semibold text-tn-ink">Settings</p>
         <div>
           <p className="m-0 mb-2 px-4 font-sans text-[11px] font-semibold tracking-[0.04em] text-tn-faint">

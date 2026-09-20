@@ -259,7 +259,7 @@ export function WaitlistPage() {
             />
           )}
         </div>
-        <div className="flex items-center gap-3.5">
+        <div className="flex items-center gap-3.5" data-tour="waitlist-toolbar">
           <SegmentedControl
             value={view}
             onChange={changeView}
@@ -274,7 +274,11 @@ export function WaitlistPage() {
               {board?.waitingCount ?? 0} waiting
             </span>
           </div>
-          <Button onClick={() => setWalkInOpen(true)} disabled={!selectedLocationId}>
+          <Button
+            data-tour="waitlist-add"
+            onClick={() => setWalkInOpen(true)}
+            disabled={!selectedLocationId}
+          >
             + Add Walk-in
           </Button>
         </div>
@@ -331,6 +335,7 @@ export function WaitlistPage() {
          * then appear mid-animation with no transition of its own.
          */
         <div
+          data-tour="waitlist-board"
           key={`${view}:${board.locationId}`}
           className={`flex flex-col gap-7 ${
             transitionKind === "location"

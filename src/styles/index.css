@@ -404,6 +404,26 @@ body {
 }
 
 /*
+ * The walkthrough's dimmed backdrop (see src/tour).
+ *
+ * A plain fade, with no movement of its own: the four panels around the
+ * spotlight already slide between steps, and a translate on top of that
+ * reads as the page itself shifting under the highlight.
+ */
+@keyframes tn-tour-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.tn-tour-fade {
+  animation: tn-tour-fade 200ms ease-out backwards;
+}
+
+/*
  * A count appearing on something that was already on screen — the clash
  * badge on an availability tab.
  *
@@ -553,6 +573,7 @@ body {
  */
 @media (prefers-reduced-motion: reduce) {
   .tn-content-in,
+  .tn-tour-fade,
   .tn-underline-in,
   .tn-view-in-forward,
   .tn-view-in-back,

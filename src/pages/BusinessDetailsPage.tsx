@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Field, formInputClass } from "@/components/ui/FormField";
 import { StepProgress } from "@/components/ui/StepProgress";
 import { PhoneInput, isPhoneValid } from "@/components/ui/PhoneInput";
+import { TourProvider } from "@/tour";
 
 const CATEGORIES = ["Barbershop", "Hair Salon", "Nails", "Spa"];
 
@@ -50,6 +51,9 @@ export function BusinessDetailsPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-tn-surface px-6 py-12">
+      {/* This screen is outside AppShell, so it mounts the walkthrough
+          itself. The overlay portals to the body either way. */}
+      <TourProvider />
       <form onSubmit={handleSubmit} className="flex w-[460px] flex-col gap-[22px]">
         <div>
           <h1 className="m-0 mb-1.5 font-serif text-[28px] font-semibold text-tn-ink">

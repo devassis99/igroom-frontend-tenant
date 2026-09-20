@@ -110,7 +110,10 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
 
   if (!ticketId) {
     return (
-      <aside className="rounded-2xl border border-dashed border-tn-border px-6 py-12 text-center lg:sticky lg:top-6">
+      <aside
+        data-tour="register-ticket"
+        className="rounded-2xl border border-dashed border-tn-border px-6 py-12 text-center lg:sticky lg:top-6"
+      >
         <p className="m-0 font-sans text-sm font-semibold text-tn-ink">No ticket open</p>
         <p className="m-0 mt-1.5 font-sans text-[13px] leading-relaxed text-tn-muted-3">
           Pick an appointment and the ticket arrives with the client, the barber, the service and
@@ -122,7 +125,10 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
 
   if (!ticket) {
     return (
-      <aside className="rounded-2xl border border-tn-border px-6 py-12 text-center lg:sticky lg:top-6">
+      <aside
+        data-tour="register-ticket"
+        className="rounded-2xl border border-tn-border px-6 py-12 text-center lg:sticky lg:top-6"
+      >
         <p className="m-0 font-sans text-[13px] text-tn-muted-3">Opening ticket…</p>
       </aside>
     );
@@ -144,7 +150,10 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
   );
 
   return (
-    <aside className="flex flex-col gap-4 rounded-2xl border border-tn-border bg-tn-surface p-5 lg:sticky lg:top-6">
+    <aside
+      data-tour="register-ticket"
+      className="flex flex-col gap-4 rounded-2xl border border-tn-border bg-tn-surface p-5 lg:sticky lg:top-6"
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">

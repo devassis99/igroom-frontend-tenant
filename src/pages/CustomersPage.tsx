@@ -110,7 +110,11 @@ export function CustomersPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">Customers</h1>
-        {canManageCustomers && <Button onClick={() => setAddOpen(true)}>+ Add Customer</Button>}
+        {canManageCustomers && (
+          <Button data-tour="customers-add" onClick={() => setAddOpen(true)}>
+            + Add Customer
+          </Button>
+        )}
       </div>
 
       {customersQuery.isError && (
@@ -124,7 +128,7 @@ export function CustomersPage() {
         <p className="m-0 font-sans text-sm text-tn-muted-5">Loading your customers…</p>
       )}
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3" data-tour="customers-search">
         <input
           type="text"
           placeholder="Search by name, phone, or email"
@@ -148,7 +152,7 @@ export function CustomersPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
+      <div data-tour="customers-stats" className="grid grid-cols-2 gap-5 sm:grid-cols-4">
         <StatCard label="Total customers" value={String(stats.totalCustomers)} />
         <StatCard label="New this month" value={String(stats.newThisMonth)} />
         <StatCard label="Repeat rate" value={`${stats.repeatRatePct}%`} />

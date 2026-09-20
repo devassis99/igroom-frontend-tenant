@@ -1263,7 +1263,7 @@ export function CalendarPage() {
   return (
     <div className="flex flex-col gap-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
+        <div className="flex items-center gap-3.5" data-tour="calendar-location">
           <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">Calendar</h1>
           {locations.length > 1 && (
             <LocationFilterPopover
@@ -1275,7 +1275,7 @@ export function CalendarPage() {
             />
           )}
         </div>
-        <div className="flex items-center gap-3.5">
+        <div className="flex items-center gap-3.5" data-tour="calendar-toolbar">
           {view !== "list" && (
             <>
               <button
@@ -1377,7 +1377,7 @@ export function CalendarPage() {
             between the two keeps whoever you had picked rather than
             silently widening back to the whole shop. */}
         {(view === "day" || view === "week") && (staffQuery.isPending || staff.length > 0) && (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3" data-tour="calendar-staff-filter">
             <StaffFilterBar
               allStaff={staff}
               selectedStaffIds={Array.from(effectiveStaffIds)}
@@ -1397,7 +1397,10 @@ export function CalendarPage() {
                 columns below and only shares the picker above. */}
             {view === "day" && (
               <>
-                <div className="relative flex flex-col overflow-hidden rounded-2xl border border-tn-border">
+                <div
+                  data-tour="calendar-grid"
+                  className="relative flex flex-col overflow-hidden rounded-2xl border border-tn-border"
+                >
                   {/* Fixed-height, self-scrolling grid (independent of the page's own scroll container) so the
                   header row below can stay pinned while the hour rows scroll under it, and so the
                   auto-scroll-to-now effect has a predictable container to act on. Columns are fixed-width
@@ -1877,7 +1880,7 @@ export function CalendarPage() {
             )}
 
             {view === "week" && (
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-4" data-tour="calendar-grid">
                 <div className="min-w-0 flex-1">
                   <WeekGrid
                     days={weekDays}
@@ -1910,7 +1913,10 @@ export function CalendarPage() {
         )}
 
         {view === "month" && (
-          <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
+          <div
+            data-tour="calendar-grid"
+            className="flex flex-col overflow-hidden rounded-2xl border border-tn-border"
+          >
             {/* Same sticky-header-in-a-scrollbox treatment as Day/Week above — a 6-week month
                 (a month that spills into a leading/trailing week, see getMonthGrid) can run
                 taller than the viewport, so MON..SUN needs to stay pinned while it scrolls. */}

@@ -36,7 +36,7 @@ interface CategoryNavProps {
 /** The left-column category list — shared by the Settings > Integrations page and the sidebar's Integrations modal. */
 export function CategoryNav({ value, onChange }: CategoryNavProps) {
   return (
-    <nav className="flex flex-col gap-0.5">
+    <nav className="flex flex-col gap-0.5" data-tour="integrations-categories">
       {CATEGORIES.map((c) => {
         const active = value === c.label;
         return (

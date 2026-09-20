@@ -5,6 +5,7 @@ import { useAuthStore } from "@/auth/auth-store";
 import { usePermissions } from "@/auth/use-permissions";
 import { useStaffOnboardingStore } from "@/auth/staff-onboarding-store";
 import { Button } from "@/components/ui/Button";
+import { TourProvider } from "@/tour";
 import { Field, formInputClass } from "@/components/ui/FormField";
 import { WizardTabs } from "@/components/ui/WizardTabs";
 import { StaffAvailabilityEditor } from "@/components/availability/StaffAvailabilityEditor";
@@ -96,6 +97,9 @@ export function StaffWelcomePage() {
 
   return (
     <div className="min-h-screen bg-tn-page px-6 py-10">
+      {/* This screen is outside AppShell, so it mounts the walkthrough
+          itself. The overlay portals to the body either way. */}
+      <TourProvider />
       <div className="mx-auto flex w-full max-w-[860px] flex-col gap-6">
         <div className="flex flex-col gap-1">
           <span className="font-serif text-lg font-semibold text-tn-ink">iGroom</span>

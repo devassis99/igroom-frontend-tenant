@@ -22,14 +22,14 @@ export function AnalyticsPage() {
     <div className="flex flex-col gap-7">
       <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">Analytics</h1>
 
-      <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
+      <div data-tour="analytics-stats" className="grid grid-cols-2 gap-5 sm:grid-cols-4">
         <StatCard label="Today's bookings" value="14" />
         <StatCard label="In waitlist now" value="3" />
         <StatCard label="Revenue today" value="$612" />
         <StatCard label="Rating" value="4.9" />
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div data-tour="analytics-schedule" className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between">
           <p className="m-0 font-sans text-base font-semibold text-tn-ink">
             Today&rsquo;s schedule
@@ -62,7 +62,7 @@ export function AnalyticsPage() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div data-tour="analytics-locations" className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between">
           <p className="m-0 font-sans text-base font-semibold text-tn-ink">By location</p>
           <Link to="/locations" className="font-sans text-[13px] font-medium text-tn-gold">

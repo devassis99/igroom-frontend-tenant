@@ -138,7 +138,7 @@ export function HoursSettingsPage() {
         <h1 className="m-0 font-sans text-2xl font-semibold text-tn-ink">Availability</h1>
 
         {canManage && (
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5" data-tour="hours-controls">
             {/* The one setting behind the collision guard's travel half,
                 put where a manager already thinks about hours rather
                 than buried in a general settings page. */}

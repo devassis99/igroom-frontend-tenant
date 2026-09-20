@@ -16,13 +16,13 @@ export function PaymentsPage() {
     <div className="flex flex-col gap-7">
       <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">Payouts</h1>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+      <div data-tour="payouts-stats" className="grid grid-cols-1 gap-5 sm:grid-cols-3">
         <StatCard label="This week" value="$3,420" />
         <StatCard label="Pending payout" value="$612" />
         <StatCard label="Payout method" value="Bank ···· 4821" />
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div data-tour="payouts-transactions" className="flex flex-col gap-3">
         <p className="m-0 font-sans text-base font-semibold text-tn-ink">Recent transactions</p>
         <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
           {RECENT_TRANSACTIONS.map((txn, i) => (

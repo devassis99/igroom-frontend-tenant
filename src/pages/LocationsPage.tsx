@@ -165,7 +165,7 @@ export function LocationsPage() {
         </button>
 
         <div className="flex flex-wrap items-start gap-6">
-          <aside className="flex w-[260px] flex-none flex-col gap-3">
+          <aside data-tour="locations-list" className="flex w-[260px] flex-none flex-col gap-3">
             <input
               type="search"
               value={search}
@@ -285,7 +285,11 @@ export function LocationsPage() {
             {TOTAL_SEATS} seats used · Business Plan · $12/seat/mo, billed per location
           </p>
         </div>
-        {canManageLocations && <Button onClick={openAdd}>+ Add Location</Button>}
+        {canManageLocations && (
+          <Button data-tour="locations-add" onClick={openAdd}>
+            + Add Location
+          </Button>
+        )}
       </div>
 
       {locationsQuery.isError && (

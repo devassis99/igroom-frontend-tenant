@@ -8,6 +8,7 @@ import { PreviewAsCustomerModal } from "@/components/settings/PreviewAsCustomerM
 import { useAuthStore } from "@/auth/auth-store";
 import { usePermissions } from "@/auth/use-permissions";
 import { updateCoverPhoto } from "@/lib/accounts-api";
+import { TourTipsCard } from "@/tour";
 
 /** The mockup's T12 Profile page: the business's own details, and the one cover photo every branch's page leads with. */
 export function ProfileSettingsPage() {
@@ -71,7 +72,10 @@ export function ProfileSettingsPage() {
         <Button className="w-fit">Save Changes</Button>
       </section>
 
-      <section className="flex flex-col gap-4 border-t border-tn-border-soft pt-6">
+      <section
+        data-tour="settings-public-profile"
+        className="flex flex-col gap-4 border-t border-tn-border-soft pt-6"
+      >
         <div className="flex items-center justify-between">
           <p className="m-0 font-sans text-sm font-semibold text-tn-ink">Public Profile</p>
           <Button variant="secondary" size="sm" onClick={() => setPreviewOpen(true)}>
@@ -119,6 +123,8 @@ export function ProfileSettingsPage() {
           → a branch → Gallery.
         </p>
       </section>
+
+      <TourTipsCard />
 
       <PreviewAsCustomerModal open={previewOpen} onClose={() => setPreviewOpen(false)} />
     </div>

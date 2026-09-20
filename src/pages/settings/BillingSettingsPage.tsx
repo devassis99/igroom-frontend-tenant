@@ -77,7 +77,10 @@ export function BillingSettingsPage() {
     <div className="flex flex-col gap-8">
       <h1 className="m-0 font-sans text-2xl font-semibold text-tn-ink">Billing &amp; Plan</h1>
 
-      <section className="flex flex-col gap-4 rounded-2xl border border-tn-border p-5">
+      <section
+        data-tour="billing-plan"
+        className="flex flex-col gap-4 rounded-2xl border border-tn-border p-5"
+      >
         <div className="flex items-center justify-between">
           <div>
             <span className="font-sans text-xs font-semibold tracking-[0.02em] text-tn-muted-5">
@@ -112,7 +115,7 @@ export function BillingSettingsPage() {
         </div>
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-3" data-tour="billing-payment-method">
         <div className="flex items-center justify-between">
           <p className="m-0 font-sans text-sm font-semibold text-tn-ink">Payment method</p>
           <Button variant="ghost" size="sm" onClick={() => setAddingCard(true)}>
