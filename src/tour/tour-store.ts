@@ -29,10 +29,21 @@ interface TourState {
 
   activeTourId: string | null;
   stepIndex: number;
-  /** Auto-started on first visit, or opened from the help button. */
+  /** Auto-started on first visit, or opened from the help panel. */
   source: "auto" | "manual";
+  /**
+   * A tour asked for from a *different* screen — the help panel's
+   * search can land on a step of the calendar's guide while you are
+   * standing on Payouts. The navigation has to happen first, so the
+   * request is parked here and TourProvider picks it up once the right
+   * screen is mounted.
+   */
+  pending: { tourId: string; stepIndex: number } | null;
 
   start: (tourId: string, source?: "auto" | "manual") => void;
+  /** Queue a tour that lives on another screen; navigate, and it runs on arrival. */
+  requestTour: (tourId: string, stepIndex: number) => void;
+  clearPending: () => void;
   next: (stepCount: number, tourVersion: number) => void;
   back: () => void;
   goTo: (index: number) => void;
@@ -53,8 +64,14 @@ export const useTourStore = create<TourState>()(
       activeTourId: null,
       stepIndex: 0,
       source: "auto",
+      pending: null,
 
-      start: (tourId, source = "manual") => set({ activeTourId: tourId, stepIndex: 0, source }),
+      start: (tourId, source = "manual") =>
+        set({ activeTourId: tourId, stepIndex: 0, source, pending: null }),
+
+      requestTour: (tourId, stepIndex) => set({ pending: { tourId, stepIndex } }),
+
+      clearPending: () => set({ pending: null }),
 
       next: (stepCount, tourVersion) => {
         const { stepIndex, activeTourId } = get();

@@ -1871,7 +1871,11 @@ export function CalendarPage() {
                     type="button"
                     onClick={() => jumpDayColumns(1)}
                     aria-label="Scroll to more staff columns"
-                    className="fixed bottom-8 right-8 z-20 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-none bg-tn-dark text-tn-on-dark shadow-[0_14px_30px_-10px_rgba(40,30,10,0.5)]"
+                    // right-[92px], not right-8: the help button (see
+                    // src/tour/TourLauncher.tsx) sits in that corner on
+                    // every screen, and two circles on top of each other
+                    // means one of them can't be pressed.
+                    className="fixed bottom-8 right-[92px] z-20 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-none bg-tn-dark text-tn-on-dark shadow-[0_14px_30px_-10px_rgba(40,30,10,0.5)]"
                   >
                     ›
                   </button>

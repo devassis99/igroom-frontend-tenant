@@ -8,9 +8,9 @@ import { useTourStore } from "./tour-store";
  *
  * Two controls, and the difference between them matters: the switch
  * stops tours *opening on their own*, and the button makes every screen
- * offer its own again from scratch. Neither removes the sidebar's help
- * button, so switching tips off is never a decision somebody has to
- * undo before they can get an explanation back.
+ * offer its own again from scratch. Neither removes the help button in the
+ * corner of every screen, so switching tips off is never a decision
+ * somebody has to undo before they can get an explanation back.
  *
  * Worth saying out loud on screen, because this is a shared machine as
  * often as not: the setting lives in this browser, not on the account.

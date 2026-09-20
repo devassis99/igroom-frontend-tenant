@@ -28,6 +28,26 @@ the settings card. Which tour is open and which step it is on is never
 persisted: a tour restored on the next page load would appear over a screen
 somebody navigated to deliberately.
 
+## The help button
+
+`TourLauncher` (mounted by `TourProvider`, so it is on every screen that has a
+guide) is the round button in the bottom-right corner. Opening it gives:
+
+- **Show me around this page** — replays this screen's walkthrough.
+- **Search** — across every step of every tour, title matches first. Picking a
+  result on another screen navigates there and starts that screen's walkthrough
+  at the right step (`requestTour` parks the request; the provider picks it up
+  once the new screen has mounted).
+- **On this page / Other screens** — the same content as a list, for reading
+  rather than being shown.
+- A footer switch for whether tips open by themselves.
+
+It stays mounted while a tour runs — the Home tour's last step points at it —
+but the panel can't be opened over a running tour.
+
+Anything else `position: fixed` in the bottom-right corner has to stay clear of
+it; the calendar's scroll-right affordance is offset for exactly that reason.
+
 ## Adding a tour to a screen
 
 1. **Write the steps** in `tours.ts`:

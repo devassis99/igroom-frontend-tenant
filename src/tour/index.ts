@@ -1,6 +1,8 @@
 /**
  * In-app tours: the short, skippable walkthrough each screen shows the
- * first time somebody opens it.
+ * first time somebody opens it, and the help button in the corner that
+ * brings it back — along with a searchable version of every screen's
+ * guide.
  *
  * Three things go into a screen having one, and only the first is code:
  *
@@ -18,7 +20,7 @@
  * a new screen, and the mistakes that are easy to make.
  */
 export { TourProvider, useTour } from "./TourProvider";
-export { TourHelpButton } from "./TourHelpButton";
+export { TourLauncher } from "./TourLauncher";
 export { TourTipsCard } from "./TourTipsCard";
 export { findTourForPath } from "./find-tour";
 export { TOURS, TOURS_BY_ID } from "./tours";

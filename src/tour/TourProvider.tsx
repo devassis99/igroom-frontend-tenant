@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { useLocation } from "react-router";
+import { TourLauncher } from "./TourLauncher";
 import { TourOverlay } from "./TourOverlay";
 import { findTourForPath } from "./find-tour";
 import { hasSeenTour, useTourStore } from "./tour-store";
@@ -38,6 +39,9 @@ export function TourProvider() {
   const back = useTourStore((state) => state.back);
   const dismiss = useTourStore((state) => state.dismiss);
   const abandon = useTourStore((state) => state.abandon);
+  const goTo = useTourStore((state) => state.goTo);
+  const pending = useTourStore((state) => state.pending);
+  const clearPending = useTourStore((state) => state.clearPending);
 
   const active: Tour | undefined = activeTourId ? TOURS_BY_ID.get(activeTourId) : undefined;
 
@@ -51,6 +55,18 @@ export function TourProvider() {
     if (activeTourId && activeTourId !== tour?.id) abandon();
   }, [pathname, activeTourId, tour?.id, abandon]);
 
+  /**
+   * A guide asked for from another screen, now that we have arrived on
+   * it. Runs before the first-visit rule below gets a chance to, which
+   * is why that one checks `activeTourId`.
+   */
+  useEffect(() => {
+    if (!pending || !tour || tour.id !== pending.tourId) return;
+    start(tour.id, "manual");
+    if (pending.stepIndex > 0) goTo(pending.stepIndex);
+    clearPending();
+  }, [pending, tour, start, goTo, clearPending]);
+
   useEffect(() => {
     if (!tour || tour.manualOnly || !autoplay || activeTourId) return;
     if (hasSeenTour(seen, tour.id, tour.version)) return;
@@ -62,18 +78,26 @@ export function TourProvider() {
     return () => window.clearTimeout(timer);
   }, [tour, autoplay, activeTourId, seen, start]);
 
-  if (!active) return null;
-
   return (
-    <TourOverlay
-      tour={active}
-      // Clamped rather than trusted: a tour whose steps were shortened
-      // in a release still has a persisted index from before it.
-      stepIndex={Math.min(stepIndex, active.steps.length - 1)}
-      onNext={() => next(active.steps.length, active.version)}
-      onBack={back}
-      onDismiss={() => dismiss(active.version)}
-    />
+    <>
+      {active ? (
+        <TourOverlay
+          tour={active}
+          // Clamped rather than trusted: a tour whose steps were
+          // shortened in a release still has a persisted index from
+          // before it.
+          stepIndex={Math.min(stepIndex, active.steps.length - 1)}
+          onNext={() => next(active.steps.length, active.version)}
+          onBack={back}
+          onDismiss={() => dismiss(active.version)}
+        />
+      ) : null}
+
+      {/* The help button in the corner. Mounted here rather than in the
+          shell so that every screen with a guide has one — including the
+          signup and staff-welcome screens, which have no shell at all. */}
+      <TourLauncher />
+    </>
   );
 }
 
