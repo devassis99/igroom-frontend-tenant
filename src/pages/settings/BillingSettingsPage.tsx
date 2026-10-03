@@ -1,12 +1,18 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
-import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { AddCardModal } from "@/components/settings/AddCardModal";
 import { useAuthStore } from "@/auth/auth-store";
-import { BILLING_CYCLE_LABEL, type BillingCycle } from "@/lib/sample-data";
+import {
+  formatBillingDate,
+  formatMoney,
+  getBillingOverview,
+  getInvoicePdfUrl,
+  type BillingInvoice,
+  type BillingOverview,
+} from "@/lib/account-billing-api";
 import {
   formatCardBrand,
   formatCardExpiry,
@@ -16,20 +22,72 @@ import {
   type PaymentMethod,
 } from "@/lib/payment-methods-api";
 
-const CYCLES: BillingCycle[] = ["monthly", "quarterly", "biannual", "annual"];
+const PER_INTERVAL: Record<string, string> = {
+  month: "/ month",
+  quarter: "/ quarter",
+  half_year: "/ 6 months",
+  year: "/ year",
+};
 
-const INVOICES = [
-  { date: "Aug 8, 2026", amount: 48.0 },
-  { date: "Jul 8, 2026", amount: 48.0 },
-  { date: "Jun 8, 2026", amount: 36.0 },
-];
+const INVOICE_STATUS: Record<
+  string,
+  { label: string; tone: "success" | "danger" | "neutral" | "gold" }
+> = {
+  paid: { label: "Paid", tone: "success" },
+  open: { label: "Due", tone: "gold" },
+  uncollectible: { label: "Unpaid", tone: "danger" },
+  void: { label: "Void", tone: "neutral" },
+};
+
+/** One line under the plan name: what's next for this subscription, in the order that matters most. */
+function subscriptionLine(overview: BillingOverview): string | null {
+  const sub = overview.subscription;
+  if (!sub) return null;
+  if (sub.status === "past_due" || overview.accountStatus === "past_due") {
+    return "Your last payment failed — update your card below and we'll retry automatically.";
+  }
+  if (sub.status === "canceled") return "This subscription has ended.";
+  if (sub.cancelAtPeriodEnd) {
+    return `Cancels on ${formatBillingDate(sub.currentPeriodEnd)} — no further charges.`;
+  }
+  const next = sub.nextCharge
+    ? `next charge ${formatMoney(sub.nextCharge.amount, sub.nextCharge.currency)} on ${formatBillingDate(sub.nextCharge.date)}`
+    : null;
+  if (sub.trialEndsAt) {
+    return `Free trial until ${formatBillingDate(sub.trialEndsAt)}${next ? ` · ${next}` : ""}`;
+  }
+  return next ? next.charAt(0).toUpperCase() + next.slice(1) : null;
+}
 
 /** Matches the mockup's T12g Billing & Plan page. */
 export function BillingSettingsPage() {
   const owner = useAuthStore((s) => s.owner);
   const accessToken = useAuthStore((s) => s.accessToken);
   const queryClient = useQueryClient();
-  const [cycle, setCycle] = useState<BillingCycle>(owner?.billingCycle ?? "monthly");
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
+  const overviewQuery = useQuery({
+    queryKey: ["billing-overview"],
+    queryFn: () => getBillingOverview(accessToken ?? ""),
+    enabled: !!accessToken,
+  });
+  const overview = overviewQuery.data;
+
+  // Asks for a fresh link every click rather than caching one: archived
+  // invoices come back as short-lived signed S3 URLs.
+  async function downloadInvoice(invoice: BillingInvoice) {
+    setDownloadError(null);
+    setDownloadingId(invoice.id);
+    try {
+      const { url } = await getInvoicePdfUrl(accessToken ?? "", invoice.id);
+      window.open(url, "_blank", "noopener");
+    } catch (err) {
+      setDownloadError(err instanceof Error ? err.message : "Couldn't download that invoice.");
+    } finally {
+      setDownloadingId(null);
+    }
+  }
   const [addingCard, setAddingCard] = useState(false);
   const [removingCard, setRemovingCard] = useState<PaymentMethod | null>(null);
   const [cardError, setCardError] = useState<string | null>(null);
@@ -81,38 +139,70 @@ export function BillingSettingsPage() {
         data-tour="billing-plan"
         className="flex flex-col gap-4 rounded-2xl border border-tn-border p-5"
       >
-        <div className="flex items-center justify-between">
-          <div>
-            <span className="font-sans text-xs font-semibold tracking-[0.02em] text-tn-muted-5">
-              CURRENT PLAN
-            </span>
-            <p className="m-0 mt-1 font-serif text-xl font-semibold text-tn-ink">
-              {owner?.planName ?? "Business"}
-            </p>
-            <p className="m-0 mt-1 font-sans text-xs text-tn-muted-5">
-              $12/seat/mo · next charge <strong className="text-tn-ink">$48</strong> on Sep 8, 2026
-            </p>
-          </div>
-          <Button variant="secondary" size="sm">
-            Change plan
-          </Button>
-        </div>
+        {overviewQuery.isPending && (
+          <p className="m-0 font-sans text-sm text-tn-muted-5">Loading your plan…</p>
+        )}
+        {overviewQuery.isError && (
+          <p className="m-0 font-sans text-sm text-tn-danger">
+            {overviewQuery.error instanceof Error
+              ? overviewQuery.error.message
+              : "Couldn't load your plan."}
+          </p>
+        )}
+        {overview && (
+          <>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <span className="font-sans text-xs font-semibold tracking-[0.02em] text-tn-muted-5">
+                  CURRENT PLAN
+                </span>
+                <p className="m-0 mt-1 font-serif text-xl font-semibold text-tn-ink">
+                  {overview.plan?.name ?? owner?.planName ?? "No plan"}
+                </p>
+                {overview.plan && (
+                  <p className="m-0 mt-1 font-sans text-xs text-tn-muted-5">
+                    {formatMoney(overview.plan.unitAmount, overview.plan.currency)}{" "}
+                    {PER_INTERVAL[overview.plan.billingInterval] ?? ""}
+                  </p>
+                )}
+                {subscriptionLine(overview) && (
+                  <p className="m-0 mt-1 font-sans text-xs text-tn-ink">
+                    {subscriptionLine(overview)}
+                  </p>
+                )}
+              </div>
+              {(overview.subscription?.status === "past_due" ||
+                overview.accountStatus === "past_due") && (
+                <StatusPill tone="danger">Payment failed</StatusPill>
+              )}
+              {overview.subscription?.trialEndsAt && <StatusPill tone="gold">Trial</StatusPill>}
+            </div>
 
-        <SegmentedControl
-          value={cycle}
-          onChange={setCycle}
-          options={CYCLES.map((c) => ({
-            value: c,
-            label: c === "annual" ? `${BILLING_CYCLE_LABEL[c]} -20%` : BILLING_CYCLE_LABEL[c],
-          }))}
-        />
+            {overview.seats && (
+              <div className="flex items-center justify-between rounded-xl bg-tn-page px-4 py-3">
+                <span className="font-sans text-sm font-semibold text-tn-ink">
+                  {overview.seats.used}{" "}
+                  <span className="font-normal text-tn-muted-4">
+                    of {overview.seats.limit} {overview.seats.unit}
+                  </span>
+                </span>
+                <span
+                  className={`font-sans text-xs font-medium ${
+                    overview.seats.used >= overview.seats.limit ? "text-tn-danger" : "text-tn-gold"
+                  }`}
+                >
+                  {overview.seats.used >= overview.seats.limit
+                    ? "Limit reached"
+                    : `${overview.seats.limit - overview.seats.used} left`}
+                </span>
+              </div>
+            )}
 
-        <div className="flex items-center justify-between rounded-xl bg-tn-page px-4 py-3">
-          <span className="font-sans text-sm font-semibold text-tn-ink">
-            4 <span className="font-normal text-tn-muted-4">of 5 seats</span>
-          </span>
-          <span className="font-sans text-xs font-medium text-tn-gold">1 seat left</span>
-        </div>
+            {overview.stripeError && (
+              <p className="m-0 font-sans text-xs text-tn-muted-5">{overview.stripeError}</p>
+            )}
+          </>
+        )}
       </section>
 
       <section className="flex flex-col gap-3" data-tour="billing-payment-method">
@@ -189,25 +279,64 @@ export function BillingSettingsPage() {
 
       <section className="flex flex-col gap-3">
         <p className="m-0 font-sans text-sm font-semibold text-tn-ink">Billing history</p>
-        <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
-          {INVOICES.map((inv, i) => (
-            <div
-              key={inv.date}
-              className={`flex items-center justify-between px-5 py-3.5 ${
-                i < INVOICES.length - 1 ? "border-b border-tn-border-soft" : ""
-              }`}
-            >
-              <span className="font-sans text-[13px] text-tn-ink-soft">{inv.date}</span>
-              <span className="font-sans text-[13px] font-semibold text-tn-ink">
-                ${inv.amount.toFixed(2)}
-              </span>
-              <StatusPill tone="success">Paid</StatusPill>
-              <span className="cursor-pointer font-sans text-tn-muted-5" aria-hidden>
-                ↓
-              </span>
-            </div>
-          ))}
-        </div>
+
+        {overview && overview.invoices.length === 0 && (
+          <div className="rounded-2xl border border-dashed border-tn-border p-6 text-center">
+            <p className="m-0 font-sans text-sm text-tn-muted-4">No invoices yet.</p>
+            {overview.subscription?.trialEndsAt && (
+              <p className="m-0 mt-1 font-sans text-xs text-tn-muted-5">
+                Your first one is issued when your trial ends on{" "}
+                {formatBillingDate(overview.subscription.trialEndsAt)}.
+              </p>
+            )}
+          </div>
+        )}
+
+        {overview && overview.invoices.length > 0 && (
+          <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
+            {overview.invoices.map((invoice, i) => {
+              const status = INVOICE_STATUS[invoice.status] ?? {
+                label: invoice.status,
+                tone: "neutral" as const,
+              };
+              return (
+                <div
+                  key={invoice.id}
+                  className={`grid grid-cols-[1.2fr_1fr_0.8fr_auto] items-center gap-4 px-5 py-3.5 ${
+                    i < overview.invoices.length - 1 ? "border-b border-tn-border-soft" : ""
+                  }`}
+                >
+                  <div className="flex flex-col">
+                    <span className="font-sans text-[13px] text-tn-ink-soft">
+                      {formatBillingDate(invoice.issuedAt)}
+                    </span>
+                    {invoice.number && (
+                      <span className="font-sans text-[11px] text-tn-muted-5">
+                        {invoice.number}
+                      </span>
+                    )}
+                  </div>
+                  <span className="font-sans text-[13px] font-semibold text-tn-ink">
+                    {formatMoney(invoice.total, invoice.currency)}
+                  </span>
+                  <StatusPill tone={status.tone}>{status.label}</StatusPill>
+                  <button
+                    type="button"
+                    onClick={() => void downloadInvoice(invoice)}
+                    disabled={downloadingId === invoice.id}
+                    aria-label={`Download invoice ${invoice.number ?? formatBillingDate(invoice.issuedAt)}`}
+                    title="Download PDF"
+                    className="cursor-pointer border-0 bg-transparent font-sans text-tn-muted-5 hover:text-tn-ink disabled:cursor-wait disabled:opacity-50"
+                  >
+                    {downloadingId === invoice.id ? "…" : "↓"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {downloadError && <p className="m-0 font-sans text-sm text-tn-danger">{downloadError}</p>}
       </section>
 
       <AddCardModal open={addingCard} onClose={() => setAddingCard(false)} />
