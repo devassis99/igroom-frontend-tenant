@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { useOnboardingStore } from "@/auth/onboarding-store";
+import { useOnboardingStore, useSignupStepCount } from "@/auth/onboarding-store";
 import { Button } from "@/components/ui/Button";
 import { Field, formInputClass } from "@/components/ui/FormField";
 import { StepProgress } from "@/components/ui/StepProgress";
@@ -25,6 +25,7 @@ const CATEGORIES = ["Barbershop", "Hair Salon", "Nails", "Spa"];
  */
 export function BusinessDetailsPage() {
   const navigate = useNavigate();
+  const totalSteps = useSignupStepCount();
   const { businessName, category, phone, setBusinessDetails, setLastRoute } = useOnboardingStore();
   const [error, setError] = useState<string | null>(null);
 
@@ -59,10 +60,10 @@ export function BusinessDetailsPage() {
           <h1 className="m-0 mb-1.5 font-serif text-[28px] font-semibold text-tn-ink">
             Tell us about your business
           </h1>
-          <p className="m-0 font-sans text-[13px] text-tn-muted-5">Step 2 of 4</p>
+          <p className="m-0 font-sans text-[13px] text-tn-muted-5">Step 2 of {totalSteps}</p>
         </div>
 
-        <StepProgress step={2} total={4} />
+        <StepProgress step={2} total={totalSteps} />
 
         <Field label="BUSINESS NAME">
           <input

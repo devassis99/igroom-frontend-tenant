@@ -1,14 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router";
 import { useOnboardingStore } from "@/auth/onboarding-store";
 import { BILLING_CYCLE_LABEL, type BillingCycle } from "@/lib/sample-data";
 import {
   getCatalog,
+  getSignupLink,
   monthlyEquivalentDollars,
   priceForCycle,
   type CatalogProduct,
+  type SignupLink,
 } from "@/lib/billing-api";
+import { Button } from "@/components/ui/Button";
+import { LinkedPlanSummary } from "@/components/signup/LinkedPlanSummary";
 import { createCheckoutSession } from "@/lib/accounts-api";
 import { ApiError } from "@/lib/http";
 import { TourProvider } from "@/tour";
@@ -78,6 +82,146 @@ function availableCycles(products: CatalogProduct[]): BillingCycle[] {
  * (?canceled=1) if the visitor backs out.
  */
 export function ChoosePlanPage() {
+  const signupLinkToken = useOnboardingStore((state) => state.signupLinkToken);
+  return signupLinkToken ? <LinkedPlanCheckout token={signupLinkToken} /> : <PlanPicker />;
+}
+
+/**
+ * Step 4 for a visitor who came through a back-office signup link
+ * (JoinPage): the plan is already decided, so there's no picker. On
+ * arrival it goes straight to Stripe Checkout for the link's price — to
+ * the visitor, Availability's "Continue" simply leads to payment. The
+ * screen only stays up when there's something to say: they came back
+ * from a cancelled checkout, checkout couldn't start, or the link has
+ * stopped working since they opened it.
+ */
+function LinkedPlanCheckout({ token }: { token: string }) {
+  const [searchParams] = useSearchParams();
+  const canceled = searchParams.get("canceled") === "1";
+  const {
+    workEmail,
+    selectPlan,
+    setBillingCycle,
+    setLastRoute,
+    setStripeCheckoutSessionId,
+    setSignupLinkToken,
+  } = useOnboardingStore();
+  const [redirecting, setRedirecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  // StrictMode mounts effects twice in development — one Checkout
+  // Session per visit is plenty.
+  const autoStarted = useRef(false);
+
+  useEffect(() => {
+    setLastRoute("/signup/plan");
+  }, [setLastRoute]);
+
+  // Re-read rather than trusted from the store: the link may have been
+  // switched off, or its price archived, since the visitor opened it.
+  const linkQuery = useQuery({
+    queryKey: ["signup-link", token],
+    queryFn: () => getSignupLink(token),
+    retry: false,
+  });
+  const link = linkQuery.data?.signupLink;
+
+  async function startCheckout(selected: SignupLink) {
+    setError(null);
+    setRedirecting(true);
+    setStripeCheckoutSessionId(null);
+    setBillingCycle(selected.billingCycle);
+    selectPlan({
+      productId: selected.plan.productId,
+      key: selected.plan.key,
+      name: selected.plan.name,
+      priceCents: selected.unitAmount,
+      currency: selected.currency,
+      trialDays: selected.trialDays,
+    });
+    try {
+      const session = await createCheckoutSession({
+        signupLinkToken: token,
+        email: workEmail || undefined,
+      });
+      window.location.href = session.url;
+    } catch (err) {
+      setError(
+        err instanceof ApiError || err instanceof Error
+          ? err.message
+          : "Couldn't start checkout — try again.",
+      );
+      setRedirecting(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!link || canceled || autoStarted.current) return;
+    autoStarted.current = true;
+    void startCheckout(link);
+    // startCheckout only closes over stable store setters and the token.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [link, canceled]);
+
+  const deadLink = linkQuery.isError;
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-tn-surface px-6 py-12">
+      <TourProvider />
+      <div className="flex w-[460px] max-w-full flex-col gap-[22px]">
+        {deadLink ? (
+          <>
+            <div>
+              <h1 className="m-0 mb-1.5 font-serif text-[28px] font-semibold text-tn-ink">
+                This link isn't working any more
+              </h1>
+              <p className="m-0 font-sans text-[13px] text-tn-muted-5">
+                {linkQuery.error instanceof ApiError
+                  ? linkQuery.error.message
+                  : "We couldn't load the plan on your link."}{" "}
+                Your details are saved — you can pick a plan yourself instead.
+              </p>
+            </div>
+            <Button type="button" onClick={() => setSignupLinkToken(null)}>
+              Choose a plan
+            </Button>
+          </>
+        ) : !link || (redirecting && !error) ? (
+          <p className="m-0 text-center font-sans text-sm text-tn-muted-5">
+            Taking you to secure checkout…
+          </p>
+        ) : (
+          <>
+            <div>
+              <h1 className="m-0 mb-1.5 font-serif text-[28px] font-semibold text-tn-ink">
+                Confirm and pay
+              </h1>
+              <p className="m-0 font-sans text-[13px] text-tn-muted-5">
+                Payment is handled securely by Stripe.
+              </p>
+            </div>
+            {canceled && !error && (
+              <p className="m-0 rounded-lg bg-tn-danger-bg px-3.5 py-2 font-sans text-xs text-tn-danger">
+                Checkout was canceled — no charge was made. Continue whenever you're ready.
+              </p>
+            )}
+            {error && (
+              <p className="m-0 rounded-lg bg-tn-danger-bg px-3.5 py-2 font-sans text-xs text-tn-danger">
+                {error}
+              </p>
+            )}
+            <LinkedPlanSummary link={link} />
+            <Button type="button" disabled={redirecting} onClick={() => void startCheckout(link)}>
+              {redirecting ? "…" : "Continue to payment"}
+            </Button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** The normal step 4 — every self-signup visitor who didn't come through a signup link. */
+function PlanPicker() {
   const [searchParams] = useSearchParams();
   const {
     billingCycle,

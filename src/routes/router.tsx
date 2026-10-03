@@ -40,6 +40,13 @@ export const router = createBrowserRouter([
   // account can be created — by ReceiptPage, right after Stripe's real
   // hosted Checkout completes (an external redirect, not an in-app
   // route) — with the real business name and schedule already known.
+  // A back-office signup link (the Plans page's per-price "Copy"). Shows
+  // the plan the link was sent with, then hands off to /signup below —
+  // the same funnel, minus the plan picker. See JoinPage.tsx.
+  {
+    path: "/join/:token",
+    lazy: () => import("@/pages/JoinPage").then((m) => ({ Component: m.default })),
+  },
   {
     path: "/signup",
     lazy: () => import("@/pages/CreateAccountPage").then((m) => ({ Component: m.default })),

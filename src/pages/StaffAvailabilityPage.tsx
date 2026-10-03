@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { useOnboardingStore } from "@/auth/onboarding-store";
+import { useOnboardingStore, useSignupStepCount } from "@/auth/onboarding-store";
 import { Button } from "@/components/ui/Button";
 import { StepProgress } from "@/components/ui/StepProgress";
 import { TimePicker } from "@/components/ui/TimePicker";
@@ -54,6 +54,7 @@ function toApiDays(days: LocalDay[]): AvailabilityDay[] {
  */
 export function StaffAvailabilityPage() {
   const navigate = useNavigate();
+  const totalSteps = useSignupStepCount();
   const { setAvailabilityDays, setLastRoute } = useOnboardingStore();
   const [days, setDays] = useState<LocalDay[]>(DEFAULT_DAYS);
 
@@ -95,11 +96,11 @@ export function StaffAvailabilityPage() {
             Set your weekly availability
           </h1>
           <p className="m-0 font-sans text-[13px] text-tn-muted-5">
-            Step 3 of 4 — optional, you can change this later in Settings
+            Step 3 of {totalSteps} — optional, you can change this later in Settings
           </p>
         </div>
 
-        <StepProgress step={3} total={4} />
+        <StepProgress step={3} total={totalSteps} />
 
         <div className="flex flex-col gap-3 rounded-xl border border-tn-border p-4">
           {days.map((d) => (

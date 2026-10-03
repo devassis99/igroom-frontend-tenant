@@ -84,3 +84,43 @@ export function monthlyEquivalentDollars(price: CatalogPrice): number {
 export function centsToDollars(cents: number): string {
   return (cents / 100).toFixed(2);
 }
+
+/**
+ * What a back-office "Copy"-ed signup link sells — read by JoinPage and
+ * by ChoosePlanPage's linked-plan view (igroom-backend's public GET
+ * /billing/signup-links/:token). The link, not the visitor, decides the
+ * plan: everything here is display, and the backend charges the link's
+ * own price whatever the browser sends.
+ */
+export interface SignupLink {
+  token: string;
+  plan: {
+    productId: string;
+    key: string;
+    name: string;
+    description: string | null;
+    features: string[];
+    limits: Record<string, number>;
+  };
+  billingCycle: BillingCycle;
+  /** Cents, per billing occurrence. */
+  unitAmount: number;
+  currency: string;
+  trialDays: number;
+  discountType: "percent" | "amount" | null;
+  discountValue: number | null;
+  expiresAt: string | null;
+}
+
+export function getSignupLink(token: string): Promise<{ signupLink: SignupLink }> {
+  return request<{ signupLink: SignupLink }>(`/billing/signup-links/${encodeURIComponent(token)}`);
+}
+
+/** "$30" / "$30.50" — the amount a signup link charges, in its own currency. */
+export function formatPlanAmount(cents: number, currency: string): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency.toUpperCase(),
+    minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
+  }).format(cents / 100);
+}

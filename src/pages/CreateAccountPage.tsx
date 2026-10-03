@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { useOnboardingStore } from "@/auth/onboarding-store";
+import { useOnboardingStore, useSignupStepCount } from "@/auth/onboarding-store";
 import { useAuthStore } from "@/auth/auth-store";
 import { Button } from "@/components/ui/Button";
 import { Field, formInputClass } from "@/components/ui/FormField";
@@ -20,6 +20,7 @@ import { ApiError } from "@/lib/http";
  */
 export function CreateAccountPage() {
   const navigate = useNavigate();
+  const totalSteps = useSignupStepCount();
   const { fullName, workEmail, password, setAccountDetails, setGoogleIdentity, setLastRoute } =
     useOnboardingStore();
   const loginWithSession = useAuthStore((s) => s.loginWithSession);
@@ -222,10 +223,10 @@ export function CreateAccountPage() {
           <h1 className="m-0 mb-1.5 font-serif text-[28px] font-semibold text-tn-ink">
             Create your owner account
           </h1>
-          <p className="m-0 font-sans text-[13px] text-tn-muted-5">Step 1 of 4</p>
+          <p className="m-0 font-sans text-[13px] text-tn-muted-5">Step 1 of {totalSteps}</p>
         </div>
 
-        <StepProgress step={1} total={4} />
+        <StepProgress step={1} total={totalSteps} />
 
         {/* Google renders its own button here (see google-identity.ts) —
             a real user click on it doesn't have the silent-suppression

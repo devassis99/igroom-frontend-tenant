@@ -111,6 +111,7 @@ export function ReceiptPage() {
           phone: onboarding.phone,
           planKey: plan.key,
           billingCycle: onboarding.billingCycle,
+          signupLinkToken: onboarding.signupLinkToken ?? undefined,
           stripeCheckoutSessionId: effectiveSessionId,
         });
 

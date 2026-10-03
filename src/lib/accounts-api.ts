@@ -85,8 +85,11 @@ export function refresh(refreshToken: string): Promise<TokenPair> {
 }
 
 export interface CreateCheckoutSessionPayload {
-  planKey: string;
-  billingCycle: BillingCycle;
+  /** Not needed (and ignored by the backend) when signupLinkToken is set. */
+  planKey?: string;
+  billingCycle?: BillingCycle;
+  /** A back-office signup link's token — checks out that link's price instead of a picked plan. */
+  signupLinkToken?: string;
   email?: string;
 }
 
@@ -124,6 +127,8 @@ export interface SignupPayload {
   phone?: string;
   planKey: string;
   billingCycle: BillingCycle;
+  /** Set when the visitor came through a signup link — the backend then resolves the plan from the link, not planKey/billingCycle. */
+  signupLinkToken?: string;
   /** The completed Stripe Checkout Session id from createCheckoutSession — see ChoosePlanPage/BusinessDetailsPage. */
   stripeCheckoutSessionId: string;
 }

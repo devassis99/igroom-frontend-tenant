@@ -93,6 +93,17 @@ interface OnboardingState {
    */
   stripeCheckoutSessionId: string | null;
   setStripeCheckoutSessionId: (id: string | null) => void;
+  /**
+   * Set when the visitor arrived through a back-office signup link
+   * (`/join/<token>` — see JoinPage). The plan was decided by whoever
+   * sent the link, so the funnel is three steps instead of four:
+   * ChoosePlanPage goes straight to checkout for the link's price rather
+   * than showing the picker, and both checkout and signup() send this
+   * token so the backend charges exactly that price on that link's
+   * terms. Cleared on reset(), or if the link turns out to be dead.
+   */
+  signupLinkToken: string | null;
+  setSignupLinkToken: (token: string | null) => void;
   setAccountDetails: (
     fields: Partial<Pick<OnboardingState, "fullName" | "workEmail" | "password">>,
   ) => void;
@@ -124,6 +135,7 @@ const initialState = {
   selectedPlan: null as SelectedPlan | null,
   lastRoute: "/signup",
   stripeCheckoutSessionId: null as string | null,
+  signupLinkToken: null as string | null,
 };
 
 export const useOnboardingStore = create<OnboardingState>()(
@@ -151,6 +163,7 @@ export const useOnboardingStore = create<OnboardingState>()(
       selectPlan: (selectedPlan) => set({ selectedPlan }),
       setLastRoute: (lastRoute) => set({ lastRoute }),
       setStripeCheckoutSessionId: (stripeCheckoutSessionId) => set({ stripeCheckoutSessionId }),
+      setSignupLinkToken: (signupLinkToken) => set({ signupLinkToken }),
       reset: () => set({ ...initialState }),
     }),
     {
@@ -170,7 +183,17 @@ export const useOnboardingStore = create<OnboardingState>()(
         selectedPlan: state.selectedPlan,
         lastRoute: state.lastRoute,
         stripeCheckoutSessionId: state.stripeCheckoutSessionId,
+        signupLinkToken: state.signupLinkToken,
       }),
     },
   ),
 );
+
+/**
+ * How many numbered steps this visitor's funnel has: four normally
+ * (Account → Business details → Availability → Plan), three when a
+ * signup link already chose the plan for them.
+ */
+export function useSignupStepCount(): number {
+  return useOnboardingStore((state) => (state.signupLinkToken ? 3 : 4));
+}
