@@ -65,8 +65,9 @@ function availableCycles(products: CatalogProduct[]): BillingCycle[] {
  * ReceiptPage's comment). Plans and prices come from igroom-backend's
  * public GET /billing/products (see billing-api.ts) — the same catalog
  * managed from the back office's Plans page, not a hardcoded list. Only
- * products the admin has marked showOnSignup reach this endpoint at
- * all; on top of that, a plan with no price for the selected cycle is
+ * prices the admin has marked showOnSignup (per price, so per cycle)
+ * reach this endpoint at all, and a plan with none drops out entirely;
+ * on top of that, a plan with no price for the selected cycle is
  * hidden here (not shown disabled), and a cycle with no priced plans at
  * all is hidden from the tab row entirely.
  *
