@@ -582,7 +582,11 @@ export function AppShell() {
         />
       </aside>
 
-      <div className="flex-1 overflow-y-auto bg-tn-surface px-10 py-8">
+      {/* pb-24 rather than py-8's 32px: the help button (TourLauncher) is
+          fixed 24px from the bottom and 52px tall, and without the extra
+          room whatever ends a page in that corner — a table's pager, a
+          Save button — can never be scrolled out from under it. */}
+      <div className="flex-1 overflow-y-auto bg-tn-surface px-10 pt-8 pb-24">
         {routeAllowed ? (
           // Keyed by pathname so each navigation remounts this and replays
           // the animation — clicking a nav row otherwise swaps a whole

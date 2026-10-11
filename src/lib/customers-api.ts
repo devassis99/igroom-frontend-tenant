@@ -61,11 +61,42 @@ function authHeaders(accessToken: string): HeadersInit {
   return { Authorization: `Bearer ${accessToken}` };
 }
 
-/** T10c's full client list plus the account-wide stat tiles — search/filter (All/VIP/New/Inactive 90d+) happens client-side over this same list, same as T10's Staff roster. */
+/** The filter chips, as the API names them — matches the tag each row is shown with. */
+export type CustomerFilter = "all" | "vip" | "new" | "inactive";
+
+export interface ListCustomersParams {
+  /** 1-indexed, defaults to 1 server-side. */
+  page?: number;
+  /** Defaults to 20 server-side, max 100. */
+  pageSize?: number;
+  /** Name, phone or email containing this. Digits also match a phone however it was typed. */
+  search?: string;
+  filter?: CustomerFilter;
+}
+
+export interface PagedCustomersResponse {
+  /** This page, newest customer first. */
+  customers: Customer[];
+  /** Account-wide — unaffected by the page, search or filter. */
+  stats: CustomerStats;
+  /** Customers matching the search/filter, across every page. */
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+/** T10c's table, a page at a time, plus the account-wide stat tiles. Search and the filter chips run server-side, since a page only holds a slice of the list. */
 export function listCustomers(
   accessToken: string,
-): Promise<{ customers: Customer[]; stats: CustomerStats }> {
-  return request("/customers", { headers: authHeaders(accessToken) });
+  params: ListCustomersParams = {},
+): Promise<PagedCustomersResponse> {
+  const query = new URLSearchParams();
+  if (params.page) query.set("page", String(params.page));
+  if (params.pageSize) query.set("pageSize", String(params.pageSize));
+  if (params.search?.trim()) query.set("search", params.search.trim());
+  if (params.filter && params.filter !== "all") query.set("filter", params.filter);
+  const qs = query.toString();
+  return request(`/customers${qs ? `?${qs}` : ""}`, { headers: authHeaders(accessToken) });
 }
 
 export interface CreateCustomerInput {

@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { StatusPill } from "@/components/ui/StatusPill";
+import { PageRange, Pagination } from "@/components/ui/Pagination";
 import { ArrivedDot } from "@/components/calendar/ArrivedDot";
 import {
   listBookingsPaged,
@@ -29,7 +30,6 @@ interface AppointmentListViewProps {
 
 const EMPTY_BOOKINGS: Booking[] = [];
 const EMPTY_REVIEWS: BookingReview[] = [];
-const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 /**
  * T-List — the 4th Calendar view alongside Day/Week/Month. Unlike those
@@ -102,9 +102,6 @@ export function AppointmentListView({
   const totalCount = query.data?.totalCount ?? 0;
   const upcomingCount = query.data?.upcomingCount ?? 0;
   const pastCount = query.data?.pastCount ?? 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-  const rangeStart = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
-  const rangeEnd = Math.min(page * pageSize, totalCount);
 
   /**
    * Grouped by the shop's day, not the browser's.
@@ -158,15 +155,13 @@ export function AppointmentListView({
             </button>
           ))}
         </div>
-        {totalCount > 0 && (
-          <p className="m-0 pb-3 font-sans text-[13px] text-tn-muted-5">
-            Showing{" "}
-            <span className="font-semibold text-tn-ink-soft">
-              {rangeStart}–{rangeEnd}
-            </span>{" "}
-            of <span className="font-semibold text-tn-ink-soft">{totalCount}</span> appointments
-          </p>
-        )}
+        <PageRange
+          page={page}
+          pageSize={pageSize}
+          totalCount={totalCount}
+          noun="appointments"
+          className="pb-3"
+        />
       </div>
 
       {query.isError && (
@@ -450,81 +445,13 @@ export function AppointmentListView({
         ))}
       </div>
 
-      {totalCount > pageSize && (
-        <div className="flex items-center justify-between border-t border-tn-border-soft pt-4">
-          <label className="flex items-center gap-1.5 font-sans text-[13px] text-tn-muted-5">
-            Rows per page
-            <select
-              value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
-              className="cursor-pointer border-none bg-transparent font-sans text-[13px] font-semibold text-tn-ink-soft"
-            >
-              {PAGE_SIZE_OPTIONS.map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              aria-label="Previous page"
-              className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-lg border border-tn-input-border text-tn-muted-4 hover:bg-tn-page disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              ‹
-            </button>
-            {(() => {
-              // A wall of 13+ page buttons (e.g. 248 appointments at 20/page)
-              // doesn't fit — window down to page 1, the current page ± 1,
-              // and the last page, with an ellipsis filling any gap.
-              const keep = Array.from(
-                new Set(
-                  [1, page - 1, page, page + 1, totalPages].filter(
-                    (n) => n >= 1 && n <= totalPages,
-                  ),
-                ),
-              ).sort((a, b) => a - b);
-              const nodes: ReactNode[] = [];
-              keep.forEach((n, i) => {
-                if (i > 0 && n - keep[i - 1]! > 1) {
-                  nodes.push(
-                    <span key={`gap-${n}`} className="px-0.5 font-sans text-xs text-tn-faint-2">
-                      …
-                    </span>,
-                  );
-                }
-                nodes.push(
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setPage(n)}
-                    className={`flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-lg font-sans text-xs font-semibold ${
-                      n === page
-                        ? "bg-tn-dark text-tn-on-dark"
-                        : "border border-tn-input-border text-tn-muted-4 hover:bg-tn-page"
-                    }`}
-                  >
-                    {n}
-                  </button>,
-                );
-              });
-              return nodes;
-            })()}
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-              aria-label="Next page"
-              className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-lg border border-tn-input-border text-tn-muted-4 hover:bg-tn-page disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              ›
-            </button>
-          </div>
-        </div>
-      )}
+      <Pagination
+        page={page}
+        pageSize={pageSize}
+        totalCount={totalCount}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
     </div>
   );
 }

@@ -11,6 +11,8 @@ import { createCustomer } from "@/lib/customers-api";
 interface AddCustomerModalProps {
   open: boolean;
   onClose: () => void;
+  /** After the customer is saved — the list uses it to show them, at the top of page 1. */
+  onCreated?: () => void;
 }
 
 /**
@@ -20,7 +22,7 @@ interface AddCustomerModalProps {
  * bookings.service.ts's createBooking / customers.service.ts's
  * findOrCreateCustomerForBooking) — this modal is for the rest.
  */
-export function AddCustomerModal({ open, onClose }: AddCustomerModalProps) {
+export function AddCustomerModal({ open, onClose, onCreated }: AddCustomerModalProps) {
   const accessToken = useAuthStore((s) => s.accessToken);
   const queryClient = useQueryClient();
 
@@ -40,6 +42,7 @@ export function AddCustomerModal({ open, onClose }: AddCustomerModalProps) {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
+      onCreated?.();
       handleClose();
     },
     onError: (err) => {
