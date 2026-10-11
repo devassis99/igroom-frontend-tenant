@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { PageRange, Pagination } from "@/components/ui/Pagination";
 import { StatCard } from "@/components/ui/StatCard";
 import { SeatUpgradeModal } from "@/components/settings/SeatUpgradeModal";
 import { AddMemberWizard } from "@/components/settings/AddMemberWizard";
@@ -74,23 +75,47 @@ export function StaffPage() {
   const [seatModalOpen, setSeatModalOpen] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<StaffPerformanceMember | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
+  // Paged server-side, newest member first. Every other screen that
+  // changes a member invalidates ["staff-performance"], which still
+  // matches each page's key by prefix.
   const performanceQuery = useQuery({
-    queryKey: ["staff-performance"],
-    queryFn: () => getStaffPerformance(accessToken ?? ""),
+    queryKey: ["staff-performance", { page, pageSize }],
+    queryFn: () => getStaffPerformance(accessToken ?? "", { page, pageSize }),
     enabled: !!accessToken,
+    // The page on screen stays put (dimmed) while the next one loads.
+    placeholderData: keepPreviousData,
   });
   // getStaffPerformance (staff.service.ts, backend) already excludes
   // still-invited rows (no passwordHash/googleSub, never logged in) at
   // the query level — this page is that endpoint's only caller, and an
   // invited row has nothing to report: 0 bookings, 0 hours, "—"
-  // everywhere. So `staff` here (and the seat-usage count below, which
-  // reads its length) is already "active, claimed team only". Invited
+  // everywhere. So `staff` here (one page of it) and totalCount (the
+  // seat-usage count below) are already "active, claimed team only". Invited
   // members still show up in Settings > Staff Management, with their own
   // "Invited" badge — that's the page for managing the roster itself,
   // not reporting on it.
   const staff = performanceQuery.data?.staff ?? EMPTY_STAFF;
   const team = performanceQuery.data?.team;
+  // Seats are the whole team, not this page — the strip below only holds a page.
+  const totalCount = performanceQuery.data?.totalCount ?? 0;
+  const isChangingPage = performanceQuery.isPlaceholderData;
+
+  // The team can shrink under us (a member deactivated in Settings) —
+  // step back to the last page that has rows rather than show an empty one.
+  useEffect(() => {
+    const data = performanceQuery.data;
+    if (!data || performanceQuery.isPlaceholderData) return;
+    const lastPage = Math.max(1, Math.ceil(data.totalCount / data.pageSize));
+    if (data.page > lastPage) setPage(lastPage);
+  }, [performanceQuery.data, performanceQuery.isPlaceholderData]);
+
+  function choosePageSize(next: number) {
+    setPageSize(next);
+    setPage(1);
+  }
 
   function handleNewMember() {
     setSeatModalOpen(true);
@@ -125,7 +150,7 @@ export function StaffPage() {
         <p className="m-0 font-sans text-sm text-tn-muted-5">Loading your team…</p>
       )}
 
-      {!performanceQuery.isPending && staff.length === 0 && !performanceQuery.isError && (
+      {performanceQuery.isSuccess && totalCount === 0 && (
         <p className="m-0 font-sans text-sm text-tn-muted-5">
           No active staff yet — add your first one.
         </p>
@@ -147,7 +172,7 @@ export function StaffPage() {
             ))}
           </div>
           <span className="font-sans text-xs text-tn-muted-5">
-            {staff.length} of {TOTAL_SEATS} seats used{" "}
+            {totalCount} of {TOTAL_SEATS} seats used{" "}
             <span className="text-tn-faint-2">· Business Plan · $12/seat/mo</span>
           </span>
         </div>
@@ -169,64 +194,83 @@ export function StaffPage() {
       )}
 
       {staff.length > 0 && (
-        <div
-          data-tour="staff-table"
-          className="flex flex-col overflow-hidden rounded-2xl border border-tn-border"
-        >
-          <div className="grid grid-cols-[1.6fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_0.8fr_auto] bg-tn-table-head px-[18px] py-3 font-sans text-xs font-semibold text-tn-muted-5">
-            <span>STAFF</span>
-            <span>BOOKINGS</span>
-            <span>HOURS</span>
-            <span>UTILIZATION</span>
-            <span>SALES</span>
-            <span>AVG TICKET</span>
-            <span>COMMISSION</span>
-            <span>RATING</span>
-            <span />
-          </div>
-          {staff.map((s, i) => (
-            <div
-              key={s.id}
-              className={`grid grid-cols-[1.6fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_0.8fr_auto] items-center px-[18px] py-3.5 ${
-                i < staff.length - 1 ? "border-b border-tn-border-soft" : ""
-              }`}
-            >
-              <span className="flex items-center gap-2.5 font-sans text-[13px] font-semibold text-tn-ink">
-                <Avatar initials={initialsFor(s.name)} color={avatarColorFor(s.id)} size={26} />
-                {s.name}
-              </span>
-              <span className="font-sans text-[13px] text-tn-muted-2">{s.bookingsCount}</span>
-              <span className="font-sans text-[13px] text-tn-muted-2">{s.hoursBooked}</span>
-              <span className="font-sans text-[13px] text-tn-muted-2">
-                {s.utilizationPct === null ? "—" : `${s.utilizationPct}%`}
-              </span>
-              <span className="font-sans text-[13px] text-tn-muted-2">{dollars(s.salesCents)}</span>
-              <span className="font-sans text-[13px] text-tn-muted-2">
-                {s.avgTicketCents === null ? "—" : dollars(s.avgTicketCents)}
-              </span>
-              <span className="font-sans text-[13px] text-tn-muted-2">
-                {s.commissionCents === null ? (
-                  "—"
-                ) : (
-                  <>
-                    {dollars(s.commissionCents)}{" "}
-                    <span className="text-tn-faint-2">({s.commissionRate}%)</span>
-                  </>
-                )}
-              </span>
-              <span className="font-sans text-[13px] text-tn-muted-2">{ratingLabel(s.rating)}</span>
-              <button
-                type="button"
-                title={canManageStaff ? "Edit profile" : "You don't have permission to edit staff"}
-                aria-label={`Edit ${s.name}`}
-                onClick={() => setEditingMember(s)}
-                disabled={!canManageStaff}
-                className="cursor-pointer border-none bg-transparent p-0 font-sans text-tn-muted-5 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                ✎
-              </button>
+        <div className="flex flex-col gap-3">
+          <PageRange page={page} pageSize={pageSize} totalCount={totalCount} noun="staff" />
+          <div
+            data-tour="staff-table"
+            aria-busy={isChangingPage}
+            className={`flex flex-col overflow-hidden rounded-2xl border border-tn-border transition-opacity ${
+              isChangingPage ? "opacity-60" : ""
+            }`}
+          >
+            <div className="grid grid-cols-[1.6fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_0.8fr_auto] bg-tn-table-head px-[18px] py-3 font-sans text-xs font-semibold text-tn-muted-5">
+              <span>STAFF</span>
+              <span>BOOKINGS</span>
+              <span>HOURS</span>
+              <span>UTILIZATION</span>
+              <span>SALES</span>
+              <span>AVG TICKET</span>
+              <span>COMMISSION</span>
+              <span>RATING</span>
+              <span />
             </div>
-          ))}
+            {staff.map((s, i) => (
+              <div
+                key={s.id}
+                className={`grid grid-cols-[1.6fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_0.8fr_auto] items-center px-[18px] py-3.5 ${
+                  i < staff.length - 1 ? "border-b border-tn-border-soft" : ""
+                }`}
+              >
+                <span className="flex items-center gap-2.5 font-sans text-[13px] font-semibold text-tn-ink">
+                  <Avatar initials={initialsFor(s.name)} color={avatarColorFor(s.id)} size={26} />
+                  {s.name}
+                </span>
+                <span className="font-sans text-[13px] text-tn-muted-2">{s.bookingsCount}</span>
+                <span className="font-sans text-[13px] text-tn-muted-2">{s.hoursBooked}</span>
+                <span className="font-sans text-[13px] text-tn-muted-2">
+                  {s.utilizationPct === null ? "—" : `${s.utilizationPct}%`}
+                </span>
+                <span className="font-sans text-[13px] text-tn-muted-2">
+                  {dollars(s.salesCents)}
+                </span>
+                <span className="font-sans text-[13px] text-tn-muted-2">
+                  {s.avgTicketCents === null ? "—" : dollars(s.avgTicketCents)}
+                </span>
+                <span className="font-sans text-[13px] text-tn-muted-2">
+                  {s.commissionCents === null ? (
+                    "—"
+                  ) : (
+                    <>
+                      {dollars(s.commissionCents)}{" "}
+                      <span className="text-tn-faint-2">({s.commissionRate}%)</span>
+                    </>
+                  )}
+                </span>
+                <span className="font-sans text-[13px] text-tn-muted-2">
+                  {ratingLabel(s.rating)}
+                </span>
+                <button
+                  type="button"
+                  title={
+                    canManageStaff ? "Edit profile" : "You don't have permission to edit staff"
+                  }
+                  aria-label={`Edit ${s.name}`}
+                  onClick={() => setEditingMember(s)}
+                  disabled={!canManageStaff}
+                  className="cursor-pointer border-none bg-transparent p-0 font-sans text-tn-muted-5 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  ✎
+                </button>
+              </div>
+            ))}
+          </div>
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            totalCount={totalCount}
+            onPageChange={setPage}
+            onPageSizeChange={choosePageSize}
+          />
         </div>
       )}
 

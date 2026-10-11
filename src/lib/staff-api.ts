@@ -78,8 +78,21 @@ export interface StaffPerformanceTeam {
 }
 
 export interface StaffPerformanceResponse {
+  /** This page, newest member first. */
   staff: StaffPerformanceMember[];
+  /** The whole team — unaffected by the page. */
   team: StaffPerformanceTeam;
+  /** Active, claimed members across every page. */
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface StaffPerformanceParams {
+  /** 1-indexed, defaults to 1 server-side. */
+  page?: number;
+  /** Defaults to 20 server-side, max 100. */
+  pageSize?: number;
 }
 
 function authHeaders(accessToken: string): HeadersInit {
@@ -91,9 +104,16 @@ export function listStaff(accessToken: string): Promise<{ staff: StaffMember[] }
   return request("/staff", { headers: authHeaders(accessToken) });
 }
 
-/** T10's Staff page — active staff members only, each with this month's real bookings/sales/utilization/commission. */
-export function getStaffPerformance(accessToken: string): Promise<StaffPerformanceResponse> {
-  return request("/staff/performance", { headers: authHeaders(accessToken) });
+/** T10's Staff page, a page at a time, newest member first — active staff only, each with this month's real bookings/sales/utilization/commission, plus whole-team totals. */
+export function getStaffPerformance(
+  accessToken: string,
+  params: StaffPerformanceParams = {},
+): Promise<StaffPerformanceResponse> {
+  const query = new URLSearchParams();
+  if (params.page) query.set("page", String(params.page));
+  if (params.pageSize) query.set("pageSize", String(params.pageSize));
+  const qs = query.toString();
+  return request(`/staff/performance${qs ? `?${qs}` : ""}`, { headers: authHeaders(accessToken) });
 }
 
 export interface InviteStaffInput {
