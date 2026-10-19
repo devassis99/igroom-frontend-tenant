@@ -147,11 +147,11 @@ export function AppointmentListView({
               }`}
             >
               <span
-                className={`text-[15px] ${tab === value ? "font-semibold text-tn-ink" : "font-medium text-tn-muted-5"}`}
+                className={`text-[16px] ${tab === value ? "font-semibold text-tn-ink" : "font-medium text-tn-muted-5"}`}
               >
                 {label}
               </span>
-              <span className="text-[13px] text-tn-muted-5">{count}</span>
+              <span className="text-[14px] text-tn-muted-5">{count}</span>
             </button>
           ))}
         </div>
@@ -181,7 +181,7 @@ export function AppointmentListView({
       <div className="flex flex-col gap-5">
         {groups.map((group) => (
           <div key={todayIsoIn(timezone ?? null, group.date)} className="flex flex-col gap-2">
-            <p className="m-0 font-sans text-[11px] font-semibold tracking-wide text-tn-muted-5">
+            <p className="m-0 font-sans text-[12px] font-semibold tracking-wide text-tn-muted-5">
               {formatListDateHeader(group.date, timezone)}
             </p>
             <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
@@ -212,12 +212,12 @@ export function AppointmentListView({
                         onClick={() => setExpandedId(expanded ? null : booking.id)}
                         className="flex flex-1 cursor-pointer items-center gap-4 px-[18px] py-3.5 text-left"
                       >
-                        <span className="w-[110px] flex-none font-sans text-[13px] font-semibold text-tn-ink-soft">
+                        <span className="w-[110px] flex-none font-sans text-[14px] font-semibold text-tn-ink-soft">
                           {formatTimeLabel(start, timezone)} – {formatTimeLabel(end, timezone)}
                         </span>
                         <div className="h-9 w-9 flex-none rounded-full bg-[oklch(88%_0.02_40)]" />
                         <div className="min-w-0 flex-1">
-                          <p className="m-0 truncate font-sans text-[13px] font-semibold text-tn-ink">
+                          <p className="m-0 truncate font-sans text-[14px] font-semibold text-tn-ink">
                             <ArrivedDot checkedInAt={booking.checkedInAt} />
                             {booking.customerName}
                             <span className="font-normal text-tn-muted-5">
@@ -256,10 +256,10 @@ export function AppointmentListView({
                         <div className="flex flex-col gap-3 border-t border-tn-border-soft bg-tn-detail-bg px-[18px] py-4">
                           <div className="grid grid-cols-3 gap-x-8 gap-y-3">
                             <div>
-                              <p className="m-0 font-sans text-[11px] font-semibold tracking-wide text-tn-muted-5">
+                              <p className="m-0 font-sans text-[12px] font-semibold tracking-wide text-tn-muted-5">
                                 CLIENT
                               </p>
-                              <p className="m-0 mt-1 font-sans text-[13px] font-semibold text-tn-ink">
+                              <p className="m-0 mt-1 font-sans text-[14px] font-semibold text-tn-ink">
                                 {booking.customerName}
                               </p>
                               {(booking.customerEmail || booking.customerPhone) && (
@@ -269,10 +269,10 @@ export function AppointmentListView({
                               )}
                             </div>
                             <div>
-                              <p className="m-0 font-sans text-[11px] font-semibold tracking-wide text-tn-muted-5">
+                              <p className="m-0 font-sans text-[12px] font-semibold tracking-wide text-tn-muted-5">
                                 SERVICE &amp; BARBER
                               </p>
-                              <p className="m-0 mt-1 font-sans text-[13px] font-semibold text-tn-ink">
+                              <p className="m-0 mt-1 font-sans text-[14px] font-semibold text-tn-ink">
                                 {booking.serviceName}
                               </p>
                               <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
@@ -280,11 +280,11 @@ export function AppointmentListView({
                               </p>
                             </div>
                             <div>
-                              <p className="m-0 font-sans text-[11px] font-semibold tracking-wide text-tn-muted-5">
+                              <p className="m-0 font-sans text-[12px] font-semibold tracking-wide text-tn-muted-5">
                                 PRICE
                               </p>
                               <p
-                                className={`m-0 mt-1 font-sans text-[13px] font-semibold ${
+                                className={`m-0 mt-1 font-sans text-[14px] font-semibold ${
                                   booking.priceCents != null ? "text-tn-ink" : "text-tn-faint-2"
                                 }`}
                               >
@@ -296,11 +296,11 @@ export function AppointmentListView({
                           </div>
 
                           <div>
-                            <p className="m-0 font-sans text-[11px] font-semibold tracking-wide text-tn-muted-5">
+                            <p className="m-0 font-sans text-[12px] font-semibold tracking-wide text-tn-muted-5">
                               NOTES
                             </p>
                             <p
-                              className={`m-0 mt-1 font-sans text-[13px] ${
+                              className={`m-0 mt-1 font-sans text-[14px] ${
                                 booking.notes ? "text-tn-ink-soft" : "text-tn-faint-2"
                               }`}
                             >
@@ -313,18 +313,18 @@ export function AppointmentListView({
                               const review = reviewsByBookingId.get(booking.id);
                               return (
                                 <div>
-                                  <p className="m-0 font-sans text-[11px] font-semibold tracking-wide text-tn-muted-5">
+                                  <p className="m-0 font-sans text-[12px] font-semibold tracking-wide text-tn-muted-5">
                                     CUSTOMER REVIEW
                                   </p>
                                   {reviewsQuery.isPending ? (
-                                    <p className="m-0 mt-1 font-sans text-[13px] text-tn-faint-2">
+                                    <p className="m-0 mt-1 font-sans text-[14px] text-tn-faint-2">
                                       Loading review…
                                     </p>
                                   ) : review ? (
                                     <div className="mt-1 flex flex-col gap-1">
                                       <span
                                         aria-label={`${review.rating} out of 5 stars`}
-                                        className="font-sans text-[13px] text-tn-gold"
+                                        className="font-sans text-[14px] text-tn-gold"
                                       >
                                         {"★".repeat(review.rating)}
                                         <span className="text-tn-border-soft">
@@ -332,7 +332,7 @@ export function AppointmentListView({
                                         </span>
                                       </span>
                                       <p
-                                        className={`m-0 font-sans text-[13px] ${
+                                        className={`m-0 font-sans text-[14px] ${
                                           review.comment ? "text-tn-ink-soft" : "text-tn-faint-2"
                                         }`}
                                       >
@@ -340,7 +340,7 @@ export function AppointmentListView({
                                       </p>
                                     </div>
                                   ) : (
-                                    <p className="m-0 mt-1 font-sans text-[13px] text-tn-faint-2">
+                                    <p className="m-0 mt-1 font-sans text-[14px] text-tn-faint-2">
                                       No review yet
                                     </p>
                                   )}

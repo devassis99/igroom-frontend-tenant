@@ -115,7 +115,7 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
         className="rounded-2xl border border-dashed border-tn-border px-6 py-12 text-center lg:sticky lg:top-6"
       >
         <p className="m-0 font-sans text-sm font-semibold text-tn-ink">No ticket open</p>
-        <p className="m-0 mt-1.5 font-sans text-[13px] leading-relaxed text-tn-muted-3">
+        <p className="m-0 mt-1.5 font-sans text-[14px] leading-relaxed text-tn-muted-3">
           Pick an appointment and the ticket arrives with the client, the barber, the service and
           anything already paid online already on it.
         </p>
@@ -129,7 +129,7 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
         data-tour="register-ticket"
         className="rounded-2xl border border-tn-border px-6 py-12 text-center lg:sticky lg:top-6"
       >
-        <p className="m-0 font-sans text-[13px] text-tn-muted-3">Opening ticket…</p>
+        <p className="m-0 font-sans text-[14px] text-tn-muted-3">Opening ticket…</p>
       </aside>
     );
   }
@@ -156,10 +156,10 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">
+          <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">
             {ticket.customerName ?? "Counter sale"}
           </p>
-          <p className="m-0 font-sans text-[11px] text-tn-muted-3">
+          <p className="m-0 font-sans text-[12px] text-tn-muted-3">
             Ticket #{ticket.ticketNumber}
             {ticket.bookingId ? " · from the booking" : ""}
           </p>
@@ -167,14 +167,14 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
         <button
           type="button"
           onClick={onDismiss}
-          className="cursor-pointer border-none bg-transparent font-sans text-[11px] text-tn-muted-5 hover:underline"
+          className="cursor-pointer border-none bg-transparent font-sans text-[12px] text-tn-muted-5 hover:underline"
         >
           Close panel
         </button>
       </div>
 
       {notice && (
-        <p className="m-0 rounded-lg border border-tn-danger bg-tn-danger-bg px-3 py-2 font-sans text-[12px] text-tn-danger">
+        <p className="m-0 rounded-lg border border-tn-danger bg-tn-danger-bg px-3 py-2 font-sans text-[13px] text-tn-danger">
           {notice}
         </p>
       )}
@@ -184,13 +184,13 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
         {ticket.items.map((item) => (
           <div key={item.id} className="flex items-start justify-between gap-3">
             <div>
-              <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">{item.name}</p>
-              <p className="m-0 font-sans text-[11px] text-tn-muted-3">
+              <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">{item.name}</p>
+              <p className="m-0 font-sans text-[12px] text-tn-muted-3">
                 {item.staffName ? `with ${item.staffName}` : "unassigned"}
                 {ticket.bookingId ? " · auto-added" : ""}
               </p>
             </div>
-            <span className="font-sans text-[13px] font-semibold text-tn-ink">
+            <span className="font-sans text-[14px] font-semibold text-tn-ink">
               {formatCents(item.totalCents)}
             </span>
           </div>
@@ -199,10 +199,10 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
         {ticket.depositAppliedCents > 0 && (
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">Paid online</p>
-              <p className="m-0 font-sans text-[11px] text-tn-muted-3">Taken at booking</p>
+              <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">Paid online</p>
+              <p className="m-0 font-sans text-[12px] text-tn-muted-3">Taken at booking</p>
             </div>
-            <span className="font-sans text-[13px] font-semibold text-tn-success">
+            <span className="font-sans text-[14px] font-semibold text-tn-success">
               −{formatCents(ticket.depositAppliedCents)}
             </span>
           </div>
@@ -227,27 +227,27 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
 
       <div className="flex items-baseline justify-between">
         <span className="font-sans text-sm font-semibold text-tn-ink">Total</span>
-        <span className="font-sans text-[26px] font-semibold text-tn-ink">
+        <span className="font-sans text-[24px] font-semibold text-tn-ink">
           {formatCents(ticket.totalCents)}
         </span>
       </div>
 
       {ticket.status === "paid" ? (
         <div className="flex flex-col gap-3">
-          <p className="m-0 rounded-lg bg-tn-success-bg px-3 py-2.5 font-sans text-[12px] font-semibold text-tn-success">
+          <p className="m-0 rounded-lg bg-tn-success-bg px-3 py-2.5 font-sans text-[13px] font-semibold text-tn-success">
             Paid · ticket #{ticket.ticketNumber} closed
           </p>
           {ticket.tipShares.length > 0 && (
             <div className="flex flex-col gap-1.5">
-              <p className="m-0 font-sans text-[11px] font-semibold tracking-[0.1em] text-tn-muted-5">
+              <p className="m-0 font-sans text-[12px] font-semibold tracking-[0.1em] text-tn-muted-5">
                 TIP WENT TO
               </p>
               {ticket.tipShares.map((share) => (
                 <div key={share.id} className="flex justify-between">
-                  <span className="font-sans text-[12px] text-tn-muted-3">
+                  <span className="font-sans text-[13px] text-tn-muted-3">
                     {share.staffName ?? "Front desk pool"}
                   </span>
-                  <span className="font-sans text-[12px] font-semibold text-tn-ink">
+                  <span className="font-sans text-[13px] font-semibold text-tn-ink">
                     {formatCents(share.amountCents)}
                   </span>
                 </div>
@@ -268,7 +268,7 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
             type="button"
             onClick={() => discard.mutate()}
             disabled={discard.isPending}
-            className="cursor-pointer border-none bg-transparent font-sans text-[11px] text-tn-muted-5 hover:underline"
+            className="cursor-pointer border-none bg-transparent font-sans text-[12px] text-tn-muted-5 hover:underline"
           >
             Void this ticket
           </button>
@@ -284,8 +284,8 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
       ) : (
         <div className="flex flex-col gap-3">
           <div className="flex items-baseline justify-between">
-            <span className="font-sans text-[12px] text-tn-muted-3">Left to collect</span>
-            <span className="font-sans text-[15px] font-semibold text-tn-ink">
+            <span className="font-sans text-[13px] text-tn-muted-3">Left to collect</span>
+            <span className="font-sans text-[16px] font-semibold text-tn-ink">
               {formatCents(leftCents)}
             </span>
           </div>
@@ -294,13 +294,13 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
             <div className="flex flex-col gap-1.5">
               {ticket.tenders.map((t) => (
                 <div key={t.id} className="flex items-center justify-between gap-2">
-                  <span className="font-sans text-[12px] text-tn-muted-3">
+                  <span className="font-sans text-[13px] text-tn-muted-3">
                     {TENDER_LABEL[t.method]}
                     {t.cardLast4 ? ` ····${t.cardLast4}` : ""}
                     {t.status === "pending" ? " · awaiting payment" : ""}
                   </span>
                   <span className="flex items-center gap-2">
-                    <span className="font-sans text-[12px] font-semibold text-tn-ink">
+                    <span className="font-sans text-[13px] font-semibold text-tn-ink">
                       {formatCents(t.amountCents)}
                     </span>
                     {t.method !== "deposit" && (
@@ -308,7 +308,7 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
                         type="button"
                         onClick={() => dropTender.mutate(t.id)}
                         aria-label={`Remove ${TENDER_LABEL[t.method]} tender`}
-                        className="cursor-pointer border-none bg-transparent font-sans text-[11px] text-tn-muted-5 hover:underline"
+                        className="cursor-pointer border-none bg-transparent font-sans text-[12px] text-tn-muted-5 hover:underline"
                       >
                         remove
                       </button>
@@ -347,7 +347,7 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
                   placeholder="last 4"
                   inputMode="numeric"
                   aria-label="Card last four digits"
-                  className="w-[74px] rounded-lg border border-tn-input-border bg-transparent px-2.5 py-2 font-sans text-[12px] text-tn-ink outline-none placeholder:text-tn-placeholder"
+                  className="w-[74px] rounded-lg border border-tn-input-border bg-transparent px-2.5 py-2 font-sans text-[13px] text-tn-ink outline-none placeholder:text-tn-placeholder"
                 />
                 <Button
                   className="flex-1"
@@ -380,7 +380,7 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
                   placeholder="Part payment"
                   inputMode="decimal"
                   aria-label="Part payment amount"
-                  className="flex-1 rounded-lg border border-tn-input-border bg-transparent px-3 py-2 font-sans text-[12px] text-tn-ink outline-none placeholder:text-tn-placeholder"
+                  className="flex-1 rounded-lg border border-tn-input-border bg-transparent px-3 py-2 font-sans text-[13px] text-tn-ink outline-none placeholder:text-tn-placeholder"
                 />
                 <Button
                   size="sm"
@@ -411,7 +411,7 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
             than a "Tap, insert or swipe" button that does nothing, which
             is the moment a shop stops believing the rest of the screen.
           */}
-          <p className="m-0 font-sans text-[11px] leading-relaxed text-tn-muted-5">
+          <p className="m-0 font-sans text-[12px] leading-relaxed text-tn-muted-5">
             Card taps happen on your own machine or the client's phone — this records what was
             taken. A reader integration is a separate piece of work.
           </p>
@@ -424,8 +424,8 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between">
-      <span className="font-sans text-[13px] text-tn-muted-3">{label}</span>
-      <span className="font-sans text-[13px] font-medium text-tn-ink">{value}</span>
+      <span className="font-sans text-[14px] text-tn-muted-3">{label}</span>
+      <span className="font-sans text-[14px] font-medium text-tn-ink">{value}</span>
     </div>
   );
 }

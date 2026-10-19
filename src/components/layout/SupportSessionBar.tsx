@@ -77,12 +77,12 @@ export function SupportSessionBar() {
         <span className="font-sans text-xs font-semibold text-tn-on-dark">
           Read-only support session
         </span>
-        <span className="font-sans text-[11px] text-tn-on-dark/70">
+        <span className="font-sans text-[12px] text-tn-on-dark/70">
           {support.shopName}
           {owner?.fullName ? ` · as ${owner.fullName}` : ""}
         </span>
         <span
-          className="font-mono text-[11px] tabular-nums text-tn-on-dark/70"
+          className="font-mono text-[12px] tabular-nums text-tn-on-dark/70"
           title="Time left before this session expires"
         >
           {expired ? "expired" : formatRemaining(remaining)}
@@ -91,7 +91,7 @@ export function SupportSessionBar() {
           type="button"
           onClick={handleEnd}
           disabled={ending}
-          className="rounded-full bg-tn-on-dark/15 px-3 py-1 font-sans text-[11px] font-semibold text-tn-on-dark disabled:opacity-50"
+          className="rounded-full bg-tn-on-dark/15 px-3 py-1 font-sans text-[12px] font-semibold text-tn-on-dark disabled:opacity-50"
         >
           {ending ? "Ending…" : "End session"}
         </button>

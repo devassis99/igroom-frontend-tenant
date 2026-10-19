@@ -166,10 +166,10 @@ export function StaffFilterBar({
           style={{ background: staffAvatarColor(member.id) }}
         />
         <span className="flex min-w-0 flex-col">
-          <span className="truncate font-sans text-[12.5px] font-semibold text-tn-ink">
+          <span className="truncate font-sans text-[13px] font-semibold text-tn-ink">
             {member.name}
           </span>
-          <span className="truncate font-sans text-[10.5px] text-tn-muted-5">
+          <span className="truncate font-sans text-[11px] text-tn-muted-5">
             {formatShiftRanges(shift)}
             {count > 0 ? ` · ${count} booked` : ""}
           </span>
@@ -183,14 +183,14 @@ export function StaffFilterBar({
       <button
         type="button"
         onClick={() => setPickerOpen((v) => !v)}
-        className="flex cursor-pointer items-center gap-2 rounded-full border-none bg-tn-dark px-3.5 py-2 font-sans text-[12.5px] font-semibold text-tn-on-dark transition-[background-color,transform] duration-200 hover:bg-tn-ink active:scale-[0.97]"
+        className="flex cursor-pointer items-center gap-2 rounded-full border-none bg-tn-dark px-3.5 py-2 font-sans text-[13px] font-semibold text-tn-on-dark transition-[background-color,transform] duration-200 hover:bg-tn-ink active:scale-[0.97]"
       >
         Staff: {selectedStaffIds.length} of {allStaff.length}
         {/* Rotated rather than swapped for a second glyph, so the arrow
             turns with the panel instead of blinking into a new character. */}
         <span
           aria-hidden
-          className={`text-[10px] transition-transform duration-200 ${pickerOpen ? "rotate-180" : ""}`}
+          className={`text-[11px] transition-transform duration-200 ${pickerOpen ? "rotate-180" : ""}`}
         >
           ▾
         </span>
@@ -205,7 +205,7 @@ export function StaffFilterBar({
             key={set.id}
             type="button"
             onClick={() => onApplySet(set)}
-            className={`cursor-pointer rounded-full border px-3.5 py-2 font-sans text-[12.5px] font-medium transition-[background-color,border-color,color,transform] duration-200 active:scale-[0.97] ${
+            className={`cursor-pointer rounded-full border px-3.5 py-2 font-sans text-[13px] font-medium transition-[background-color,border-color,color,transform] duration-200 active:scale-[0.97] ${
               isActive
                 ? "border-transparent bg-tn-blue-bg text-tn-blue"
                 : "border-tn-input-border bg-transparent text-tn-muted-1 hover:bg-tn-page"
@@ -223,7 +223,7 @@ export function StaffFilterBar({
           setSaveShared(false);
           setSaveDialogOpen(true);
         }}
-        className="cursor-pointer rounded-full border border-dashed border-tn-input-border bg-transparent px-3.5 py-2 font-sans text-[12.5px] font-medium text-tn-muted-5 transition-[background-color,color,transform] duration-200 hover:bg-tn-page hover:text-tn-ink active:scale-[0.97]"
+        className="cursor-pointer rounded-full border border-dashed border-tn-input-border bg-transparent px-3.5 py-2 font-sans text-[13px] font-medium text-tn-muted-5 transition-[background-color,color,transform] duration-200 hover:bg-tn-page hover:text-tn-ink active:scale-[0.97]"
       >
         + Save current
       </button>
@@ -231,7 +231,7 @@ export function StaffFilterBar({
       <button
         type="button"
         onClick={onOpenManageSets}
-        className="cursor-pointer border-none bg-transparent px-1 font-sans text-[12.5px] font-medium text-tn-blue transition-opacity duration-200 hover:opacity-70"
+        className="cursor-pointer border-none bg-transparent px-1 font-sans text-[13px] font-medium text-tn-blue transition-opacity duration-200 hover:opacity-70"
       >
         Manage sets
       </button>
@@ -259,7 +259,7 @@ export function StaffFilterBar({
         // bleeding through this panel. Needs to clear it outright, not just match it.
         <div className="tn-picker-in absolute left-0 top-[46px] z-30 flex w-[352px] flex-col gap-3 rounded-2xl border border-tn-input-border bg-tn-surface p-3.5 shadow-[0_26px_56px_-22px_rgba(40,30,10,0.45)]">
           <div className="flex items-center justify-between">
-            <span className="font-sans text-[13.5px] font-semibold text-tn-ink">Staff in view</span>
+            <span className="font-sans text-[14px] font-semibold text-tn-ink">Staff in view</span>
             <button
               type="button"
               onClick={() => setPending(new Set())}
@@ -274,7 +274,7 @@ export function StaffFilterBar({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search staff"
-            className="rounded-lg border border-tn-input-border bg-tn-page px-3 py-2.5 font-sans text-[13px] text-tn-ink outline-none"
+            className="rounded-lg border border-tn-input-border bg-tn-page px-3 py-2.5 font-sans text-[14px] text-tn-ink outline-none"
           />
 
           <div className="flex flex-wrap gap-1.5">
@@ -289,7 +289,7 @@ export function StaffFilterBar({
                 key={value}
                 type="button"
                 onClick={() => setQuickFilter(value)}
-                className={`cursor-pointer rounded-full px-2.5 py-1.5 font-sans text-[11.5px] font-medium transition-[background-color,border-color,color,transform] duration-200 active:scale-[0.96] ${
+                className={`cursor-pointer rounded-full px-2.5 py-1.5 font-sans text-[12px] font-medium transition-[background-color,border-color,color,transform] duration-200 active:scale-[0.96] ${
                   quickFilter === value
                     ? "border-none bg-tn-dark text-tn-on-dark"
                     : "border border-tn-input-border bg-transparent text-tn-muted-1"
@@ -302,13 +302,13 @@ export function StaffFilterBar({
 
           <div className="flex max-h-[280px] flex-col gap-0.5 overflow-y-auto">
             {onShift.length > 0 && (
-              <span className="mx-0.5 my-1 font-sans text-[10.5px] font-bold tracking-wider text-tn-muted-6">
+              <span className="mx-0.5 my-1 font-sans text-[11px] font-bold tracking-wider text-tn-muted-6">
                 ON SHIFT TODAY
               </span>
             )}
             {onShift.map(renderRow)}
             {visibleNotWorking.length > 0 && (
-              <span className="mx-0.5 my-1 mt-2 font-sans text-[10.5px] font-bold tracking-wider text-tn-muted-6">
+              <span className="mx-0.5 my-1 mt-2 font-sans text-[11px] font-bold tracking-wider text-tn-muted-6">
                 NOT WORKING TODAY
               </span>
             )}
@@ -357,10 +357,10 @@ export function StaffFilterBar({
         <div className="fixed inset-0 z-30 flex items-center justify-center bg-tn-backdrop">
           <div className="flex w-[330px] flex-col gap-3.5 rounded-2xl border border-tn-input-border bg-tn-surface p-4 shadow-[0_22px_48px_-22px_rgba(40,30,10,0.42)]">
             <div className="flex flex-col gap-0.5">
-              <span className="font-sans text-[13.5px] font-semibold text-tn-ink">
+              <span className="font-sans text-[14px] font-semibold text-tn-ink">
                 Save this selection
               </span>
-              <span className="font-sans text-[11.5px] text-tn-muted-6">
+              <span className="font-sans text-[12px] text-tn-muted-6">
                 {selectedStaffIds.length} people &middot; appears as a chip above the calendar
               </span>
             </div>
@@ -370,7 +370,7 @@ export function StaffFilterBar({
               value={saveName}
               onChange={(e) => setSaveName(e.target.value)}
               placeholder="e.g. Front room"
-              className="rounded-lg border border-tn-blue bg-tn-surface px-3 py-2.5 font-sans text-[13px] font-medium text-tn-ink outline-none"
+              className="rounded-lg border border-tn-blue bg-tn-surface px-3 py-2.5 font-sans text-[14px] font-medium text-tn-ink outline-none"
             />
             <label htmlFor="save-set-shared" className="flex items-center gap-2.5">
               <input

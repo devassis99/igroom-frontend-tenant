@@ -71,7 +71,13 @@ export interface AccountLocation {
   slotsBooked: number | null;
   /** Half-hour slots the roster's working hours actually offer today. Zero means nobody has hours set; null means this branch is outside the caller's reach. */
   slotsCapacity: number | null;
-  /** No staff, or none with hours — this location can't take a booking yet. */
+  /**
+   * What's left before this location's booking link is worth handing out,
+   * in the order to fix it — see lib/location-setup.ts for how each is
+   * explained. Empty when ready.
+   */
+  setupMissing: LocationSetupStep[];
+  /** `setupMissing` isn't empty — no timezone, nothing bookable online, no staff, or no hours. The booking link and QR stay locked until it's false. */
   needsSetup: boolean;
   /**
    * Set up, but nobody is working here today.
@@ -83,6 +89,8 @@ export interface AccountLocation {
   closedToday: boolean;
   createdAt: string;
 }
+
+export type LocationSetupStep = "timezone" | "services" | "staff" | "hours";
 
 function authHeaders(accessToken: string): HeadersInit {
   return { Authorization: `Bearer ${accessToken}` };

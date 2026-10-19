@@ -123,7 +123,7 @@ function BillingIcon({ className = "" }: { className?: string }) {
 }
 
 function navClass(isActive: boolean) {
-  return `flex items-center gap-2.5 rounded-lg px-4 py-2.5 font-sans text-[13px] ${
+  return `flex items-center gap-2.5 rounded-lg px-4 py-2.5 font-sans text-[14px] ${
     isActive ? "bg-tn-blue-bg font-semibold text-tn-blue" : "font-medium text-tn-nav-inactive"
   }`;
 }
@@ -164,9 +164,9 @@ export function SettingsLayout() {
         data-tour="settings-nav"
         className="-ml-10 flex w-[240px] flex-none flex-col gap-6 border-r border-tn-border bg-tn-table-head py-8"
       >
-        <p className="m-0 px-4 font-serif text-[22px] font-semibold text-tn-ink">Settings</p>
+        <p className="m-0 px-4 font-sans text-[20px] font-semibold text-tn-ink">Settings</p>
         <div>
-          <p className="m-0 mb-2 px-4 font-sans text-[11px] font-semibold tracking-[0.04em] text-tn-faint">
+          <p className="m-0 mb-2 px-4 font-sans text-[12px] font-semibold tracking-[0.04em] text-tn-faint">
             GENERAL
           </p>
           <div className="flex flex-col gap-0.5">
@@ -186,7 +186,7 @@ export function SettingsLayout() {
 
         {workspaceItems.length > 0 && (
           <div>
-            <p className="m-0 mb-2 px-4 font-sans text-[11px] font-semibold tracking-[0.04em] text-tn-faint">
+            <p className="m-0 mb-2 px-4 font-sans text-[12px] font-semibold tracking-[0.04em] text-tn-faint">
               WORKSPACE SETTINGS
             </p>
             <div className="flex flex-col gap-0.5">
@@ -199,7 +199,7 @@ export function SettingsLayout() {
                   <item.icon className="h-[18px] w-[18px] shrink-0" />
                   <span className="flex-1">{item.label}</span>
                   {item.badge && (
-                    <span className="rounded-full bg-tn-gold-bg px-1.5 py-0.5 font-sans text-[9px] font-semibold text-tn-gold">
+                    <span className="rounded-full bg-tn-gold-bg px-1.5 py-0.5 font-sans text-[11px] font-semibold text-tn-gold">
                       {item.badge}
                     </span>
                   )}

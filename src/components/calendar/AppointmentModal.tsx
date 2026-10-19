@@ -224,7 +224,7 @@ export function AppointmentModal({
   return (
     <Modal open={open} onClose={handleClose}>
       <div className="flex items-center justify-between px-6 pt-6">
-        <h2 className="m-0 font-sans text-[19px] font-semibold text-tn-ink">{titles[mode]}</h2>
+        <h2 className="m-0 font-sans text-[18px] font-semibold text-tn-ink">{titles[mode]}</h2>
         <button
           type="button"
           onClick={handleClose}
@@ -281,8 +281,8 @@ export function AppointmentModal({
                   key={label}
                   className={`flex justify-between gap-4 px-4 py-3 ${i < arr.length - 1 ? "border-b border-tn-border-soft" : ""}`}
                 >
-                  <span className="font-sans text-[13px] text-tn-muted-5">{label}</span>
-                  <span className="text-right font-sans text-[13px] font-semibold text-tn-ink-soft">
+                  <span className="font-sans text-[14px] text-tn-muted-5">{label}</span>
+                  <span className="text-right font-sans text-[14px] font-semibold text-tn-ink-soft">
                     {value}
                   </span>
                 </div>
@@ -291,16 +291,16 @@ export function AppointmentModal({
 
             {isPast && (
               <div className="flex flex-col gap-1.5 rounded-xl border border-tn-border p-3.5">
-                <p className="m-0 font-sans text-[11px] font-semibold tracking-wide text-tn-muted-5">
+                <p className="m-0 font-sans text-[12px] font-semibold tracking-wide text-tn-muted-5">
                   CUSTOMER REVIEW
                 </p>
                 {reviewQuery.isPending ? (
-                  <p className="m-0 font-sans text-[13px] text-tn-faint-2">Loading review…</p>
+                  <p className="m-0 font-sans text-[14px] text-tn-faint-2">Loading review…</p>
                 ) : review ? (
                   <>
                     <span
                       aria-label={`${review.rating} out of 5 stars`}
-                      className="font-sans text-[13px] text-tn-gold"
+                      className="font-sans text-[14px] text-tn-gold"
                     >
                       {"★".repeat(review.rating)}
                       <span className="text-tn-border-soft">
@@ -308,7 +308,7 @@ export function AppointmentModal({
                       </span>
                     </span>
                     <p
-                      className={`m-0 font-sans text-[13px] ${
+                      className={`m-0 font-sans text-[14px] ${
                         review.comment ? "text-tn-ink-soft" : "text-tn-faint-2"
                       }`}
                     >
@@ -316,7 +316,7 @@ export function AppointmentModal({
                     </p>
                   </>
                 ) : (
-                  <p className="m-0 font-sans text-[13px] text-tn-faint-2">No review yet</p>
+                  <p className="m-0 font-sans text-[14px] text-tn-faint-2">No review yet</p>
                 )}
               </div>
             )}
@@ -435,7 +435,7 @@ export function AppointmentModal({
             <div className="flex items-center gap-3 rounded-xl bg-tn-page p-3.5">
               <div className="h-9 w-9 flex-none rounded-full bg-[oklch(88%_0.02_40)]" />
               <div>
-                <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">
+                <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">
                   {booking.customerName} · {booking.serviceName}
                 </p>
                 <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
@@ -472,7 +472,7 @@ export function AppointmentModal({
               </select>
             </Field>
 
-            <label className="flex items-center gap-2 font-sans text-[13px] text-tn-muted-1">
+            <label className="flex items-center gap-2 font-sans text-[14px] text-tn-muted-1">
               <input type="checkbox" defaultChecked className="accent-tn-gold" disabled />
               Notify customer by SMS
             </label>
@@ -499,7 +499,7 @@ export function AppointmentModal({
             <div className="flex items-center gap-3 rounded-xl bg-tn-page p-3.5">
               <div className="h-9 w-9 flex-none rounded-full bg-[oklch(88%_0.02_40)]" />
               <div>
-                <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">
+                <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">
                   {booking.customerName} · {booking.serviceName}
                 </p>
                 <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
@@ -513,7 +513,7 @@ export function AppointmentModal({
                 <span className="text-tn-danger" aria-hidden>
                   ⚠
                 </span>
-                <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">
+                <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">
                   This can&rsquo;t be undone
                 </p>
               </div>
@@ -522,7 +522,7 @@ export function AppointmentModal({
               </p>
             </div>
 
-            <label className="flex items-center gap-2 font-sans text-[13px] text-tn-muted-1">
+            <label className="flex items-center gap-2 font-sans text-[14px] text-tn-muted-1">
               <input type="checkbox" defaultChecked className="accent-tn-gold" disabled />
               Notify customer by SMS
             </label>

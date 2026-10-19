@@ -178,7 +178,7 @@ export function CustomersPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">Customers</h1>
+        <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Customers</h1>
         {canManageCustomers && (
           <Button data-tour="customers-add" onClick={() => setAddOpen(true)}>
             + Add Customer
@@ -267,20 +267,20 @@ export function CustomersPage() {
                 <span className="flex items-center gap-2.5">
                   <Avatar initials={initialsFor(c.name)} color={avatarColorFor(c.id)} size={28} />
                   <span>
-                    <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">{c.name}</p>
+                    <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">{c.name}</p>
                     <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
                       {c.phone || c.email || "—"}
                     </p>
                   </span>
                 </span>
-                <span className="font-sans text-[13px] text-tn-muted-2">
+                <span className="font-sans text-[14px] text-tn-muted-2">
                   {formatLastVisit(c.lastVisitAt)}
                 </span>
-                <span className="font-sans text-[13px] text-tn-muted-2">{c.visits}</span>
-                <span className="font-sans text-[13px] text-tn-muted-2">
+                <span className="font-sans text-[14px] text-tn-muted-2">{c.visits}</span>
+                <span className="font-sans text-[14px] text-tn-muted-2">
                   {dollars(c.lifetimeSpendCents)}
                 </span>
-                <span className="font-sans text-[13px] text-tn-muted-2">
+                <span className="font-sans text-[14px] text-tn-muted-2">
                   {c.preferredBarber ?? "—"}
                 </span>
                 {c.tag && <StatusPill tone={TAG_TONE[c.tag]}>{c.tag}</StatusPill>}

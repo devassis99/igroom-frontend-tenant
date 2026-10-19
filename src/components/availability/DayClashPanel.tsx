@@ -88,7 +88,7 @@ function Bar({
 
   return (
     <div className="flex items-center gap-3">
-      <span className="w-[104px] flex-none truncate font-sans text-[11px] text-tn-ink-soft sm:w-[150px]">
+      <span className="w-[104px] flex-none truncate font-sans text-[12px] text-tn-ink-soft sm:w-[150px]">
         {label}
       </span>
       <div className="relative h-3.5 flex-1 overflow-hidden rounded-full bg-tn-neutral-bg">
@@ -251,7 +251,7 @@ export const DayClashPanel = forwardRef<HTMLDivElement, DayClashPanelProps>(func
             className="flex w-full cursor-pointer items-start justify-between gap-3 border-none bg-transparent px-4 py-2.5 text-left font-sans"
           >
             <span
-              className={`text-[13px] leading-snug transition-colors duration-200 ${
+              className={`text-[14px] leading-snug transition-colors duration-200 ${
                 blocks ? "text-tn-danger" : "text-tn-gold"
               } ${expanded ? "font-semibold" : ""}`}
             >
@@ -345,7 +345,7 @@ export const DayClashPanel = forwardRef<HTMLDivElement, DayClashPanelProps>(func
                 track={track}
                 tone="clash"
               />
-              <div className="ml-[116px] flex justify-between font-mono text-[10px] text-tn-muted-6 sm:ml-[162px]">
+              <div className="ml-[116px] flex justify-between font-mono text-[11px] text-tn-muted-6 sm:ml-[162px]">
                 {trackTicks(track.startIso, track.minutes).map((tick) => (
                   <span key={tick.at}>{tick.label}</span>
                 ))}
@@ -361,7 +361,7 @@ export const DayClashPanel = forwardRef<HTMLDivElement, DayClashPanelProps>(func
                 type="button"
                 data-clash-fix="first"
                 onClick={onOpenOtherTab}
-                className="w-fit cursor-pointer rounded-xl border border-tn-input-border bg-tn-surface px-3.5 py-2.5 text-left font-sans text-[13px] font-semibold text-tn-ink hover:bg-tn-neutral-bg"
+                className="w-fit cursor-pointer rounded-xl border border-tn-input-border bg-tn-surface px-3.5 py-2.5 text-left font-sans text-[14px] font-semibold text-tn-ink hover:bg-tn-neutral-bg"
               >
                 Open {there.locationName} to save it
               </button>
@@ -376,10 +376,10 @@ export const DayClashPanel = forwardRef<HTMLDivElement, DayClashPanelProps>(func
                     onClick={() => onFix(there, here, collision)}
                     className="flex-1 cursor-pointer rounded-xl border border-tn-input-border bg-tn-surface px-3.5 py-2.5 text-left font-sans hover:bg-tn-neutral-bg"
                   >
-                    <span className="block text-[13px] font-semibold text-tn-ink">
+                    <span className="block text-[14px] font-semibold text-tn-ink">
                       {there.locationName} keeps {weekday}
                     </span>
-                    <span className="mt-0.5 block text-[11px] text-tn-muted-5">
+                    <span className="mt-0.5 block text-[12px] text-tn-muted-5">
                       {weekday} turns off at {here.locationName}
                     </span>
                   </button>
@@ -391,10 +391,10 @@ export const DayClashPanel = forwardRef<HTMLDivElement, DayClashPanelProps>(func
                     onClick={() => onFix(here, there, collision)}
                     className="flex-1 cursor-pointer rounded-xl border border-tn-input-border bg-tn-surface px-3.5 py-2.5 text-left font-sans hover:bg-tn-neutral-bg"
                   >
-                    <span className="block text-[13px] font-semibold text-tn-ink">
+                    <span className="block text-[14px] font-semibold text-tn-ink">
                       {here.locationName} keeps {weekday}
                     </span>
-                    <span className="mt-0.5 block text-[11px] text-tn-muted-5">
+                    <span className="mt-0.5 block text-[12px] text-tn-muted-5">
                       {there.locationName} is trimmed back to clear it
                     </span>
                   </button>
@@ -403,7 +403,7 @@ export const DayClashPanel = forwardRef<HTMLDivElement, DayClashPanelProps>(func
                   <Link
                     to={resolveHref}
                     data-clash-fix={fixable(here) ? undefined : "first"}
-                    className="rounded-xl border border-tn-input-border bg-tn-surface px-3.5 py-2.5 font-sans text-[13px] font-semibold text-tn-ink no-underline hover:bg-tn-neutral-bg"
+                    className="rounded-xl border border-tn-input-border bg-tn-surface px-3.5 py-2.5 font-sans text-[14px] font-semibold text-tn-ink no-underline hover:bg-tn-neutral-bg"
                   >
                     Open both shops in Settings › Availability
                   </Link>
@@ -423,7 +423,7 @@ export const DayClashPanel = forwardRef<HTMLDivElement, DayClashPanelProps>(func
             {/* Repeats have to be counted, or the same weekly rule gets
                 fixed one date at a time, eight times. */}
             {repeats > 0 && (
-              <p className="m-0 font-sans text-[11px] text-tn-muted-5">
+              <p className="m-0 font-sans text-[12px] text-tn-muted-5">
                 Same clash on {repeats} more {weekday}
                 {repeats === 1 ? "" : "s"}. Both fixes change the weekly rule, so they clear all of
                 them.

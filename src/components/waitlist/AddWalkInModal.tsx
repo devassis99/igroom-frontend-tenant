@@ -104,7 +104,7 @@ export function AddWalkInModal({
   return (
     <Modal open={open} onClose={close}>
       <div className="flex items-center justify-between px-6 pt-6">
-        <h2 className="m-0 font-sans text-[19px] font-semibold text-tn-ink">Add Walk-in</h2>
+        <h2 className="m-0 font-sans text-[18px] font-semibold text-tn-ink">Add Walk-in</h2>
         <button
           type="button"
           onClick={close}
@@ -129,7 +129,7 @@ export function AddWalkInModal({
           });
         }}
       >
-        <p className="m-0 font-sans text-[13px] text-tn-muted-5">
+        <p className="m-0 font-sans text-[14px] text-tn-muted-5">
           For customers without the app — front desk adds them straight to the queue.
         </p>
 
@@ -203,7 +203,7 @@ export function AddWalkInModal({
         ) : null}
 
         {error ? (
-          <p role="alert" className="m-0 font-sans text-[13px] text-tn-danger">
+          <p role="alert" className="m-0 font-sans text-[14px] text-tn-danger">
             {error}
           </p>
         ) : null}

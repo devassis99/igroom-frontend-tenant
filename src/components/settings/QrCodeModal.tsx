@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import type { AccountLocation } from "@/lib/locations-api";
 import { usePermissions } from "@/auth/use-permissions";
 import { branchBookingUrl } from "@/lib/public-link";
+import { LocationSetupGuide } from "@/components/settings/LocationSetupGuide";
 
 interface QrCodeModalProps {
   location: AccountLocation | null;
@@ -37,7 +38,11 @@ export function QrCodeModal({ location, onClose }: QrCodeModalProps) {
   // The same link the Details tab offers to copy — a code and a pasted
   // link that lead to different pages is the kind of difference nobody
   // notices until a customer is standing in the wrong shop.
-  const url = location ? branchBookingUrl(account?.slug ?? null, location) : null;
+  // Nothing to encode until the branch can take a booking — a printed
+  // code that opens an unbookable page is worse than no code. See
+  // LocationSetupGuide.
+  const locked = location?.needsSetup ?? false;
+  const url = location && !locked ? branchBookingUrl(account?.slug ?? null, location) : null;
 
   useEffect(() => {
     if (!url) {
@@ -111,11 +116,13 @@ export function QrCodeModal({ location, onClose }: QrCodeModalProps) {
           </button>
         </div>
 
-        {url === null && (
+        {location && locked && <LocationSetupGuide location={location} />}
+
+        {url === null && !locked && (
           <div className="rounded-xl border border-tn-gold bg-tn-gold-bg p-3.5">
             <p className="m-0 font-sans text-xs leading-relaxed text-tn-ink-soft">
               No public booking site is configured yet, so there&rsquo;s nothing for a scan to open.
-              Set <code className="font-mono text-[11px]">VITE_BOOKING_BASE_URL</code> and this will
+              Set <code className="font-mono text-[12px]">VITE_BOOKING_BASE_URL</code> and this will
               generate a real code pointing at this location.
             </p>
           </div>
@@ -132,7 +139,7 @@ export function QrCodeModal({ location, onClose }: QrCodeModalProps) {
               // this, so there's nothing here for an injection to ride in on.
               dangerouslySetInnerHTML={{ __html: svg }}
             />
-            <p className="m-0 text-center font-sans text-[11px] break-all text-tn-muted-5">{url}</p>
+            <p className="m-0 text-center font-sans text-[12px] break-all text-tn-muted-5">{url}</p>
             <div className="flex gap-2">
               <Button variant="secondary" className="flex-1" onClick={handleDownload}>
                 Download SVG

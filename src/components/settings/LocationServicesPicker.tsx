@@ -66,8 +66,8 @@ export function LocationServicesPicker({
         return (
           <div key={loc.id} className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between gap-3">
-              <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">{loc.name}</p>
-              <span className="font-sans text-[11px] text-tn-muted-5">
+              <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">{loc.name}</p>
+              <span className="font-sans text-[12px] text-tn-muted-5">
                 {assigned.length} of {services.length} assigned
               </span>
             </div>
@@ -81,7 +81,7 @@ export function LocationServicesPicker({
               </p>
             )}
             {result?.isSuccess && services.length === 0 && (
-              <p className="m-0 rounded-xl border border-dashed border-tn-border px-3.5 py-3 font-sans text-[13px] text-tn-muted-5">
+              <p className="m-0 rounded-xl border border-dashed border-tn-border px-3.5 py-3 font-sans text-[14px] text-tn-muted-5">
                 No services are offered here yet. You can assign some once this shop has a menu.
               </p>
             )}
@@ -101,11 +101,11 @@ export function LocationServicesPicker({
                       i < services.length - 1 ? "border-b border-tn-border-soft" : ""
                     }`}
                   >
-                    <span className="font-sans text-[13px] text-tn-ink">{service.name}</span>
-                    <span className="font-sans text-[13px] text-tn-muted-3">
+                    <span className="font-sans text-[14px] text-tn-ink">{service.name}</span>
+                    <span className="font-sans text-[14px] text-tn-muted-3">
                       ${(service.priceCents / 100).toFixed(2)}
                     </span>
-                    <span className="font-sans text-[13px] text-tn-muted-3">
+                    <span className="font-sans text-[14px] text-tn-muted-3">
                       {service.durationMinutes} min
                     </span>
                     <input

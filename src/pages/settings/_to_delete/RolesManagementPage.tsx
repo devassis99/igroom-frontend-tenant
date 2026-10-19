@@ -135,7 +135,7 @@ function RoleFormModal({ open, onClose, role, permissionsCatalog }: RoleFormModa
           </Field>
 
           <div>
-            <p className="m-0 mb-2 font-sans text-[11px] font-semibold tracking-[0.04em] text-tn-faint">
+            <p className="m-0 mb-2 font-sans text-[12px] font-semibold tracking-[0.04em] text-tn-faint">
               PERMISSIONS
             </p>
             <div className="flex flex-col gap-2 rounded-xl border border-tn-border p-3.5">
@@ -149,7 +149,7 @@ function RoleFormModal({ open, onClose, role, permissionsCatalog }: RoleFormModa
                     className="mt-0.5 accent-tn-gold"
                   />
                   <span>
-                    <p className="m-0 font-sans text-[13px] font-medium text-tn-ink">{p.name}</p>
+                    <p className="m-0 font-sans text-[14px] font-medium text-tn-ink">{p.name}</p>
                     {p.description && (
                       <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
                         {p.description}
@@ -238,7 +238,7 @@ export function RolesManagementPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <Link to="/settings/staff" className="font-sans text-[13px] text-tn-muted-5 no-underline">
+          <Link to="/settings/staff" className="font-sans text-[14px] text-tn-muted-5 no-underline">
             ← Staff Management
           </Link>
           <h1 className="m-0 mt-1 font-sans text-2xl font-semibold text-tn-ink">
@@ -273,16 +273,16 @@ export function RolesManagementPage() {
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="m-0 flex items-center gap-2 font-sans text-[15px] font-semibold text-tn-ink">
+                <p className="m-0 flex items-center gap-2 font-sans text-[16px] font-semibold text-tn-ink">
                   {role.name}
                   {role.isSystem && (
-                    <span className="rounded-full bg-tn-gold-bg px-2 py-0.5 font-sans text-[10px] font-semibold text-tn-gold">
+                    <span className="rounded-full bg-tn-gold-bg px-2 py-0.5 font-sans text-[11px] font-semibold text-tn-gold">
                       OWNER ROLE
                     </span>
                   )}
                 </p>
                 {role.description && (
-                  <p className="m-0 mt-1 font-sans text-[13px] text-tn-muted-5">
+                  <p className="m-0 mt-1 font-sans text-[14px] text-tn-muted-5">
                     {role.description}
                   </p>
                 )}
@@ -328,7 +328,7 @@ export function RolesManagementPage() {
               {role.permissions.map((key) => (
                 <span
                   key={key}
-                  className="rounded-full bg-tn-table-head px-2 py-0.5 font-sans text-[11px] text-tn-muted-3"
+                  className="rounded-full bg-tn-table-head px-2 py-0.5 font-sans text-[12px] text-tn-muted-3"
                 >
                   {key}
                 </span>

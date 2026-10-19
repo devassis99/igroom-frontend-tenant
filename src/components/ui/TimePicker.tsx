@@ -250,11 +250,11 @@ export function TimePicker({ value, onChange, label = "Time", className = "" }: 
                     aria-current={isSelected ? "true" : undefined}
                     onClick={() => selectTime(time)}
                     // Fixed h-8 (not padding + line-height) pins every row
-                    // to exactly 32px regardless of "Work Sans"'s own font
+                    // to exactly 32px regardless of the font's own
                     // metrics — py-1.5 alone barely shrank the rows because
                     // the font's line-height was doing most of the work, so
                     // this locks row height down directly instead of fighting it.
-                    className={`flex h-8 w-full cursor-pointer items-center justify-center border-none font-sans text-[13px] leading-none ${
+                    className={`flex h-8 w-full cursor-pointer items-center justify-center border-none font-sans text-[14px] leading-none ${
                       isSelected
                         ? "bg-tn-gold-bg-soft font-semibold text-tn-gold"
                         : "bg-transparent font-medium text-tn-ink-soft hover:bg-tn-page"

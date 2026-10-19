@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { QrCodeModal } from "@/components/settings/QrCodeModal";
+import { setupSummary } from "@/lib/location-setup";
 import { AddEditLocationModal } from "@/components/settings/AddEditLocationModal";
 import { LocationDetailPanel } from "@/components/settings/LocationDetailPanel";
 import {
@@ -172,7 +173,7 @@ export function LocationsPage() {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search locations"
               aria-label="Search locations"
-              className="rounded-xl border border-tn-input-border bg-tn-surface px-3 py-2 font-sans text-[13px] text-tn-ink outline-none focus:border-tn-gold placeholder:text-tn-placeholder"
+              className="rounded-xl border border-tn-input-border bg-tn-surface px-3 py-2 font-sans text-[14px] text-tn-ink outline-none focus:border-tn-gold placeholder:text-tn-placeholder"
             />
 
             <div className="flex flex-col gap-1.5">
@@ -196,18 +197,16 @@ export function LocationsPage() {
                         style={{ backgroundColor: statusColour(loc) }}
                         className="h-2 w-2 flex-none rounded-full"
                       />
-                      <span className="truncate font-sans text-[13px] font-semibold text-tn-ink">
+                      <span className="truncate font-sans text-[14px] font-semibold text-tn-ink">
                         {loc.name}
                       </span>
                     </span>
-                    <span className="truncate font-sans text-[11px] text-tn-muted-5">
+                    <span className="truncate font-sans text-[12px] text-tn-muted-5">
                       {loc.address}
                     </span>
-                    <span className="font-sans text-[11px] text-tn-faint">
+                    <span className="font-sans text-[12px] text-tn-faint">
                       {loc.needsSetup
-                        ? loc.staffCount === 0
-                          ? "No staff · setup incomplete"
-                          : "No hours · setup incomplete"
+                        ? `Setup incomplete · needs ${setupSummary(loc)}`
                         : loc.bookingsToday === null
                           ? // Not a branch this caller runs, so today's
                             // count was never sent — say nothing about it
@@ -231,14 +230,14 @@ export function LocationsPage() {
               <button
                 type="button"
                 onClick={openAdd}
-                className="cursor-pointer rounded-xl border border-dashed border-tn-border bg-transparent px-3 py-2.5 font-sans text-[13px] font-semibold text-tn-ink-soft hover:bg-tn-page"
+                className="cursor-pointer rounded-xl border border-dashed border-tn-border bg-transparent px-3 py-2.5 font-sans text-[14px] font-semibold text-tn-ink-soft hover:bg-tn-page"
               >
                 + Add location
               </button>
             )}
 
             <div className="flex flex-col gap-1.5 rounded-xl bg-tn-page px-3 py-2.5">
-              <span className="font-sans text-[11px] font-semibold text-tn-ink">
+              <span className="font-sans text-[12px] font-semibold text-tn-ink">
                 {usedSeats} of {TOTAL_SEATS} seats used
               </span>
               <span className="h-1.5 w-full overflow-hidden rounded-full bg-tn-border-softer">
@@ -342,12 +341,12 @@ export function LocationsPage() {
                 {["LOCATION", "ADDRESS", "STAFF", "TODAY", "REVENUE · 7D"].map((heading) => (
                   <span
                     key={heading}
-                    className="font-sans text-[11px] font-semibold tracking-[0.05em] text-tn-muted-5"
+                    className="font-sans text-[12px] font-semibold tracking-[0.05em] text-tn-muted-5"
                   >
                     {heading}
                   </span>
                 ))}
-                <span className="text-right font-sans text-[11px] font-semibold tracking-[0.05em] text-tn-muted-5">
+                <span className="text-right font-sans text-[12px] font-semibold tracking-[0.05em] text-tn-muted-5">
                   ACTIONS
                 </span>
               </div>
@@ -382,19 +381,17 @@ export function LocationsPage() {
                         e.stopPropagation();
                         openDetail(loc);
                       }}
-                      className="cursor-pointer truncate border-none bg-transparent p-0 text-left font-sans text-[13px] font-semibold text-tn-ink"
+                      className="cursor-pointer truncate border-none bg-transparent p-0 text-left font-sans text-[14px] font-semibold text-tn-ink"
                     >
                       {loc.name}
                     </button>
                     <span
-                      className={`truncate font-sans text-[11px] ${
+                      className={`truncate font-sans text-[12px] ${
                         loc.needsSetup ? "text-tn-gold" : "text-tn-muted-5"
                       }`}
                     >
                       {loc.needsSetup
-                        ? loc.staffCount === 0
-                          ? "Needs staff & hours"
-                          : "Needs working hours"
+                        ? `Needs ${setupSummary(loc)}`
                         : [loc.isPrimary ? "Primary" : null, loc.timezone]
                             .filter(Boolean)
                             .join(" · ")}
@@ -405,7 +402,7 @@ export function LocationsPage() {
                         switch — so what it described is simply a closed
                         branch, which the row already shows. */}
                     {loc.status !== "active" && (
-                      <span className="mt-0.5 w-fit rounded-full bg-tn-neutral-bg px-1.5 py-0.5 font-sans text-[10px] font-semibold text-tn-muted-5">
+                      <span className="mt-0.5 w-fit rounded-full bg-tn-neutral-bg px-1.5 py-0.5 font-sans text-[11px] font-semibold text-tn-muted-5">
                         Closed · link won&rsquo;t open
                       </span>
                     )}
@@ -415,7 +412,7 @@ export function LocationsPage() {
                         the more urgent of the two but reads as noise if
                         it displaces the setup prompt. */}
                     {(collisionsByLocation.get(loc.id) ?? 0) > 0 && (
-                      <span className="mt-0.5 w-fit rounded-full bg-tn-danger-bg px-1.5 py-0.5 font-sans text-[10px] font-semibold text-tn-danger">
+                      <span className="mt-0.5 w-fit rounded-full bg-tn-danger-bg px-1.5 py-0.5 font-sans text-[11px] font-semibold text-tn-danger">
                         {collisionsByLocation.get(loc.id)} scheduling{" "}
                         {collisionsByLocation.get(loc.id) === 1 ? "clash" : "clashes"}
                       </span>
@@ -439,8 +436,14 @@ export function LocationsPage() {
                         e.stopPropagation();
                         setQrLocation(loc);
                       }}
+                      // Locked until the branch can take a booking — the
+                      // Finish setup button beside it is the way forward.
+                      disabled={loc.needsSetup}
+                      title={
+                        loc.needsSetup ? "Finish setup to get this location's QR code" : undefined
+                      }
                       aria-label={`QR code for ${loc.name}`}
-                      className="cursor-pointer rounded-lg border border-tn-input-border bg-transparent px-2.5 py-1.5 font-sans text-[11px] font-semibold text-tn-ink-soft hover:bg-tn-surface"
+                      className="cursor-pointer rounded-lg border border-tn-input-border bg-transparent px-2.5 py-1.5 font-sans text-[12px] font-semibold text-tn-ink-soft hover:bg-tn-surface disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
                     >
                       QR
                     </button>
@@ -464,7 +467,7 @@ export function LocationsPage() {
                             setSheetOpen(true);
                           }}
                           aria-label={`Edit ${loc.name}`}
-                          className="cursor-pointer rounded-lg border border-tn-input-border bg-transparent px-2.5 py-1.5 font-sans text-[11px] font-semibold text-tn-ink-soft hover:bg-tn-surface"
+                          className="cursor-pointer rounded-lg border border-tn-input-border bg-transparent px-2.5 py-1.5 font-sans text-[12px] font-semibold text-tn-ink-soft hover:bg-tn-surface"
                         >
                           Edit
                         </button>

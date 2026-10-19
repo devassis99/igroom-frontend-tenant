@@ -26,23 +26,23 @@ export function SeatUpgradeModal({ open, onClose, onUpgrade }: SeatUpgradeModalP
       </div>
 
       <div className="flex flex-col gap-4 px-6 pb-6 pt-4">
-        <p className="m-0 font-sans text-[13px] text-tn-muted-4">
+        <p className="m-0 font-sans text-[14px] text-tn-muted-4">
           Jordan Rivera would be your 5th team member — one more than the Business Plan includes.
         </p>
 
         <div className="flex items-center justify-between rounded-xl bg-tn-page px-4 py-3">
-          <span className="font-sans text-[13px] font-semibold text-tn-ink">4 of 4 seats used</span>
+          <span className="font-sans text-[14px] font-semibold text-tn-ink">4 of 4 seats used</span>
           <span className="font-sans text-xs text-tn-muted-5">· Business Plan · $12/seat/mo</span>
         </div>
 
         <div className="flex items-start gap-2 rounded-xl border border-tn-gold bg-tn-gold-bg-soft p-3.5">
           <span aria-hidden>ℹ</span>
-          <p className="m-0 font-sans text-[13px] text-tn-ink-soft">
+          <p className="m-0 font-sans text-[14px] text-tn-ink-soft">
             This adds a 5th seat to your plan
           </p>
         </div>
 
-        <div className="flex flex-col gap-2 font-sans text-[13px] text-tn-muted-3">
+        <div className="flex flex-col gap-2 font-sans text-[14px] text-tn-muted-3">
           <div className="flex justify-between">
             <span>New seat · $12/mo</span>
             <span>$12.00</span>

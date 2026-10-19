@@ -38,7 +38,7 @@ export function StaffStack({ location }: { location: AccountLocation }) {
           key={member.id}
           title={member.name}
           style={{ background: avatarColorFor(member.id), marginLeft: index === 0 ? 0 : -7 }}
-          className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 border-tn-surface font-sans text-[9px] font-semibold text-tn-ink-soft"
+          className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 border-tn-surface font-sans text-[11px] font-semibold text-tn-ink-soft"
         >
           {initialsFor(member.name)}
         </span>
@@ -46,7 +46,7 @@ export function StaffStack({ location }: { location: AccountLocation }) {
       {overflow > 0 && (
         <span
           style={{ marginLeft: -7 }}
-          className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 border-tn-surface bg-tn-border-softer font-sans text-[9px] font-semibold text-tn-ink-soft"
+          className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 border-tn-surface bg-tn-border-softer font-sans text-[11px] font-semibold text-tn-ink-soft"
         >
           +{overflow}
         </span>

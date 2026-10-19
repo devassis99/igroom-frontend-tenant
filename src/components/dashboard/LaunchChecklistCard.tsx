@@ -24,10 +24,10 @@ export function LaunchChecklistCard() {
     <section className="flex flex-col gap-5 rounded-2xl border border-tn-border bg-tn-surface p-6">
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div className="flex max-w-md flex-col gap-2">
-          <span className="w-fit rounded-full bg-tn-gold-bg px-3 py-1 font-sans text-[11px] font-semibold tracking-[0.02em] text-tn-gold">
+          <span className="w-fit rounded-full bg-tn-gold-bg px-3 py-1 font-sans text-[12px] font-semibold tracking-[0.02em] text-tn-gold">
             Getting Started
           </span>
-          <h2 className="m-0 font-serif text-xl font-semibold text-tn-ink">
+          <h2 className="m-0 font-sans text-xl font-semibold text-tn-ink">
             {allDone
               ? `${owner?.businessName ?? "Your shop"} is ready to take bookings`
               : `Get ${owner?.businessName ?? "your shop"} ready to take bookings`}
@@ -66,7 +66,7 @@ export function LaunchChecklistCard() {
               >
                 <span
                   aria-hidden
-                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-sans text-[11px] ${
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-sans text-[12px] ${
                     step.done
                       ? "bg-tn-success text-tn-on-dark"
                       : "border-2 border-tn-border-softer text-transparent"
@@ -75,7 +75,7 @@ export function LaunchChecklistCard() {
                   ✓
                 </span>
                 <span
-                  className={`flex-1 font-sans text-[13px] font-semibold ${
+                  className={`flex-1 font-sans text-[14px] font-semibold ${
                     step.done ? "text-tn-muted-6 line-through" : "text-tn-ink"
                   }`}
                 >
@@ -98,7 +98,7 @@ export function LaunchChecklistCard() {
                   </p>
                   <Link
                     to={step.ctaTo}
-                    className="shrink-0 font-sans text-[13px] font-medium whitespace-nowrap text-tn-gold"
+                    className="shrink-0 font-sans text-[14px] font-medium whitespace-nowrap text-tn-gold"
                   >
                     {step.ctaLabel} →
                   </Link>

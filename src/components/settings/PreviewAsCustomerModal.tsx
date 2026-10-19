@@ -46,7 +46,7 @@ export function PreviewAsCustomerModal({ open, onClose }: PreviewAsCustomerModal
 
         <div className="flex flex-col gap-4 px-5 py-4">
           <div>
-            <p className="m-0 font-serif text-xl font-semibold text-tn-ink">
+            <p className="m-0 font-sans text-xl font-semibold text-tn-ink">
               {owner?.businessName ?? "The Gentry Barbershop"}
             </p>
             <p className="m-0 mt-1 font-sans text-xs text-tn-muted-4">
@@ -58,7 +58,7 @@ export function PreviewAsCustomerModal({ open, onClose }: PreviewAsCustomerModal
             </p>
           </div>
 
-          <div className="flex gap-4 border-b border-tn-border-soft font-sans text-[13px] font-medium text-tn-muted-5">
+          <div className="flex gap-4 border-b border-tn-border-soft font-sans text-[14px] font-medium text-tn-muted-5">
             <span className="border-b-2 border-tn-ink pb-2 font-semibold text-tn-ink">
               Services
             </span>
@@ -73,10 +73,10 @@ export function PreviewAsCustomerModal({ open, onClose }: PreviewAsCustomerModal
               .map((s) => (
                 <div key={s.id} className="flex items-center justify-between">
                   <div>
-                    <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">{s.name}</p>
+                    <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">{s.name}</p>
                     <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">{s.duration}</p>
                   </div>
-                  <span className="font-sans text-[13px] font-semibold text-tn-ink">
+                  <span className="font-sans text-[14px] font-semibold text-tn-ink">
                     ${s.price}
                   </span>
                 </div>
@@ -84,14 +84,14 @@ export function PreviewAsCustomerModal({ open, onClose }: PreviewAsCustomerModal
           </div>
 
           <div>
-            <p className="m-0 mb-2 font-sans text-[13px] font-semibold text-tn-ink">
+            <p className="m-0 mb-2 font-sans text-[14px] font-semibold text-tn-ink">
               Meet the team
             </p>
             <div className="flex gap-3">
               {STAFF.filter((s) => s.role.includes("Barber")).map((b) => (
                 <div key={b.id} className="flex flex-col items-center gap-1.5">
                   <div className="h-11 w-11 rounded-full" style={{ background: b.avatarColor }} />
-                  <span className="font-sans text-[11px] text-tn-muted-4">
+                  <span className="font-sans text-[12px] text-tn-muted-4">
                     {b.name.split(" ")[0]}
                   </span>
                 </div>

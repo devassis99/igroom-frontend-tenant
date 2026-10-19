@@ -73,7 +73,7 @@ const RESOURCE_CARDS: ResourceCard[] = [
 export function ResourcesSupportSection() {
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="m-0 font-serif text-xl font-semibold text-tn-ink">Resources &amp; Support</h2>
+      <h2 className="m-0 font-sans text-xl font-semibold text-tn-ink">Resources &amp; Support</h2>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {RESOURCE_CARDS.map((card) => (
           <div
@@ -84,8 +84,8 @@ export function ResourcesSupportSection() {
               <BookIcon />
             </div>
             <div className="flex flex-col gap-1.5">
-              <p className="m-0 font-sans text-[15px] font-semibold text-tn-ink">{card.title}</p>
-              <p className="m-0 font-sans text-[13px] leading-relaxed text-tn-muted-5">
+              <p className="m-0 font-sans text-[16px] font-semibold text-tn-ink">{card.title}</p>
+              <p className="m-0 font-sans text-[14px] leading-relaxed text-tn-muted-5">
                 {card.description}
               </p>
             </div>

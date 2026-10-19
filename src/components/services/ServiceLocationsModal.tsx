@@ -150,10 +150,10 @@ export function ServiceLocationsModal({
                     className="h-4 w-4 flex-none accent-tn-gold"
                   />
                   <span className="flex min-w-0 flex-col">
-                    <span className="truncate font-sans text-[13px] font-medium text-tn-ink">
+                    <span className="truncate font-sans text-[14px] font-medium text-tn-ink">
                       {loc.name}
                     </span>
-                    <span className="truncate font-sans text-[11px] text-tn-muted-5">
+                    <span className="truncate font-sans text-[12px] text-tn-muted-5">
                       {loc.address}
                     </span>
                   </span>
@@ -170,7 +170,7 @@ export function ServiceLocationsModal({
                       onChange={(e) => update(loc.id, { price: e.target.value })}
                       placeholder={service ? (service.priceCents / 100).toFixed(2) : ""}
                       aria-label={`Price at ${loc.name}`}
-                      className="w-20 rounded-lg border border-tn-input-border bg-tn-surface px-2 py-1.5 font-sans text-[13px] text-tn-ink outline-none focus:border-tn-gold placeholder:text-tn-placeholder"
+                      className="w-20 rounded-lg border border-tn-input-border bg-tn-surface px-2 py-1.5 font-sans text-[14px] text-tn-ink outline-none focus:border-tn-gold placeholder:text-tn-placeholder"
                     />
                     <input
                       type="text"
@@ -180,7 +180,7 @@ export function ServiceLocationsModal({
                       onChange={(e) => update(loc.id, { duration: e.target.value })}
                       placeholder={String(service?.durationMinutes ?? "")}
                       aria-label={`Duration in minutes at ${loc.name}`}
-                      className="w-16 rounded-lg border border-tn-input-border bg-tn-surface px-2 py-1.5 font-sans text-[13px] text-tn-ink outline-none focus:border-tn-gold placeholder:text-tn-placeholder"
+                      className="w-16 rounded-lg border border-tn-input-border bg-tn-surface px-2 py-1.5 font-sans text-[14px] text-tn-ink outline-none focus:border-tn-gold placeholder:text-tn-placeholder"
                     />
                     <span className="font-sans text-xs text-tn-muted-5">min</span>
                   </div>

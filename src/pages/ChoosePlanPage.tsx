@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router";
-import { useOnboardingStore } from "@/auth/onboarding-store";
+import { useOnboardingStore, useSignupStep } from "@/auth/onboarding-store";
 import { BILLING_CYCLE_LABEL, type BillingCycle } from "@/lib/sample-data";
 import {
   getCatalog,
@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/Button";
 import { LinkedPlanSummary } from "@/components/signup/LinkedPlanSummary";
 import { createCheckoutSession } from "@/lib/accounts-api";
 import { ApiError } from "@/lib/http";
-import { TourProvider } from "@/tour";
 
 const CYCLES: BillingCycle[] = ["monthly", "quarterly", "biannual", "annual"];
 
@@ -61,12 +60,11 @@ function availableCycles(products: CatalogProduct[]): BillingCycle[] {
 
 /**
  * Matches the mockup's T3b–T3e "Choose your plan" frames — one page,
- * billing cycle as a tab. Step 4 of 4 (Account → Business details →
- * Availability → Plan — Stripe's real hosted Checkout, then the new
- * Receipt page, follow this step but are outside the numbered wizard,
- * the former being an external redirect and the latter a
- * checkout-completion confirmation rather than a data-entry step — see
- * ReceiptPage's comment). Plans and prices come from igroom-backend's
+ * billing cycle as a tab. Step 2 of 4 (Account → Plan → Business details
+ * → Availability). Stripe's real hosted Checkout follows this step, then
+ * ReceiptPage, which creates the account before Business details — the
+ * shop has paid by the time it names itself, so it always ends up with
+ * an account. Neither is a numbered step. Plans and prices come from igroom-backend's
  * public GET /billing/products (see billing-api.ts) — the same catalog
  * managed from the back office's Plans page, not a hardcoded list. Only
  * prices the admin has marked showOnSignup (per price, so per cycle)
@@ -87,10 +85,10 @@ export function ChoosePlanPage() {
 }
 
 /**
- * Step 4 for a visitor who came through a back-office signup link
- * (JoinPage): the plan is already decided, so there's no picker. On
- * arrival it goes straight to Stripe Checkout for the link's price — to
- * the visitor, Availability's "Continue" simply leads to payment. The
+ * For a visitor who came through an invite link (JoinPage): the plan is
+ * already decided, so there's no picker and no numbered step. On arrival
+ * it goes straight to Stripe Checkout for the link's price — to the
+ * visitor, the account step's "Continue" simply leads to payment. The
  * screen only stays up when there's something to say: they came back
  * from a cancelled checkout, checkout couldn't start, or the link has
  * stopped working since they opened it.
@@ -100,6 +98,7 @@ function LinkedPlanCheckout({ token }: { token: string }) {
   const canceled = searchParams.get("canceled") === "1";
   const {
     workEmail,
+    fullName,
     selectPlan,
     setBillingCycle,
     setLastRoute,
@@ -142,6 +141,7 @@ function LinkedPlanCheckout({ token }: { token: string }) {
       const session = await createCheckoutSession({
         signupLinkToken: token,
         email: workEmail || undefined,
+        ownerName: fullName || undefined,
       });
       window.location.href = session.url;
     } catch (err) {
@@ -166,15 +166,14 @@ function LinkedPlanCheckout({ token }: { token: string }) {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-tn-surface px-6 py-12">
-      <TourProvider />
       <div className="flex w-[460px] max-w-full flex-col gap-[22px]">
         {deadLink ? (
           <>
             <div>
-              <h1 className="m-0 mb-1.5 font-serif text-[28px] font-semibold text-tn-ink">
+              <h1 className="m-0 mb-1.5 font-sans text-[24px] font-semibold text-tn-ink">
                 This link isn't working any more
               </h1>
-              <p className="m-0 font-sans text-[13px] text-tn-muted-5">
+              <p className="m-0 font-sans text-[14px] text-tn-muted-5">
                 {linkQuery.error instanceof ApiError
                   ? linkQuery.error.message
                   : "We couldn't load the plan on your link."}{" "}
@@ -192,10 +191,10 @@ function LinkedPlanCheckout({ token }: { token: string }) {
         ) : (
           <>
             <div>
-              <h1 className="m-0 mb-1.5 font-serif text-[28px] font-semibold text-tn-ink">
+              <h1 className="m-0 mb-1.5 font-sans text-[24px] font-semibold text-tn-ink">
                 Confirm and pay
               </h1>
-              <p className="m-0 font-sans text-[13px] text-tn-muted-5">
+              <p className="m-0 font-sans text-[14px] text-tn-muted-5">
                 Payment is handled securely by Stripe.
               </p>
             </div>
@@ -220,13 +219,15 @@ function LinkedPlanCheckout({ token }: { token: string }) {
   );
 }
 
-/** The normal step 4 — every self-signup visitor who didn't come through a signup link. */
+/** The normal step 2 — every self-signup visitor who didn't come through an invite link. */
 function PlanPicker() {
   const [searchParams] = useSearchParams();
+  const step = useSignupStep("plan");
   const {
     billingCycle,
     setBillingCycle,
     workEmail,
+    fullName,
     selectPlan,
     setLastRoute,
     setStripeCheckoutSessionId,
@@ -293,6 +294,7 @@ function PlanPicker() {
         planKey: product.key,
         billingCycle,
         email: workEmail || undefined,
+        ownerName: fullName || undefined,
       });
       window.location.href = session.url;
     } catch (err) {
@@ -307,15 +309,13 @@ function PlanPicker() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-8 bg-tn-plan-bg px-6 py-14">
-      {/* This screen is outside AppShell, so it mounts the walkthrough
-          itself. The overlay portals to the body either way. */}
-      <TourProvider />
       <div className="text-center">
-        <h1 className="m-0 mb-1.5 font-serif text-[30px] font-semibold text-tn-on-dark">
+        <h1 className="m-0 mb-1.5 font-sans text-[30px] font-semibold text-tn-on-dark">
           Choose your plan
         </h1>
         <p className="m-0 font-sans text-sm text-tn-page/80">
-          Step 4 of 4 · billed per chair, cancel anytime{CYCLE_SUBTITLE[billingCycle]}
+          Step {step.number} of {step.total} · billed per chair, cancel anytime
+          {CYCLE_SUBTITLE[billingCycle]}
         </p>
       </div>
 
@@ -346,7 +346,7 @@ function PlanPicker() {
             >
               {BILLING_CYCLE_LABEL[cycle]}
               {cycle === "annual" && annualDiscount !== null && (
-                <span className="rounded-full bg-tn-gold-bg px-1.5 py-0.5 font-sans text-[9px] font-semibold text-tn-gold">
+                <span className="rounded-full bg-tn-gold-bg px-1.5 py-0.5 font-sans text-[11px] font-semibold text-tn-gold">
                   SAVE {annualDiscount}%
                 </span>
               )}
@@ -386,7 +386,7 @@ function PlanPicker() {
                 } ${isTrial ? "bg-tn-gold-soft" : "bg-tn-surface"}`}
               >
                 {isTrial ? (
-                  <p className="m-0 px-3.5 py-2 font-sans text-[11px] font-bold tracking-[0.04em] text-[oklch(28%_0.06_60)]">
+                  <p className="m-0 px-3.5 py-2 font-sans text-[12px] font-bold tracking-[0.04em] text-[oklch(28%_0.06_60)]">
                     {product.trialDays}-DAY FREE TRIAL
                   </p>
                 ) : (
@@ -398,7 +398,7 @@ function PlanPicker() {
                   <p className="m-0 font-sans text-xs font-bold tracking-[0.03em] text-tn-dark">
                     {product.name.toUpperCase()}
                   </p>
-                  <p className="m-0 font-sans text-[34px] font-bold text-tn-ink">
+                  <p className="m-0 font-sans text-[30px] font-bold text-tn-ink">
                     ${monthlyEquivalentDollars(price!)}
                     <span className="font-sans text-sm font-normal text-tn-muted-5">/mo</span>
                   </p>
@@ -407,7 +407,7 @@ function PlanPicker() {
                     {product.features.join("\n")}
                   </p>
                   {isRedirecting && (
-                    <p className="m-0 font-sans text-[11px] font-semibold text-tn-muted-5">
+                    <p className="m-0 font-sans text-[12px] font-semibold text-tn-muted-5">
                       Redirecting to secure checkout…
                     </p>
                   )}

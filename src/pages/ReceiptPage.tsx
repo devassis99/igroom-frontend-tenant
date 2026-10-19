@@ -4,19 +4,9 @@ import { useOnboardingStore } from "@/auth/onboarding-store";
 import { useAuthStore } from "@/auth/auth-store";
 import { Button } from "@/components/ui/Button";
 import { signup } from "@/lib/accounts-api";
-import { setMyAvailability } from "@/lib/availability-api";
 import { ApiError } from "@/lib/http";
 
-interface ReceiptData {
-  ownerFirstName: string;
-  businessName: string;
-  planName: string;
-  seats: number;
-  priceCents: number;
-  currency: string;
-  invoiceNumber: string;
-  date: string;
-}
+const AFTER_RECEIPT = new Set(["/signup/business", "/signup/availability"]);
 
 function formatMoney(cents: number, currency: string): string {
   return new Intl.NumberFormat("en-US", {
@@ -26,34 +16,34 @@ function formatMoney(cents: number, currency: string): string {
 }
 
 /**
- * Matches the mockup's T5 "Application Submitted" frame — where Stripe
- * redirects (success_url — see accounts.service.ts's
- * createCheckoutSession) once the visitor finishes paying. Everything
- * else signup needs (owner credentials, business details, the picked
- * plan, and an optional weekly schedule — see onboarding-store.ts) is
- * already sitting in the onboarding store by the time a visitor lands
- * here, so this page is what actually calls POST /accounts/signup,
- * verifying this exact Checkout Session server-side before the account
- * is created. If a weekly schedule was set (not skipped) on
- * StaffAvailabilityPage, it's submitted here too, right after — that's
- * the earliest point a real staffUser/accessToken exists to submit it
- * with.
+ * Matches the mockup's T5 receipt frame — where Stripe sends the visitor
+ * back once they've paid (success_url — see accounts.service.ts's
+ * createCheckoutSession). Two jobs, in order:
  *
- * Copy note: the mockup's frame reads like a manual-review flow ("we're
- * reviewing your application... this usually takes less than 24
- * hours"), but accounts.service.ts's signup() creates an
- * active/trialing account instantly — there's no review queue. The copy
- * below reflects that instant activation instead of the mockup's
- * review-queue wording; flag if a manual-review model was actually
- * intended and this should show a pending state instead.
+ * 1. Create the account, the moment the payment is confirmed. Signup runs
+ *    Account → (Plan) → Payment → Receipt → Business details →
+ *    Availability, so a shop that has paid must never be left without an
+ *    account just because it closed the tab before the last two screens.
+ * 2. Show the receipt — payment received, the plan, the invoice — with a
+ *    Continue into Business details. It's the first thing after Stripe,
+ *    not the last screen of signup: the shop has no name yet here, so the
+ *    copy talks about the payment and the account, not the business.
+ *    Availability ends signup by handing over to the dashboard.
+ *
+ * POST /accounts/signup verifies this exact Checkout Session server-side
+ * before creating anything. No business name is sent — the backend names
+ * the account after its owner and flags it needsBusinessDetails, and the
+ * next screen (BusinessDetailsPage) gives it its real name, signed in.
+ * A visitor who filled in business details before the reorder still has
+ * them in the onboarding store; those are sent, and they skip straight to
+ * Availability.
  *
  * Reads Stripe's one-time `?session_id=` the moment it arrives and
  * persists it to the onboarding store (stripeCheckoutSessionId) so a
  * manual URL edit, reload, or resume-via-lastRoute after that doesn't
- * force a second real Stripe Checkout — see onboarding-store.ts's
- * comment on that field. A reload after a successful run (wizard state
- * already cleared) falls through to signup()'s 409 "already exists" /
- * "already used" errors below, which point at logging in instead.
+ * force a second real Stripe Checkout — see onboarding-store.ts's comment
+ * on that field. `accountCreated` then stops a reload from trying to
+ * create the account twice — a reload just shows the receipt again.
  */
 export function ReceiptPage() {
   const navigate = useNavigate();
@@ -62,7 +52,9 @@ export function ReceiptPage() {
   const onboarding = useOnboardingStore();
   const loginWithSession = useAuthStore((s) => s.loginWithSession);
   const [error, setError] = useState<{ message: string; status?: number } | null>(null);
-  const [receipt, setReceipt] = useState<ReceiptData | null>(null);
+  // Only a visitor from before the reorder gave business details before
+  // paying; they go straight on to Availability.
+  const [nextRoute, setNextRoute] = useState("/signup/business");
   const startedRef = useRef(false);
 
   const plan = onboarding.selectedPlan;
@@ -73,13 +65,10 @@ export function ReceiptPage() {
       onboarding.setStripeCheckoutSessionId(urlSessionId);
       // A real Stripe payment already went through the moment this URL
       // param shows up — from here on, Plan/Checkout are irrelevant to
-      // resuming (re-visiting them would mean paying a second time for
-      // an already-paid signup). Recording this as the resume point
-      // means a visitor who checks out then closes the tab before the
-      // signup() effect below finishes comes back straight here (via
-      // LandingPage's "Continue where you left off"), not to
-      // /signup/plan. reset() below clears this back to "/signup" the
-      // moment signup() actually succeeds.
+      // resuming (re-visiting them would mean paying a second time).
+      // Recording this as the resume point means a visitor who closes the
+      // tab before the account is created comes back straight here (via
+      // LandingPage's "Continue where you left off"), not to /signup/plan.
       onboarding.setLastRoute("/signup/receipt");
     }
     // Only re-run when the URL param itself changes — onboarding's
@@ -89,11 +78,16 @@ export function ReceiptPage() {
 
   useEffect(() => {
     if (startedRef.current) return;
-    if (!plan || !effectiveSessionId || !onboarding.businessName) {
-      // Landed here without finishing the earlier steps (bookmark, back
-      // button, or a checkout session that never actually completed) —
-      // send back to pick a plan rather than letting signup() fail with
-      // a confusing error.
+    // Already created on an earlier visit (a reload, or an invite link
+    // opened again) — the receipt below is all there is to do here.
+    if (onboarding.accountCreated) {
+      startedRef.current = true;
+      return;
+    }
+    if (!plan || !effectiveSessionId) {
+      // Landed here without paying (bookmark, back button, or a checkout
+      // session that never actually completed) — send back to pay rather
+      // than letting signup() fail with a confusing error.
       navigate("/signup/plan", { replace: true });
       return;
     }
@@ -101,38 +95,30 @@ export function ReceiptPage() {
 
     (async () => {
       try {
+        // Only a visitor from before the reorder has these already.
+        const businessName = onboarding.businessName.trim();
         const tokens = await signup({
-          fullName: onboarding.fullName || "Sam Whitfield",
+          fullName: onboarding.fullName,
           workEmail: onboarding.workEmail,
           password: onboarding.googleIdToken ? undefined : onboarding.password,
           googleIdToken: onboarding.googleIdToken ?? undefined,
-          businessName: onboarding.businessName,
-          category: onboarding.category,
-          phone: onboarding.phone,
+          ...(businessName
+            ? { businessName, category: onboarding.category, phone: onboarding.phone }
+            : {}),
           planKey: plan.key,
           billingCycle: onboarding.billingCycle,
           signupLinkToken: onboarding.signupLinkToken ?? undefined,
           stripeCheckoutSessionId: effectiveSessionId,
         });
 
-        // Best-effort — availability is skippable everywhere else too,
-        // so a failure here shouldn't block finishing signup.
-        if (onboarding.availabilityDays) {
-          try {
-            await setMyAvailability(tokens.accessToken, onboarding.availabilityDays);
-          } catch {
-            // Ignored — the owner can always set this later in Settings.
-          }
-        }
-
         loginWithSession({
           owner: {
-            fullName: onboarding.fullName || "Sam Whitfield",
+            fullName: onboarding.fullName,
             workEmail: onboarding.workEmail,
-            businessName: onboarding.businessName,
-            category: onboarding.category,
+            businessName: businessName || `${onboarding.fullName}'s shop`,
+            category: businessName ? onboarding.category : "",
             address: "",
-            phone: onboarding.phone,
+            phone: businessName ? onboarding.phone : "",
             planKey: plan.key,
             planName: plan.name,
             priceCents: plan.priceCents,
@@ -143,31 +129,16 @@ export function ReceiptPage() {
           accessToken: tokens.accessToken,
           refreshToken: tokens.refreshToken,
         });
-
-        setReceipt({
-          ownerFirstName: (onboarding.fullName || "Sam Whitfield").split(" ")[0] ?? "there",
-          businessName: onboarding.businessName,
-          planName: plan.name,
-          seats: 4,
-          priceCents: plan.priceCents,
-          currency: plan.currency,
-          invoiceNumber: `INV-${effectiveSessionId.slice(-8).toUpperCase()}`,
-          date: new Date().toLocaleDateString("en-US", {
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          }),
-        });
-        // Signup is done — clear the localStorage-persisted wizard state
-        // (see onboarding-store.ts) so a later visit to /signup doesn't
-        // resurrect this finished attempt's email/plan/etc.
-        onboarding.reset();
+        // Also wipes the password from localStorage — it's done its job.
+        // The receipt renders from here on (accountCreated).
+        onboarding.setAccountCreated();
+        if (businessName) setNextRoute("/signup/availability");
       } catch (err) {
         // igroom-backend's signup() throws a 409 ConflictError both for
         // "email already exists" and "this checkout session was already
         // used" — the latter can legitimately happen on a reload of this
-        // page after an earlier successful run already cleared the
-        // wizard state, so point at logging in rather than a dead end.
+        // page after an earlier successful run, so point at logging in
+        // rather than a dead end.
         if (err instanceof ApiError) {
           setError({ message: err.message, status: err.status });
         } else if (err instanceof Error) {
@@ -182,10 +153,6 @@ export function ReceiptPage() {
       // eslint-disable-next-line react-hooks/exhaustive-deps
     })();
   }, [plan, effectiveSessionId, onboarding, loginWithSession, navigate]);
-
-  function goToDashboard() {
-    navigate("/redirecting", { state: { to: "/dashboard" }, replace: true });
-  }
 
   if (error) {
     return (
@@ -202,12 +169,35 @@ export function ReceiptPage() {
     );
   }
 
-  if (!receipt) {
+  if (!onboarding.accountCreated || !plan) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-tn-surface px-6 py-12">
-        <p className="m-0 font-sans text-sm text-tn-muted-5">Finishing checkout…</p>
+        <p className="m-0 font-sans text-sm text-tn-muted-5">
+          Payment received — setting up your account…
+        </p>
       </div>
     );
+  }
+
+  const firstName = onboarding.fullName.split(" ")[0] || "there";
+  const invoiceNumber = effectiveSessionId
+    ? `INV-${effectiveSessionId.slice(-8).toUpperCase()}`
+    : "—";
+  const date = new Date().toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  // A reload after the visitor already moved on (Back, or a reopened
+  // invite link) continues from the step they got to.
+  const continueTo = AFTER_RECEIPT.has(onboarding.lastRoute)
+    ? onboarding.lastRoute
+    : nextRoute;
+
+  function continueSetup() {
+    onboarding.setLastRoute(continueTo);
+    navigate(continueTo, { replace: true });
   }
 
   return (
@@ -233,36 +223,33 @@ export function ReceiptPage() {
         </div>
 
         <div>
-          <h1 className="m-0 mb-1.5 font-serif text-[26px] font-semibold text-tn-ink">
-            You&rsquo;re all set, {receipt.ownerFirstName}!
+          <h1 className="m-0 mb-1.5 font-sans text-[24px] font-semibold text-tn-ink">
+            Payment received, {firstName}!
           </h1>
           <p className="m-0 font-sans text-sm text-tn-muted-5">
-            {receipt.businessName} is live on iGroom — you can start taking bookings right away.
+            Your iGroom account is ready. Next, a couple of quick details about your shop — then you
+            can start taking bookings.
           </p>
         </div>
 
         <div className="flex w-full flex-col gap-3 rounded-xl border border-tn-border p-5 text-left">
           <div className="flex items-center justify-between">
             <span className="font-sans text-xs text-tn-muted-5">Invoice #</span>
-            <span className="font-sans text-xs font-medium text-tn-ink">
-              {receipt.invoiceNumber}
-            </span>
+            <span className="font-sans text-xs font-medium text-tn-ink">{invoiceNumber}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="font-sans text-xs text-tn-muted-5">Date</span>
-            <span className="font-sans text-xs font-medium text-tn-ink">{receipt.date}</span>
+            <span className="font-sans text-xs font-medium text-tn-ink">{date}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="font-sans text-xs text-tn-muted-5">Plan</span>
-            <span className="font-sans text-xs font-medium text-tn-ink">
-              {receipt.planName} · {receipt.seats} seats
-            </span>
+            <span className="font-sans text-xs font-medium text-tn-ink">{plan.name} · 4 seats</span>
           </div>
           <div className="h-px bg-tn-border-softer" />
           <div className="flex items-center justify-between">
             <span className="font-sans text-xs font-semibold text-tn-ink">Total paid</span>
             <span className="font-sans text-sm font-semibold text-tn-ink">
-              {formatMoney(receipt.priceCents, receipt.currency)}
+              {formatMoney(plan.priceCents, plan.currency)}
             </span>
           </div>
           <button
@@ -275,8 +262,8 @@ export function ReceiptPage() {
           </button>
         </div>
 
-        <Button size="lg" className="w-full" onClick={goToDashboard}>
-          Go to Owner Dashboard
+        <Button size="lg" className="w-full" onClick={continueSetup}>
+          Continue
         </Button>
       </div>
     </div>

@@ -49,7 +49,7 @@ export function LandingPage() {
   return (
     <div className="min-h-screen bg-tn-surface">
       <header className="flex items-center justify-between px-16 py-6">
-        <span className="font-serif text-xl font-semibold text-tn-ink">iGroom for Business</span>
+        <span className="font-sans text-xl font-semibold text-tn-ink">iGroom for Business</span>
         <nav className="flex items-center gap-7 font-sans text-sm font-medium text-tn-muted-2">
           <span className="hidden sm:inline">Features</span>
           <span className="hidden sm:inline">Pricing</span>
@@ -82,7 +82,7 @@ export function LandingPage() {
 
       <section className="flex items-center gap-16 px-16 pb-14 pt-10">
         <div className="flex flex-1 flex-col gap-5">
-          <h1 className="m-0 font-serif text-5xl font-semibold leading-tight text-tn-ink">
+          <h1 className="m-0 font-sans text-5xl font-semibold leading-tight text-tn-ink">
             List your shop on iGroom
           </h1>
           <p className="m-0 max-w-md font-sans text-lg leading-relaxed text-tn-muted-4">
@@ -117,8 +117,8 @@ export function LandingPage() {
             <span className="text-xl text-tn-gold" aria-hidden>
               ★
             </span>
-            <p className="m-0 font-sans text-[15px] font-semibold text-tn-ink">{feature.title}</p>
-            <p className="m-0 font-sans text-[13px] leading-relaxed text-tn-muted-5">
+            <p className="m-0 font-sans text-[16px] font-semibold text-tn-ink">{feature.title}</p>
+            <p className="m-0 font-sans text-[14px] leading-relaxed text-tn-muted-5">
               {feature.body}
             </p>
           </div>

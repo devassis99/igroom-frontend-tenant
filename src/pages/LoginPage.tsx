@@ -181,10 +181,10 @@ export function LoginPage() {
       <div className="flex min-h-screen items-center justify-center bg-tn-page px-4">
         <div className="flex w-[380px] flex-col gap-6">
           <div className="flex flex-col items-center gap-1.5 text-center">
-            <p className="m-0 font-serif text-2xl font-semibold text-tn-ink">
+            <p className="m-0 font-sans text-2xl font-semibold text-tn-ink">
               Enter verification code
             </p>
-            <p className="m-0 font-sans text-[13px] text-tn-muted-3">
+            <p className="m-0 font-sans text-[14px] text-tn-muted-3">
               Open your authenticator app and enter the current code.
             </p>
           </div>
@@ -218,7 +218,7 @@ export function LoginPage() {
               setMfaCode("");
               setError(null);
             }}
-            className="cursor-pointer self-center border-none bg-transparent p-0 font-sans text-[13px] font-medium text-tn-muted-5"
+            className="cursor-pointer self-center border-none bg-transparent p-0 font-sans text-[14px] font-medium text-tn-muted-5"
           >
             Back to log in
           </button>
@@ -231,10 +231,10 @@ export function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-tn-surface px-6 py-12">
       <form onSubmit={handleSubmit} className="flex w-[420px] flex-col gap-6">
         <div>
-          <h1 className="m-0 mb-1.5 font-serif text-[28px] font-semibold text-tn-ink">
+          <h1 className="m-0 mb-1.5 font-sans text-[24px] font-semibold text-tn-ink">
             Log in to iGroom
           </h1>
-          <p className="m-0 font-sans text-[13px] text-tn-muted-5">
+          <p className="m-0 font-sans text-[14px] text-tn-muted-5">
             Welcome back — sign in to manage your shop.
           </p>
         </div>
@@ -282,7 +282,7 @@ export function LoginPage() {
           {submitting ? "Logging in…" : "Log in"}
         </Button>
 
-        <p className="m-0 text-center font-sans text-[13px] text-tn-muted-5">
+        <p className="m-0 text-center font-sans text-[14px] text-tn-muted-5">
           Don't have a shop on iGroom yet?{" "}
           <Link to="/signup" className="font-medium text-tn-gold">
             Sign up

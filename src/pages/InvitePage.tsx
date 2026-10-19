@@ -107,7 +107,7 @@ export function InvitePage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-tn-page p-6">
       <div className="flex w-full max-w-md flex-col gap-3 rounded-2xl border border-tn-border bg-tn-surface p-8">
-        <h1 className="m-0 font-serif text-xl font-semibold text-tn-ink">
+        <h1 className="m-0 font-sans text-xl font-semibold text-tn-ink">
           {state.kind === "no-token" ? "Nothing to set up here" : "This link didn't work"}
         </h1>
         <p className="m-0 font-sans text-sm leading-relaxed text-tn-muted-5">

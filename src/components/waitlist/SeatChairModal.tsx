@@ -47,7 +47,7 @@ export function SeatChairModal({
   return (
     <Modal open={entry !== null} onClose={onClose}>
       <div className="flex items-center justify-between px-6 pt-6">
-        <h2 className="m-0 font-sans text-[19px] font-semibold text-tn-ink">
+        <h2 className="m-0 font-sans text-[18px] font-semibold text-tn-ink">
           Seat {entry.customerName}
         </h2>
         <button
@@ -61,7 +61,7 @@ export function SeatChairModal({
       </div>
 
       <div className="flex flex-col gap-4 px-6 pt-4 pb-6">
-        <p className="m-0 font-sans text-[13px] text-tn-muted-5">
+        <p className="m-0 font-sans text-[14px] text-tn-muted-5">
           {entry.serviceName} · {entry.durationMinutes} min
           {entry.staffUserId ? ` · asked for ${entry.staffName}` : " · no barber preference"}
         </p>
@@ -81,7 +81,7 @@ export function SeatChairModal({
             >
               <Avatar initials={chair.initials} color={staffAvatarColorStrong(chair.staffUserId)} />
               <span className="flex-1">
-                <span className="block font-sans text-[13px] font-semibold text-tn-ink">
+                <span className="block font-sans text-[14px] font-semibold text-tn-ink">
                   {chair.name}
                 </span>
                 <span className="block font-sans text-xs text-tn-muted-5">
@@ -105,7 +105,7 @@ export function SeatChairModal({
         ) : null}
 
         {error ? (
-          <p role="alert" className="m-0 font-sans text-[13px] text-tn-danger">
+          <p role="alert" className="m-0 font-sans text-[14px] text-tn-danger">
             {error}
           </p>
         ) : null}

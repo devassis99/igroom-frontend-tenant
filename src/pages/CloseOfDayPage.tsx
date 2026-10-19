@@ -132,7 +132,7 @@ export function CloseOfDayPage() {
   if (locationsQuery.isSuccess && locations.length === 0) {
     return (
       <div className="flex flex-col gap-3">
-        <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">Close of day</h1>
+        <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Close of day</h1>
         <p className="m-0 max-w-[60ch] font-sans text-sm text-tn-muted-3">
           You are not assigned to a branch yet, so there is no day to close.
         </p>
@@ -144,7 +144,7 @@ export function CloseOfDayPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">Close of day</h1>
+          <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Close of day</h1>
           {locations.length > 1 && (
             <LocationFilterPopover
               locations={locations.map((l) => ({ id: l.id, name: l.name }))}
@@ -182,7 +182,7 @@ export function CloseOfDayPage() {
       </div>
 
       {notice && (
-        <p className="m-0 rounded-xl border border-tn-danger bg-tn-danger-bg px-4 py-3 font-sans text-[13px] text-tn-danger">
+        <p className="m-0 rounded-xl border border-tn-danger bg-tn-danger-bg px-4 py-3 font-sans text-[14px] text-tn-danger">
           {notice}
         </p>
       )}
@@ -204,23 +204,23 @@ export function CloseOfDayPage() {
               <p className="m-0 font-sans text-sm font-semibold text-tn-ink">
                 Nothing rung up yet today
               </p>
-              <p className="m-0 mt-1 font-sans text-[13px] text-tn-muted-3">
+              <p className="m-0 mt-1 font-sans text-[14px] text-tn-muted-3">
                 Close a ticket on the register and it will show up here.
               </p>
             </div>
           ) : (
             <div className="overflow-hidden rounded-2xl border border-tn-border">
               <div className="flex bg-tn-table-head px-4 py-2.5">
-                <span className="flex-[1.4] font-sans text-[11px] font-semibold tracking-[0.06em] text-tn-muted-5">
+                <span className="flex-[1.4] font-sans text-[12px] font-semibold tracking-[0.06em] text-tn-muted-5">
                   BARBER
                 </span>
-                <span className="w-[78px] text-right font-sans text-[11px] font-semibold tracking-[0.06em] text-tn-muted-5">
+                <span className="w-[78px] text-right font-sans text-[12px] font-semibold tracking-[0.06em] text-tn-muted-5">
                   SERVICES
                 </span>
-                <span className="w-[64px] text-right font-sans text-[11px] font-semibold tracking-[0.06em] text-tn-muted-5">
+                <span className="w-[64px] text-right font-sans text-[12px] font-semibold tracking-[0.06em] text-tn-muted-5">
                   TIPS
                 </span>
-                <span className="w-[118px] text-right font-sans text-[11px] font-semibold tracking-[0.06em] text-tn-muted-5">
+                <span className="w-[118px] text-right font-sans text-[12px] font-semibold tracking-[0.06em] text-tn-muted-5">
                   PAYOUT
                 </span>
               </div>
@@ -230,17 +230,17 @@ export function CloseOfDayPage() {
                   className="flex items-center border-b border-tn-border-soft px-4 py-3 last:border-b-0"
                 >
                   <div className="flex-[1.4]">
-                    <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">
+                    <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">
                       {row.name}
                     </p>
-                    <p className="m-0 font-sans text-[11px] text-tn-muted-3">
+                    <p className="m-0 font-sans text-[12px] text-tn-muted-3">
                       {compDescription(row)}
                     </p>
                   </div>
-                  <span className="w-[78px] text-right font-sans text-[13px] text-tn-ink-soft">
+                  <span className="w-[78px] text-right font-sans text-[14px] text-tn-ink-soft">
                     {formatCents(row.serviceCents)}
                   </span>
-                  <span className="w-[64px] text-right font-sans text-[13px] text-tn-ink-soft">
+                  <span className="w-[64px] text-right font-sans text-[14px] text-tn-ink-soft">
                     {formatCents(row.tipsCents)}
                   </span>
                   <span className="flex w-[118px] shrink-0 flex-col items-end">
@@ -254,7 +254,7 @@ export function CloseOfDayPage() {
                       figure, which ran into the tips column.
                     */}
                     <span
-                      className={`font-sans text-[13px] font-semibold ${
+                      className={`font-sans text-[14px] font-semibold ${
                         row.payoutCents < 0 ? "text-tn-danger" : "text-tn-ink"
                       }`}
                     >
@@ -263,18 +263,18 @@ export function CloseOfDayPage() {
                         : formatCents(row.payoutCents)}
                     </span>
                     {row.payoutCents < 0 ? (
-                      <span className="font-sans text-[11px] text-tn-danger">owes the shop</span>
+                      <span className="font-sans text-[12px] text-tn-danger">owes the shop</span>
                     ) : row.id && row.status === "pending" ? (
                       <button
                         type="button"
                         onClick={() => settle.mutate(row.id!)}
                         disabled={settle.isPending}
-                        className="cursor-pointer border-none bg-transparent font-sans text-[11px] text-tn-gold hover:underline"
+                        className="cursor-pointer border-none bg-transparent font-sans text-[12px] text-tn-gold hover:underline"
                       >
                         mark settled
                       </button>
                     ) : row.status === "paid" ? (
-                      <span className="font-sans text-[11px] text-tn-success">settled</span>
+                      <span className="font-sans text-[12px] text-tn-success">settled</span>
                     ) : null}
                   </span>
                 </div>
@@ -283,21 +283,21 @@ export function CloseOfDayPage() {
           )}
 
           {day && day.deskPoolCents > 0 && (
-            <p className="m-0 rounded-xl bg-tn-gold-bg-soft px-4 py-3 font-sans text-[12px] leading-relaxed text-tn-muted-3">
+            <p className="m-0 rounded-xl bg-tn-gold-bg-soft px-4 py-3 font-sans text-[13px] leading-relaxed text-tn-muted-3">
               {formatCents(day.deskPoolCents)} of tonight&rsquo;s tips is the front desk pool. It is
               shown on its own rather than folded into someone&rsquo;s total, because the register
               knows it was earned and does not yet know whose shift it belongs to.
             </p>
           )}
 
-          <p className="m-0 font-sans text-[12px] leading-relaxed text-tn-muted-5">
+          <p className="m-0 font-sans text-[13px] leading-relaxed text-tn-muted-5">
             These are payout statements, frozen at tonight&rsquo;s rates — not transfers. Staff see
             the same breakdown for their own work, so nobody has to ask.
           </p>
         </section>
 
         <aside className="flex flex-col gap-4 rounded-2xl border border-tn-border bg-tn-surface p-5 lg:sticky lg:top-6">
-          <p className="m-0 font-sans text-[11px] font-semibold tracking-[0.1em] text-tn-muted-5">
+          <p className="m-0 font-sans text-[12px] font-semibold tracking-[0.1em] text-tn-muted-5">
             DRAWER COUNT
           </p>
           <div className="flex flex-col gap-2.5">
@@ -307,13 +307,13 @@ export function CloseOfDayPage() {
           </div>
 
           <label className="flex flex-col gap-1.5">
-            <span className="font-sans text-[12px] text-tn-muted-5">Counted</span>
+            <span className="font-sans text-[13px] text-tn-muted-5">Counted</span>
             <input
               value={counted}
               onChange={(event) => setCountedDraft(event.target.value)}
               disabled={day?.status === "closed"}
               inputMode="decimal"
-              className="rounded-lg border border-tn-input-border bg-tn-surface px-3.5 py-3 font-sans text-[15px] font-semibold text-tn-ink outline-none disabled:opacity-70"
+              className="rounded-lg border border-tn-input-border bg-tn-surface px-3.5 py-3 font-sans text-[16px] font-semibold text-tn-ink outline-none disabled:opacity-70"
             />
           </label>
 
@@ -328,7 +328,7 @@ export function CloseOfDayPage() {
               }`}
             >
               <span
-                className={`font-sans text-[13px] font-medium ${
+                className={`font-sans text-[14px] font-medium ${
                   variance === 0
                     ? "text-tn-success"
                     : variance < 0
@@ -339,7 +339,7 @@ export function CloseOfDayPage() {
                 {variance === 0 ? "Balances" : variance < 0 ? "Short" : "Over"}
               </span>
               <span
-                className={`font-sans text-[13px] font-semibold ${
+                className={`font-sans text-[14px] font-semibold ${
                   variance === 0
                     ? "text-tn-success"
                     : variance < 0
@@ -356,13 +356,13 @@ export function CloseOfDayPage() {
 
           <div className="flex items-baseline justify-between">
             <span className="font-sans text-sm font-semibold text-tn-ink">Total payouts</span>
-            <span className="font-sans text-[22px] font-semibold text-tn-ink">
+            <span className="font-sans text-[20px] font-semibold text-tn-ink">
               {formatCents(day?.payoutTotalCents ?? 0)}
             </span>
           </div>
 
           {day?.status === "closed" ? (
-            <p className="m-0 rounded-lg bg-tn-success-bg px-3 py-2.5 font-sans text-[12px] font-semibold text-tn-success">
+            <p className="m-0 rounded-lg bg-tn-success-bg px-3 py-2.5 font-sans text-[13px] font-semibold text-tn-success">
               Closed
               {day.closedAt
                 ? ` at ${new Date(day.closedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`
@@ -392,8 +392,8 @@ export function CloseOfDayPage() {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between">
-      <span className="font-sans text-[13px] text-tn-muted-3">{label}</span>
-      <span className="font-sans text-[13px] font-semibold text-tn-ink">{value}</span>
+      <span className="font-sans text-[14px] text-tn-muted-3">{label}</span>
+      <span className="font-sans text-[14px] font-semibold text-tn-ink">{value}</span>
     </div>
   );
 }

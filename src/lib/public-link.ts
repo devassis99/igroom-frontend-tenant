@@ -24,6 +24,19 @@ import type { AccountLocation } from "./locations-api";
  * been the same string.
  */
 
+/**
+ * Roughly what the backend makes of a name ("Johar Town" → "johar-town")
+ * — for previews only. The real slug comes back from the API, and can
+ * differ (a suffix when the name is taken, "-branch" on a reserved word).
+ */
+export function previewSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+}
+
 /** Null when no public site is configured — see env.ts's VITE_BOOKING_BASE_URL. */
 export function publicBookingUrl(
   accountSlug: string | null | undefined,

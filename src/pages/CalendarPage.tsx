@@ -1245,12 +1245,12 @@ export function CalendarPage() {
     const failed = locationsQuery.isError;
     return (
       <div className="flex flex-col gap-7">
-        <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">Calendar</h1>
+        <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Calendar</h1>
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-tn-input-border bg-tn-page px-8 py-16 text-center">
-          <span className="font-sans text-[15px] font-semibold text-tn-ink">
+          <span className="font-sans text-[16px] font-semibold text-tn-ink">
             {failed ? "Couldn\u2019t load your locations" : "No shop to show yet"}
           </span>
-          <span className="max-w-[380px] font-sans text-[13px] text-tn-muted-5">
+          <span className="max-w-[380px] font-sans text-[14px] text-tn-muted-5">
             {failed
               ? `${locationsQuery.error instanceof Error ? locationsQuery.error.message : "Unknown error"} \u2014 refresh to try again.`
               : "The calendar shows one shop at a time. Once you\u2019re assigned to a location, its day, week and month views appear here."}
@@ -1264,7 +1264,7 @@ export function CalendarPage() {
     <div className="flex flex-col gap-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3.5" data-tour="calendar-location">
-          <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">Calendar</h1>
+          <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Calendar</h1>
           {locations.length > 1 && (
             <LocationFilterPopover
               locations={locations}
@@ -1294,7 +1294,7 @@ export function CalendarPage() {
                 >
                   ‹
                 </button>
-                <span className="min-w-[110px] text-center font-sans text-[13px] font-semibold text-tn-ink-soft">
+                <span className="min-w-[110px] text-center font-sans text-[14px] font-semibold text-tn-ink-soft">
                   {navLabel}
                 </span>
                 <button
@@ -1357,16 +1357,16 @@ export function CalendarPage() {
              grid below has nothing to show and no one to assign a booking to. Replaces the
              whole card rather than rendering an empty grid with a message buried in its header. */
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-tn-input-border bg-tn-page px-8 py-16 text-center">
-            <span className="font-sans text-[15px] font-semibold text-tn-ink">
+            <span className="font-sans text-[16px] font-semibold text-tn-ink">
               No staff at this location yet
             </span>
-            <span className="max-w-[380px] font-sans text-[13px] text-tn-muted-5">
+            <span className="max-w-[380px] font-sans text-[14px] text-tn-muted-5">
               Add your first staff member and their working hours — once they&rsquo;re on the
               roster, their column shows up here automatically.
             </span>
             <Link
               to="/staff"
-              className="mt-1 cursor-pointer rounded-lg border-none bg-tn-dark px-4 py-2.5 font-sans text-[13px] font-semibold text-tn-on-dark no-underline"
+              className="mt-1 cursor-pointer rounded-lg border-none bg-tn-dark px-4 py-2.5 font-sans text-[14px] font-semibold text-tn-on-dark no-underline"
             >
               Add staff
             </Link>
@@ -1439,16 +1439,16 @@ export function CalendarPage() {
                       every row's own gutter cell below) scrolls sideways underneath it. Needs its own
                       opaque background (matching the header row's) since sticky positioning takes it out of
                       the row's normal paint order. */}
-                      <div className="sticky left-0 z-10 flex items-center justify-center bg-tn-table-head p-2 text-center font-sans text-[11px] font-medium text-tn-muted-5">
+                      <div className="sticky left-0 z-10 flex items-center justify-center bg-tn-table-head p-2 text-center font-sans text-[12px] font-medium text-tn-muted-5">
                         {formatUtcOffset(timezone)}
                       </div>
                       {staffQuery.isPending && (
-                        <div className="border-l border-tn-border-soft p-3 font-sans text-[13px] text-tn-muted-5">
+                        <div className="border-l border-tn-border-soft p-3 font-sans text-[14px] text-tn-muted-5">
                           Loading staff…
                         </div>
                       )}
                       {!staffQuery.isPending && dayColumns.length === 0 && (
-                        <div className="border-l border-tn-border-soft p-3 font-sans text-[13px] text-tn-muted-5">
+                        <div className="border-l border-tn-border-soft p-3 font-sans text-[14px] text-tn-muted-5">
                           No staff selected — use the Staff picker above to choose who to show.
                         </div>
                       )}
@@ -1465,10 +1465,10 @@ export function CalendarPage() {
                               style={{ background: staffAvatarColor(member.id) }}
                             />
                             <span className="flex min-w-0 flex-col">
-                              <span className="truncate font-sans text-[13px] font-semibold text-tn-ink">
+                              <span className="truncate font-sans text-[14px] font-semibold text-tn-ink">
                                 {member.name}
                               </span>
-                              <span className="truncate font-sans text-[10.5px] text-tn-muted-5">
+                              <span className="truncate font-sans text-[11px] text-tn-muted-5">
                                 {formatShiftSummary(shift)}
                                 {bookingCount > 0 ? ` · ${bookingCount} booked` : ""}
                               </span>
@@ -1479,7 +1479,7 @@ export function CalendarPage() {
                       {canManageStaff && (
                         <Link
                           to="/staff"
-                          className="flex items-center gap-2 border-l border-dashed border-tn-input-border p-3 font-sans text-[13px] font-semibold text-tn-blue no-underline hover:bg-tn-page"
+                          className="flex items-center gap-2 border-l border-dashed border-tn-input-border p-3 font-sans text-[14px] font-semibold text-tn-blue no-underline hover:bg-tn-page"
                         >
                           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-dashed border-tn-blue text-xs">
                             +
@@ -1542,7 +1542,7 @@ export function CalendarPage() {
                             className="tn-external-busy mx-[3px] overflow-hidden rounded-lg border border-dashed border-tn-border"
                             style={{ gridColumn: columnIndex + 2 }}
                           >
-                            <span className="block px-2 pt-1 font-sans text-[10.5px] font-semibold tracking-wide text-tn-muted-5 uppercase">
+                            <span className="block px-2 pt-1 font-sans text-[11px] font-semibold tracking-wide text-tn-muted-5 uppercase">
                               Busy
                             </span>
                           </div>
@@ -1575,7 +1575,7 @@ export function CalendarPage() {
                               // the note in index.css — since a block flush to the
                               // row below would otherwise have it clipped.
                               className={`pointer-events-auto mx-2 h-full overflow-hidden rounded-md text-left font-sans font-medium text-tn-ink-soft focus-visible:[outline-offset:-2px] ${
-                                isShort ? "px-2 py-0.5 text-[11px] leading-tight" : "p-2 text-xs"
+                                isShort ? "px-2 py-0.5 text-[12px] leading-tight" : "p-2 text-xs"
                               } ${BOOKING_STATUS_BLOCK[booking.status]}`}
                             >
                               {isShort ? (
@@ -1662,7 +1662,7 @@ export function CalendarPage() {
                               </span>
                               <Link
                                 to="/staff"
-                                className="mt-1 cursor-pointer rounded-lg border-none bg-tn-dark px-4 py-2.5 font-sans text-[13px] font-semibold text-tn-on-dark no-underline"
+                                className="mt-1 cursor-pointer rounded-lg border-none bg-tn-dark px-4 py-2.5 font-sans text-[14px] font-semibold text-tn-on-dark no-underline"
                               >
                                 Invite staff
                               </Link>
@@ -1859,7 +1859,7 @@ export function CalendarPage() {
                           style={{ width: `${Math.max(8, dayScrollProgress * 100)}%` }}
                         />
                       </div>
-                      <span className="shrink-0 font-sans text-[10.5px] text-tn-muted-5">
+                      <span className="shrink-0 font-sans text-[11px] text-tn-muted-5">
                         {dayColumnsInView} of {dayColumns.length} columns in view
                       </span>
                     </div>
@@ -1929,7 +1929,7 @@ export function CalendarPage() {
                 {["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map((d) => (
                   <div
                     key={d}
-                    className="px-5 py-4 font-sans text-[13px] font-semibold tracking-wide text-tn-muted-5"
+                    className="px-5 py-4 font-sans text-[14px] font-semibold tracking-wide text-tn-muted-5"
                   >
                     {d}
                   </div>
@@ -1974,7 +1974,7 @@ export function CalendarPage() {
                         }`}
                       >
                         <span
-                          className={`font-sans text-[15px] ${
+                          className={`font-sans text-[16px] ${
                             isOut
                               ? "font-medium text-tn-faint-2"
                               : isToday

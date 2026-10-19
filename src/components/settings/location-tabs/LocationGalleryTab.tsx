@@ -104,7 +104,7 @@ export function LocationGalleryTab({
         </span>
       </div>
 
-      {error && <p className="m-0 font-sans text-[11px] text-tn-danger">{error}</p>}
+      {error && <p className="m-0 font-sans text-[12px] text-tn-danger">{error}</p>}
 
       {photosQuery.isError ? (
         <p className="m-0 font-sans text-sm text-tn-danger">Couldn’t load this branch’s photos.</p>
@@ -208,7 +208,7 @@ function PhotoTile({
           onClick={onRemove}
           disabled={removing}
           aria-label="Remove this photo"
-          className="absolute top-2 right-2 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-none bg-tn-surface/90 font-sans text-[13px] leading-none text-tn-ink opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 disabled:opacity-50"
+          className="absolute top-2 right-2 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-none bg-tn-surface/90 font-sans text-[14px] leading-none text-tn-ink opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 disabled:opacity-50"
         >
           ×
         </button>
@@ -232,14 +232,14 @@ function PhotoTile({
                 event.currentTarget.blur();
               }
             }}
-            className="w-full rounded-md border border-tn-input-border bg-tn-surface px-1.5 py-1 font-sans text-[10px] text-tn-ink outline-none"
+            className="w-full rounded-md border border-tn-input-border bg-tn-surface px-1.5 py-1 font-sans text-[11px] text-tn-ink outline-none"
           />
         ) : (
           <button
             type="button"
             onClick={canManage ? onEdit : undefined}
             disabled={!canManage}
-            className={`mx-auto block max-w-full truncate rounded-md border-none bg-tn-surface px-1.5 py-0.5 font-sans text-[10px] font-medium ${
+            className={`mx-auto block max-w-full truncate rounded-md border-none bg-tn-surface px-1.5 py-0.5 font-sans text-[11px] font-medium ${
               photo.caption ? "text-tn-muted-3" : "text-tn-placeholder"
             } ${canManage ? "cursor-pointer" : "cursor-default"}`}
           >

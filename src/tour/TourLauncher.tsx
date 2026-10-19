@@ -198,17 +198,17 @@ export function TourLauncher() {
         >
           <header className="flex flex-col gap-1 bg-tn-plan-bg px-5 pt-5 pb-14">
             <div className="flex items-start justify-between gap-3">
-              <span className="font-serif text-[15px] font-semibold text-tn-on-dark">iGroom</span>
+              <span className="font-sans text-[16px] font-semibold text-tn-on-dark">iGroom</span>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Close help"
-                className="-mt-1 -mr-1 cursor-pointer rounded-lg px-2 py-1 font-sans text-[15px] text-tn-on-dark/70 hover:bg-white/10 hover:text-tn-on-dark"
+                className="-mt-1 -mr-1 cursor-pointer rounded-lg px-2 py-1 font-sans text-[16px] text-tn-on-dark/70 hover:bg-white/10 hover:text-tn-on-dark"
               >
                 ✕
               </button>
             </div>
-            <p className="m-0 mt-3 font-serif text-[21px] leading-snug font-semibold text-tn-on-dark">
+            <p className="m-0 mt-3 font-sans text-[20px] leading-snug font-semibold text-tn-on-dark">
               {firstName ? `Hi ${firstName} 👋` : "Hi there 👋"}
               <br />
               How can we help?
@@ -234,14 +234,14 @@ export function TourLauncher() {
                 onClick={() => runHere(0)}
                 className="flex cursor-pointer items-center gap-3 rounded-xl border border-tn-border bg-tn-surface px-4 py-3.5 text-left shadow-[0_10px_30px_-18px_oklch(22%_0.02_50_/_0.6)] transition-colors hover:border-tn-gold"
               >
-                <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-tn-gold-bg font-sans text-[13px] font-semibold text-tn-gold">
+                <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-tn-gold-bg font-sans text-[14px] font-semibold text-tn-gold">
                   ▸
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block font-sans text-[13.5px] font-semibold text-tn-ink">
+                  <span className="block font-sans text-[14px] font-semibold text-tn-ink">
                     Show me around this page
                   </span>
-                  <span className="block font-sans text-[12px] text-tn-muted-5">
+                  <span className="block font-sans text-[13px] text-tn-muted-5">
                     {tour.title} · {tour.steps.length} step
                     {tour.steps.length === 1 ? "" : "s"}
                   </span>
@@ -263,7 +263,7 @@ export function TourLauncher() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search for help"
-                className="w-full bg-transparent font-sans text-[13px] text-tn-ink outline-none placeholder:text-tn-placeholder"
+                className="w-full bg-transparent font-sans text-[14px] text-tn-ink outline-none placeholder:text-tn-placeholder"
               />
               <svg
                 width="15"
@@ -283,7 +283,7 @@ export function TourLauncher() {
 
             {query.trim().length >= 2 ? (
               hits.length === 0 ? (
-                <p className="m-0 px-1 py-6 text-center font-sans text-[13px] text-tn-muted-5">
+                <p className="m-0 px-1 py-6 text-center font-sans text-[14px] text-tn-muted-5">
                   Nothing matched “{query.trim()}”. Try the name of a screen — calendar, tips,
                   payouts.
                 </p>
@@ -338,13 +338,13 @@ export function TourLauncher() {
           </div>
 
           <footer className="flex flex-none items-center justify-between gap-3 border-t border-tn-border-soft px-4 py-3">
-            <span className="font-sans text-[12px] text-tn-muted-5">
+            <span className="font-sans text-[13px] text-tn-muted-5">
               {autoplay ? "Tips open on a screen's first visit" : "Tips only open from here"}
             </span>
             <button
               type="button"
               onClick={() => setAutoplay(!autoplay)}
-              className="cursor-pointer rounded-lg border border-tn-input-border px-2.5 py-1.5 font-sans text-[12px] font-semibold text-tn-ink-soft transition-colors hover:bg-tn-page"
+              className="cursor-pointer rounded-lg border border-tn-input-border px-2.5 py-1.5 font-sans text-[13px] font-semibold text-tn-ink-soft transition-colors hover:bg-tn-page"
             >
               {autoplay ? "Turn off" : "Turn on"}
             </button>
@@ -373,7 +373,7 @@ export function TourLauncher() {
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-1.5">
-      <p className="m-0 px-1 font-sans text-[11px] font-semibold tracking-[0.06em] text-tn-faint uppercase">
+      <p className="m-0 px-1 font-sans text-[12px] font-semibold tracking-[0.06em] text-tn-faint uppercase">
         {label}
       </p>
       <div className="flex flex-col overflow-hidden rounded-xl border border-tn-border-soft">
@@ -391,11 +391,11 @@ function Row({ title, hint, onClick }: { title: string; hint: string; onClick: (
       className="flex cursor-pointer items-center gap-3 border-b border-tn-border-soft px-3.5 py-3 text-left last:border-b-0 hover:bg-tn-page"
     >
       <span className="min-w-0 flex-1">
-        <span className="block truncate font-sans text-[13px] font-medium text-tn-ink-soft">
+        <span className="block truncate font-sans text-[14px] font-medium text-tn-ink-soft">
           {title}
         </span>
         {hint ? (
-          <span className="mt-0.5 block truncate font-sans text-[11.5px] text-tn-muted-6">
+          <span className="mt-0.5 block truncate font-sans text-[12px] text-tn-muted-6">
             {hint}
           </span>
         ) : null}

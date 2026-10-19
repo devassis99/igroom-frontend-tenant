@@ -95,7 +95,7 @@ export function TipSplit({ ticket, locationId, onApplied, onBack, onContinue }: 
               type="button"
               onClick={() => apply.mutate(cents)}
               disabled={apply.isPending}
-              className={`cursor-pointer rounded-[9px] px-3.5 py-2.5 font-sans text-[12px] font-semibold ${
+              className={`cursor-pointer rounded-[9px] px-3.5 py-2.5 font-sans text-[13px] font-semibold ${
                 isActive
                   ? "border-none bg-tn-dark text-tn-on-dark"
                   : "border border-tn-input-border bg-transparent text-tn-muted-3 hover:bg-tn-page"
@@ -109,7 +109,7 @@ export function TipSplit({ ticket, locationId, onApplied, onBack, onContinue }: 
           type="button"
           onClick={() => apply.mutate(0)}
           disabled={apply.isPending}
-          className="cursor-pointer rounded-[9px] border border-tn-input-border bg-transparent px-3.5 py-2.5 font-sans text-[12px] font-semibold text-tn-muted-3 hover:bg-tn-page"
+          className="cursor-pointer rounded-[9px] border border-tn-input-border bg-transparent px-3.5 py-2.5 font-sans text-[13px] font-semibold text-tn-muted-3 hover:bg-tn-page"
         >
           No tip
         </button>
@@ -122,7 +122,7 @@ export function TipSplit({ ticket, locationId, onApplied, onBack, onContinue }: 
           placeholder="Custom amount"
           inputMode="decimal"
           aria-label="Custom tip amount"
-          className="flex-1 rounded-lg border border-tn-input-border bg-transparent px-3 py-2 font-sans text-[12px] text-tn-ink outline-none placeholder:text-tn-placeholder"
+          className="flex-1 rounded-lg border border-tn-input-border bg-transparent px-3 py-2 font-sans text-[13px] text-tn-ink outline-none placeholder:text-tn-placeholder"
         />
         <Button
           size="sm"
@@ -138,23 +138,23 @@ export function TipSplit({ ticket, locationId, onApplied, onBack, onContinue }: 
       </div>
 
       {notice && (
-        <p className="m-0 rounded-lg border border-tn-danger bg-tn-danger-bg px-3 py-2 font-sans text-[12px] text-tn-danger">
+        <p className="m-0 rounded-lg border border-tn-danger bg-tn-danger-bg px-3 py-2 font-sans text-[13px] text-tn-danger">
           {notice}
         </p>
       )}
 
       <div className="flex flex-col gap-3 rounded-xl border border-tn-border px-4 py-3.5">
         <div className="flex items-baseline justify-between gap-2">
-          <p className="m-0 font-sans text-[12px] font-semibold text-tn-ink">
+          <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">
             {rule ? rule.name : "Loading the shop rule…"}
           </p>
           {rule?.isInherited && (
-            <span className="font-sans text-[10px] text-tn-muted-5">shop-wide rule</span>
+            <span className="font-sans text-[11px] text-tn-muted-5">shop-wide rule</span>
           )}
         </div>
 
         {ticket.tipShares.length === 0 ? (
-          <p className="m-0 font-sans text-[12px] text-tn-muted-3">
+          <p className="m-0 font-sans text-[13px] text-tn-muted-3">
             {ticket.tipCents === 0 ? "No tip on this ticket." : "Working out the split…"}
           </p>
         ) : (
@@ -175,10 +175,10 @@ export function TipSplit({ ticket, locationId, onApplied, onBack, onContinue }: 
                     }}
                   />
                   <div className="w-[110px] shrink-0">
-                    <p className="m-0 font-sans text-[12px] font-semibold text-tn-ink">
+                    <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">
                       {share.staffName ?? "Front desk pool"}
                     </p>
-                    <p className="m-0 font-sans text-[10px] text-tn-muted-3">
+                    <p className="m-0 font-sans text-[11px] text-tn-muted-3">
                       {ROLE_LABEL[share.role]}
                     </p>
                   </div>
@@ -191,7 +191,7 @@ export function TipSplit({ ticket, locationId, onApplied, onBack, onContinue }: 
                       style={{ width: `${percent}%` }}
                     />
                   </span>
-                  <span className="w-[62px] shrink-0 text-right font-sans text-[12px] font-semibold text-tn-ink">
+                  <span className="w-[62px] shrink-0 text-right font-sans text-[13px] font-semibold text-tn-ink">
                     {formatCents(share.amountCents)}
                   </span>
                 </div>
@@ -201,7 +201,7 @@ export function TipSplit({ ticket, locationId, onApplied, onBack, onContinue }: 
         )}
       </div>
 
-      <p className="m-0 rounded-lg bg-tn-gold-bg-soft px-3 py-2.5 font-sans text-[11px] leading-relaxed text-tn-muted-3">
+      <p className="m-0 rounded-lg bg-tn-gold-bg-soft px-3 py-2.5 font-sans text-[12px] leading-relaxed text-tn-muted-3">
         Each person sees their own share the moment the sale closes, and it is frozen there — a
         later change to the shop's split does not rewrite what they were told tonight.
       </p>

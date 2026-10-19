@@ -143,7 +143,11 @@ export function ServicesPage() {
   const toggleMutation = useMutation({
     mutationFn: ({ id, isEnabled }: { id: string; isEnabled: boolean }) =>
       updateService(accessToken ?? "", id, { isEnabled }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["services"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["services"] });
+      // Can change what a location has to offer online — its setup state.
+      queryClient.invalidateQueries({ queryKey: ["locations"] });
+    },
   });
 
   const deleteMutation = useMutation({
@@ -151,6 +155,7 @@ export function ServicesPage() {
     onSuccess: () => {
       setPendingDelete(null);
       queryClient.invalidateQueries({ queryKey: ["services"] });
+      queryClient.invalidateQueries({ queryKey: ["locations"] });
     },
   });
 
@@ -186,7 +191,7 @@ export function ServicesPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">Services</h1>
+        <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Services</h1>
         <div className="flex items-center gap-3">
           <input
             data-tour="services-search"
@@ -284,17 +289,17 @@ export function ServicesPage() {
             >
               &#8645;
             </span>
-            <span className="font-sans text-[13px] font-semibold text-tn-ink">{service.name}</span>
-            <span className="font-sans text-[13px] text-tn-muted-2">
+            <span className="font-sans text-[14px] font-semibold text-tn-ink">{service.name}</span>
+            <span className="font-sans text-[14px] text-tn-muted-2">
               {formatDuration(service.durationMinutes)}
             </span>
-            <span className="font-sans text-[13px] text-tn-muted-2">
+            <span className="font-sans text-[14px] text-tn-muted-2">
               {formatPrice(service.priceCents)}
             </span>
-            <span className="font-sans text-[13px] text-tn-muted-2">
+            <span className="font-sans text-[14px] text-tn-muted-2">
               {service.taxable ? SALES_TAX_LABEL : "—"}
             </span>
-            <span className="font-sans text-[13px] text-tn-muted-2">
+            <span className="font-sans text-[14px] text-tn-muted-2">
               {service.categoryName ?? "—"}
             </span>
             <button
@@ -304,7 +309,7 @@ export function ServicesPage() {
                 setLocationsService(service);
               }}
               title="Choose which locations offer this"
-              className={`w-fit cursor-pointer rounded-full border px-2.5 py-1 font-sans text-[11px] font-medium ${
+              className={`w-fit cursor-pointer rounded-full border px-2.5 py-1 font-sans text-[12px] font-medium ${
                 service.locations.length === 0
                   ? "border-tn-gold-soft bg-tn-gold-bg text-tn-gold"
                   : "border-tn-input-border bg-transparent text-tn-ink-soft hover:bg-tn-page"

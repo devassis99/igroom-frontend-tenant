@@ -156,7 +156,7 @@ export function BillingSettingsPage() {
                 <span className="font-sans text-xs font-semibold tracking-[0.02em] text-tn-muted-5">
                   CURRENT PLAN
                 </span>
-                <p className="m-0 mt-1 font-serif text-xl font-semibold text-tn-ink">
+                <p className="m-0 mt-1 font-sans text-xl font-semibold text-tn-ink">
                   {overview.plan?.name ?? owner?.planName ?? "No plan"}
                 </p>
                 {overview.plan && (
@@ -239,7 +239,7 @@ export function BillingSettingsPage() {
             key={card.id}
             className="flex items-center gap-4 rounded-2xl border border-tn-border p-4"
           >
-            <span className="rounded-md bg-tn-blue-bg px-2 py-1 font-sans text-[11px] font-bold text-tn-blue">
+            <span className="rounded-md bg-tn-blue-bg px-2 py-1 font-sans text-[12px] font-bold text-tn-blue">
               {formatCardBrand(card.brand)}
             </span>
             <div className="flex-1">
@@ -307,16 +307,16 @@ export function BillingSettingsPage() {
                   }`}
                 >
                   <div className="flex flex-col">
-                    <span className="font-sans text-[13px] text-tn-ink-soft">
+                    <span className="font-sans text-[14px] text-tn-ink-soft">
                       {formatBillingDate(invoice.issuedAt)}
                     </span>
                     {invoice.number && (
-                      <span className="font-sans text-[11px] text-tn-muted-5">
+                      <span className="font-sans text-[12px] text-tn-muted-5">
                         {invoice.number}
                       </span>
                     )}
                   </div>
-                  <span className="font-sans text-[13px] font-semibold text-tn-ink">
+                  <span className="font-sans text-[14px] font-semibold text-tn-ink">
                     {formatMoney(invoice.total, invoice.currency)}
                   </span>
                   <StatusPill tone={status.tone}>{status.label}</StatusPill>

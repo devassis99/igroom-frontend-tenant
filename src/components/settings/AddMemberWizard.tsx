@@ -212,11 +212,11 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-tn-page text-xl">
                 👤
               </div>
-              <span className="font-sans text-[13px] font-medium text-tn-gold">
+              <span className="font-sans text-[14px] font-medium text-tn-gold">
                 Add member&rsquo;s photo
               </span>
             </div>
-            <label className="flex items-center gap-2 font-sans text-[13px] text-tn-muted-1">
+            <label className="flex items-center gap-2 font-sans text-[14px] text-tn-muted-1">
               <input type="checkbox" defaultChecked className="accent-tn-gold" />
               Visible Online
             </label>
@@ -305,7 +305,7 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
               {WEEK.map((w) => (
                 <div key={w.day} className="flex items-center gap-3">
                   <span
-                    className={`flex h-[18px] w-[18px] items-center justify-center rounded border text-[11px] ${
+                    className={`flex h-[18px] w-[18px] items-center justify-center rounded border text-[12px] ${
                       w.enabled
                         ? "border-tn-gold bg-tn-gold text-tn-on-dark"
                         : "border-tn-input-border"
@@ -313,11 +313,11 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
                   >
                     {w.enabled && "✓"}
                   </span>
-                  <span className="w-24 font-sans text-[13px] text-tn-ink-soft">{w.day}</span>
+                  <span className="w-24 font-sans text-[14px] text-tn-ink-soft">{w.day}</span>
                   {w.enabled ? (
-                    <span className="font-sans text-[13px] text-tn-muted-3">9:00 am – 6:00 pm</span>
+                    <span className="font-sans text-[14px] text-tn-muted-3">9:00 am – 6:00 pm</span>
                   ) : (
-                    <span className="font-sans text-[13px] text-tn-faint-2">Off</span>
+                    <span className="font-sans text-[14px] text-tn-faint-2">Off</span>
                   )}
                 </div>
               ))}
@@ -327,11 +327,11 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
 
         {step === 3 && (
           <>
-            <p className="m-0 font-sans text-[13px] text-tn-muted-4">
+            <p className="m-0 font-sans text-[14px] text-tn-muted-4">
               Pick a role to set what this member can access.
             </p>
             {rolesQuery.isPending && (
-              <p className="m-0 font-sans text-[13px] text-tn-muted-5">Loading roles…</p>
+              <p className="m-0 font-sans text-[14px] text-tn-muted-5">Loading roles…</p>
             )}
             <div className="flex flex-col gap-2.5">
               {roles.map((r) => (
@@ -350,7 +350,7 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
                     className="mt-1 accent-tn-gold"
                   />
                   <span>
-                    <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">{r.name}</p>
+                    <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">{r.name}</p>
                     {r.description && (
                       <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
                         {r.description}

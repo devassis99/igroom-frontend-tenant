@@ -59,18 +59,18 @@ function MemberIdentity({ member, isSelf }: { member: LocationStaffMember; isSel
         <span className="flex items-center gap-2 font-sans text-sm font-semibold text-tn-ink">
           <span className="truncate">{member.name}</span>
           {isSelf && (
-            <span className="flex-none rounded-full bg-tn-neutral-bg px-1.5 py-0.5 font-sans text-[10px] font-semibold text-tn-muted-5">
+            <span className="flex-none rounded-full bg-tn-neutral-bg px-1.5 py-0.5 font-sans text-[11px] font-semibold text-tn-muted-5">
               You
             </span>
           )}
           {!member.hasHours && (
-            <span className="flex-none rounded-full bg-tn-gold-bg px-1.5 py-0.5 font-sans text-[10px] font-semibold text-tn-gold">
+            <span className="flex-none rounded-full bg-tn-gold-bg px-1.5 py-0.5 font-sans text-[11px] font-semibold text-tn-gold">
               No hours set
             </span>
           )}
         </span>
         {subtitle && (
-          <span className="truncate font-sans text-[11px] text-tn-muted-5">{subtitle}</span>
+          <span className="truncate font-sans text-[12px] text-tn-muted-5">{subtitle}</span>
         )}
       </div>
     </div>
@@ -220,7 +220,7 @@ export function LocationAvailabilityTab({ location }: { location: AccountLocatio
               )}
               {viewableStaff.length > 1 && (
                 <div className="flex items-center gap-2">
-                  <span className="font-sans text-[11px] text-tn-muted-5">
+                  <span className="font-sans text-[12px] text-tn-muted-5">
                     {viewableStaff.length} people on this roster
                   </span>
                   <StaffFilterPopover

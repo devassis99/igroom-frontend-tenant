@@ -515,45 +515,6 @@ export const TOURS: readonly Tour[] = [
       },
     ],
   },
-
-  {
-    id: "signup-business",
-    version: 1,
-    title: "Your business details",
-    match: ["/signup/business"],
-    steps: [
-      {
-        title: "Tell us about the shop",
-        body: "The name and address customers will see. You can change all of it later — nothing here is locked in by finishing the signup.",
-      },
-    ],
-  },
-
-  {
-    id: "signup-availability",
-    version: 1,
-    title: "Your opening hours",
-    match: ["/signup/availability"],
-    steps: [
-      {
-        title: "When you're open",
-        body: "Asked before payment on purpose: your account is created with a working calendar already in it, so the first thing you see after signing up is a diary that can take a booking.",
-      },
-    ],
-  },
-
-  {
-    id: "signup-plan",
-    version: 1,
-    title: "Choosing a plan",
-    match: ["/signup/plan"],
-    steps: [
-      {
-        title: "Pick a plan",
-        body: "Priced per location rather than per booking, so a busy month costs the same as a quiet one. Payment is handled by Stripe on their own page.",
-      },
-    ],
-  },
 ] as const;
 
 export const TOURS_BY_ID: ReadonlyMap<string, Tour> = new Map(

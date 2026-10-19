@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { BillingCycle } from "@/lib/sample-data";
-import type { AvailabilityDay } from "@/lib/availability-api";
 
 /** A snapshot of the real igroom-backend price at the moment ChoosePlanPage's card was clicked — see billing-api.ts. */
 export interface SelectedPlan {
@@ -14,10 +13,15 @@ export interface SelectedPlan {
 }
 
 /**
- * Holds the in-progress signup funnel (Account → Business details →
- * Availability → Plan, with Stripe's real hosted Checkout as an external
- * redirect between Plan and the new Receipt page — see ChoosePlanPage's
- * and ReceiptPage's comments) across route navigations.
+ * Holds the in-progress signup funnel across route navigations:
+ *
+ *   Account → Plan → Stripe Checkout → Receipt → Business details → Availability → Dashboard
+ *
+ * (no Plan step for a visitor who came through an invite link — the link
+ * chose it). ReceiptPage creates the account the moment Stripe sends the
+ * visitor back, so a shop that has paid always has an account; business
+ * details and hours are then saved while signed in. See ReceiptPage's
+ * comment.
  *
  * Persisted to localStorage (previously sessionStorage) so a visitor who
  * abandons signup partway through — closes the tab, comes back tomorrow —
@@ -53,21 +57,22 @@ interface OnboardingState {
    * (setAccountDetails below), so the two paths can never both be set.
    */
   googleIdToken: string | null;
+  /** What the business step's form holds. Set before payment only by a visitor from before the reorder — ReceiptPage then sends it to signup(). */
   businessName: string;
+  /** The first branch's own name — see BusinessDetailsPage. */
+  locationName: string;
   category: string;
   address: string;
   phone: string;
   /**
-   * The owner's picked weekly schedule from StaffAvailabilityPage — held
-   * here (not sent anywhere yet) because that step now runs before an
-   * account exists, so there's no staffUser/accessToken to call PUT
-   * /availability/me with. `null` means the visitor clicked "Skip for
-   * now"; ReceiptPage submits this (if not null) right after signup()
-   * succeeds and a real session exists. Cleared alongside everything else
-   * once that submit happens.
+   * True once ReceiptPage has created the account — from then on the
+   * visitor is signed in, the remaining steps save straight to the API,
+   * and a reload or a reopened invite link must never try to create it a
+   * second time. The password and Google token are wiped at the same
+   * moment: they're not needed again, and shouldn't sit in localStorage.
    */
-  availabilityDays: AvailabilityDay[] | null;
-  setAvailabilityDays: (days: AvailabilityDay[] | null) => void;
+  accountCreated: boolean;
+  setAccountCreated: () => void;
   billingCycle: BillingCycle;
   selectedPlan: SelectedPlan | null;
   /**
@@ -113,7 +118,9 @@ interface OnboardingState {
     workEmail: string;
   }) => void;
   setBusinessDetails: (
-    fields: Partial<Pick<OnboardingState, "businessName" | "category" | "address" | "phone">>,
+    fields: Partial<
+      Pick<OnboardingState, "businessName" | "locationName" | "category" | "address" | "phone">
+    >,
   ) => void;
   setBillingCycle: (cycle: BillingCycle) => void;
   selectPlan: (plan: SelectedPlan) => void;
@@ -127,10 +134,11 @@ const initialState = {
   password: "",
   googleIdToken: null as string | null,
   businessName: "",
+  locationName: "",
   category: "Barbershop",
   address: "",
   phone: "",
-  availabilityDays: null as AvailabilityDay[] | null,
+  accountCreated: false,
   billingCycle: "monthly" as BillingCycle,
   selectedPlan: null as SelectedPlan | null,
   lastRoute: "/signup",
@@ -158,7 +166,7 @@ export const useOnboardingStore = create<OnboardingState>()(
           password: "",
         })),
       setBusinessDetails: (fields) => set(fields),
-      setAvailabilityDays: (availabilityDays) => set({ availabilityDays }),
+      setAccountCreated: () => set({ accountCreated: true, password: "", googleIdToken: null }),
       setBillingCycle: (billingCycle) => set({ billingCycle }),
       selectPlan: (selectedPlan) => set({ selectedPlan }),
       setLastRoute: (lastRoute) => set({ lastRoute }),
@@ -175,10 +183,11 @@ export const useOnboardingStore = create<OnboardingState>()(
         password: state.password,
         googleIdToken: state.googleIdToken,
         businessName: state.businessName,
+        locationName: state.locationName,
         category: state.category,
         address: state.address,
         phone: state.phone,
-        availabilityDays: state.availabilityDays,
+        accountCreated: state.accountCreated,
         billingCycle: state.billingCycle,
         selectedPlan: state.selectedPlan,
         lastRoute: state.lastRoute,
@@ -191,9 +200,22 @@ export const useOnboardingStore = create<OnboardingState>()(
 
 /**
  * How many numbered steps this visitor's funnel has: four normally
- * (Account → Business details → Availability → Plan), three when a
- * signup link already chose the plan for them.
+ * (Account → Plan → Business details → Availability), three when an
+ * invite link already chose the plan for them. Payment sits between
+ * Plan (or Account) and Business details but isn't a numbered step —
+ * it's Stripe's page, not ours.
  */
 export function useSignupStepCount(): number {
   return useOnboardingStore((state) => (state.signupLinkToken ? 3 : 4));
+}
+
+export type SignupStep = "account" | "plan" | "business" | "availability";
+
+/** Where a step sits in this visitor's funnel — "Step 2 of 3" for Business details after an invite link, "Step 3 of 4" otherwise. */
+export function useSignupStep(step: SignupStep): { number: number; total: number } {
+  const viaLink = useOnboardingStore((state) => state.signupLinkToken !== null);
+  const order: SignupStep[] = viaLink
+    ? ["account", "business", "availability"]
+    : ["account", "plan", "business", "availability"];
+  return { number: Math.max(1, order.indexOf(step) + 1), total: order.length };
 }

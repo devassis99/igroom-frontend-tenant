@@ -37,13 +37,13 @@ export function IntegrationsModal({ open, onClose }: IntegrationsModalProps) {
     <Modal open={open} onClose={onClose} width={1000}>
       <div className="flex max-h-[85vh] min-h-[560px]">
         <div className="flex w-[230px] shrink-0 flex-col gap-6 rounded-l-2xl bg-tn-page px-5 py-6">
-          <h2 className="m-0 px-1 font-serif text-lg font-semibold text-tn-ink">Integrations</h2>
+          <h2 className="m-0 px-1 font-sans text-lg font-semibold text-tn-ink">Integrations</h2>
           <CategoryNav value={category} onChange={setCategory} />
         </div>
 
         <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-8 py-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <h1 className="m-0 flex items-center gap-2.5 font-serif text-[22px] font-semibold text-tn-ink">
+            <h1 className="m-0 flex items-center gap-2.5 font-sans text-[20px] font-semibold text-tn-ink">
               <CategoryIcon shape={activeShape} active />
               {category}
             </h1>
@@ -53,7 +53,7 @@ export function IntegrationsModal({ open, onClose }: IntegrationsModalProps) {
                 placeholder="Search integrations"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-[220px] rounded-xl border border-tn-input-border px-4 py-2.5 font-sans text-[13px] text-tn-ink outline-none focus:border-2 focus:border-tn-gold"
+                className="w-[220px] rounded-xl border border-tn-input-border px-4 py-2.5 font-sans text-[14px] text-tn-ink outline-none focus:border-2 focus:border-tn-gold"
               />
               <button
                 type="button"
@@ -74,7 +74,7 @@ export function IntegrationsModal({ open, onClose }: IntegrationsModalProps) {
           </div>
 
           {status === "error" && (
-            <p className="m-0 font-mono text-[11.5px] leading-relaxed break-words text-tn-danger">
+            <p className="m-0 font-mono text-[12px] leading-relaxed break-words text-tn-danger">
               {error?.message ?? "Couldn’t load your integrations"}
             </p>
           )}

@@ -33,16 +33,16 @@ export const router = createBrowserRouter([
     path: "/redirecting",
     lazy: () => import("@/pages/RedirectPage").then((m) => ({ Component: m.default })),
   },
-  // Signup funnel, in wizard order: Account -> Business details ->
-  // Availability -> Plan -> Checkout -> Receipt -> Dashboard. Business
-  // details and availability now come before payment (see
-  // BusinessDetailsPage's and StaffAvailabilityPage's comments) so the
-  // account can be created — by ReceiptPage, right after Stripe's real
-  // hosted Checkout completes (an external redirect, not an in-app
-  // route) — with the real business name and schedule already known.
-  // A back-office signup link (the Plans page's per-price "Copy"). Shows
-  // the plan the link was sent with, then hands off to /signup below —
-  // the same funnel, minus the plan picker. See JoinPage.tsx.
+  // Signup funnel, in wizard order: Account -> Plan -> Checkout ->
+  // Receipt -> Business details -> Availability -> Dashboard.
+  // Payment comes straight after the account step; ReceiptPage creates
+  // the account the moment Stripe's hosted Checkout (an external
+  // redirect, not an in-app route) sends the visitor back, and the two
+  // steps after it save while signed in. See ReceiptPage.tsx.
+  // An invite link (the BO Plans page's Copy, its Create Payment Link,
+  // or a sales invite). Records the link's plan and goes straight to
+  // /signup below — the same funnel, minus the plan picker. See
+  // JoinPage.tsx.
   {
     path: "/join/:token",
     lazy: () => import("@/pages/JoinPage").then((m) => ({ Component: m.default })),
@@ -65,10 +65,19 @@ export const router = createBrowserRouter([
   },
   // Stripe redirects here (success_url — see accounts.service.ts's
   // createCheckoutSession) once the visitor finishes paying. This is
-  // what actually calls POST /accounts/signup — see ReceiptPage.tsx.
+  // what actually calls POST /accounts/signup, then shows the receipt —
+  // see ReceiptPage.tsx.
   {
     path: "/signup/receipt",
     lazy: () => import("@/pages/ReceiptPage").then((m) => ({ Component: m.default })),
+  },
+  // The old last step of signup ("You're all set" with the receipt). The
+  // receipt now comes straight after payment and signup ends on the
+  // dashboard, so a tab or bookmark still on this URL goes there too
+  // (ProtectedRoute sends a shop with no name yet to /signup/business).
+  {
+    path: "/signup/done",
+    loader: () => redirect("/dashboard"),
   },
   // Where an invited staff member lands from their email. Outside
   // ProtectedRoute by construction — there is no session until the token

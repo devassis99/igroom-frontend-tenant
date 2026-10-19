@@ -129,7 +129,7 @@ export function StaffPage() {
   return (
     <div className="flex flex-col gap-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">Staff</h1>
+        <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Staff</h1>
         {canManageStaff && (
           <Button data-tour="staff-add" onClick={handleNewMember}>
             + Add Staff
@@ -163,7 +163,7 @@ export function StaffPage() {
               <div key={s.id} className="flex items-center gap-2.5">
                 <Avatar initials={initialsFor(s.name)} color={avatarColorFor(s.id)} />
                 <div>
-                  <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">{s.name}</p>
+                  <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">{s.name}</p>
                   <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
                     {s.roleName || "—"} · {ratingLabel(s.rating)}
                   </p>
@@ -221,22 +221,22 @@ export function StaffPage() {
                   i < staff.length - 1 ? "border-b border-tn-border-soft" : ""
                 }`}
               >
-                <span className="flex items-center gap-2.5 font-sans text-[13px] font-semibold text-tn-ink">
+                <span className="flex items-center gap-2.5 font-sans text-[14px] font-semibold text-tn-ink">
                   <Avatar initials={initialsFor(s.name)} color={avatarColorFor(s.id)} size={26} />
                   {s.name}
                 </span>
-                <span className="font-sans text-[13px] text-tn-muted-2">{s.bookingsCount}</span>
-                <span className="font-sans text-[13px] text-tn-muted-2">{s.hoursBooked}</span>
-                <span className="font-sans text-[13px] text-tn-muted-2">
+                <span className="font-sans text-[14px] text-tn-muted-2">{s.bookingsCount}</span>
+                <span className="font-sans text-[14px] text-tn-muted-2">{s.hoursBooked}</span>
+                <span className="font-sans text-[14px] text-tn-muted-2">
                   {s.utilizationPct === null ? "—" : `${s.utilizationPct}%`}
                 </span>
-                <span className="font-sans text-[13px] text-tn-muted-2">
+                <span className="font-sans text-[14px] text-tn-muted-2">
                   {dollars(s.salesCents)}
                 </span>
-                <span className="font-sans text-[13px] text-tn-muted-2">
+                <span className="font-sans text-[14px] text-tn-muted-2">
                   {s.avgTicketCents === null ? "—" : dollars(s.avgTicketCents)}
                 </span>
-                <span className="font-sans text-[13px] text-tn-muted-2">
+                <span className="font-sans text-[14px] text-tn-muted-2">
                   {s.commissionCents === null ? (
                     "—"
                   ) : (
@@ -246,7 +246,7 @@ export function StaffPage() {
                     </>
                   )}
                 </span>
-                <span className="font-sans text-[13px] text-tn-muted-2">
+                <span className="font-sans text-[14px] text-tn-muted-2">
                   {ratingLabel(s.rating)}
                 </span>
                 <button

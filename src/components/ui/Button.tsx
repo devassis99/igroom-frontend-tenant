@@ -11,8 +11,8 @@ const VARIANT_CLASSES = {
 
 const SIZE_CLASSES = {
   sm: "rounded-lg px-3.5 py-2 text-xs",
-  md: "rounded-[10px] px-[18px] py-[11px] text-[13px]",
-  lg: "rounded-xl px-7 py-[15px] text-[15px]",
+  md: "rounded-[10px] px-[18px] py-[11px] text-[14px]",
+  lg: "rounded-xl px-7 py-[15px] text-[16px]",
 } as const;
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

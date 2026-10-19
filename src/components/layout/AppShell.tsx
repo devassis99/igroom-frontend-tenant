@@ -413,7 +413,7 @@ export function AppShell() {
         <div className="mb-3.5 flex items-center justify-between px-6">
           <CollapsibleLabel
             collapsed={collapsed}
-            className="font-serif text-lg font-semibold text-tn-ink"
+            className="font-sans text-lg font-semibold text-tn-ink"
           >
             iGroom
           </CollapsibleLabel>
@@ -462,7 +462,7 @@ export function AppShell() {
                   state={item.to === "/calendar" ? { resetToken: Date.now() } : undefined}
                   title={collapsed ? item.label : undefined}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-6 py-[11px] font-sans text-[13px] transition-colors duration-200 ${
+                    `flex items-center gap-3 px-6 py-[11px] font-sans text-[14px] transition-colors duration-200 ${
                       isActive
                         ? "bg-tn-dark font-semibold text-tn-on-dark"
                         : "font-medium text-tn-nav-inactive hover:bg-tn-page hover:text-tn-ink-soft"
@@ -495,7 +495,7 @@ export function AppShell() {
           </span>
           <CollapsibleLabel
             collapsed={collapsed}
-            className="font-sans text-[13px] font-medium text-tn-nav-inactive"
+            className="font-sans text-[14px] font-medium text-tn-nav-inactive"
           >
             What&rsquo;s New
           </CollapsibleLabel>
@@ -506,7 +506,7 @@ export function AppShell() {
             type="button"
             onClick={() => setIntegrationsOpen(true)}
             title={collapsed ? "Integrations" : undefined}
-            className={`flex items-center justify-between px-6 py-[11px] font-sans text-[13px] ${
+            className={`flex items-center justify-between px-6 py-[11px] font-sans text-[14px] ${
               integrationsOpen
                 ? "bg-tn-dark font-semibold text-tn-on-dark"
                 : "font-medium text-tn-nav-inactive"
@@ -517,7 +517,7 @@ export function AppShell() {
               <CollapsibleLabel collapsed={collapsed}>Integrations</CollapsibleLabel>
             </span>
             <CollapsibleLabel collapsed={collapsed}>
-              <span className="rounded-full bg-tn-gold-bg px-[7px] py-0.5 font-sans text-[9px] font-semibold tracking-[0.02em] text-tn-gold">
+              <span className="rounded-full bg-tn-gold-bg px-[7px] py-0.5 font-sans text-[11px] font-semibold tracking-[0.02em] text-tn-gold">
                 BUSINESS
               </span>
             </CollapsibleLabel>
@@ -527,7 +527,7 @@ export function AppShell() {
             to="/settings"
             title={collapsed ? "Settings" : undefined}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-6 py-[11px] font-sans text-[13px] transition-colors duration-200 ${
+              `flex items-center gap-3 px-6 py-[11px] font-sans text-[14px] transition-colors duration-200 ${
                 isActive
                   ? "bg-tn-dark font-semibold text-tn-on-dark"
                   : "font-medium text-tn-nav-inactive hover:bg-tn-page hover:text-tn-ink-soft"
@@ -556,7 +556,7 @@ export function AppShell() {
               <p className="m-0 truncate font-sans text-xs font-semibold text-tn-ink-soft">
                 {owner?.fullName ?? "Shop owner"}
               </p>
-              <p className="m-0 truncate font-sans text-[11px] text-tn-muted-5">
+              <p className="m-0 truncate font-sans text-[12px] text-tn-muted-5">
                 {owner?.businessName ?? "Your shop"}
               </p>
             </CollapsibleLabel>

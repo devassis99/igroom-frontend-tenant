@@ -201,7 +201,7 @@ export function AvailabilityActionBar({
             and the element the platform already has for it. */}
         <output className="block min-w-[45%] flex-1" aria-live="polite">
           <p
-            className={`m-0 truncate font-sans text-[13px] font-semibold transition-colors duration-200 ${
+            className={`m-0 truncate font-sans text-[14px] font-semibold transition-colors duration-200 ${
               tone === "blocked" ? "text-tn-danger" : "text-tn-on-dark"
             }`}
           >
@@ -212,7 +212,7 @@ export function AvailabilityActionBar({
               everything on it is also said in the panel or on the tab it
               is about. */}
           {detail && (
-            <p className="m-0 mt-0.5 hidden truncate font-sans text-[11px] text-tn-on-dark/60 sm:block">
+            <p className="m-0 mt-0.5 hidden truncate font-sans text-[12px] text-tn-on-dark/60 sm:block">
               {detail}
             </p>
           )}

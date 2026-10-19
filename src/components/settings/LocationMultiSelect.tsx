@@ -90,15 +90,15 @@ export function LocationMultiSelect({
               className="size-4 shrink-0 accent-tn-gold"
             />
             <span className="flex min-w-0 flex-col">
-              <span className="truncate font-sans text-[13px] font-medium text-tn-ink">
+              <span className="truncate font-sans text-[14px] font-medium text-tn-ink">
                 {loc.name}
                 {loc.isPrimary && (
-                  <span className="ml-2 rounded-full bg-tn-gold-bg px-1.5 py-0.5 font-sans text-[9px] font-semibold tracking-[0.02em] text-tn-gold">
+                  <span className="ml-2 rounded-full bg-tn-gold-bg px-1.5 py-0.5 font-sans text-[11px] font-semibold tracking-[0.02em] text-tn-gold">
                     PRIMARY
                   </span>
                 )}
               </span>
-              <span className="truncate font-sans text-[11px] text-tn-muted-5">{loc.address}</span>
+              <span className="truncate font-sans text-[12px] text-tn-muted-5">{loc.address}</span>
             </span>
           </label>
         );

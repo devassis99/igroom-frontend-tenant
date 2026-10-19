@@ -5,13 +5,16 @@ import type { Tour } from "./types";
 /**
  * Screens that deliberately have no tour.
  *
- * Two kinds. The marketing page and the sign-in form, where an overlay
+ * Three kinds. The marketing page and the sign-in form, where an overlay
  * would be the first thing a stranger meets and has nothing to explain
- * that the page doesn't already say. And the pass-through screens —
+ * that the page doesn't already say. The signup funnel (account, plan,
+ * business details, hours): each screen is a short form that says what
+ * it wants, and an overlay on top of it only slows a shop down on the way
+ * to paying and setting up. And the pass-through screens —
  * /redirecting, /signup/receipt, /invite, /support-session — which
  * nobody stays on: each one is doing a thing (redeeming a token,
- * creating the account after Stripe, bouncing onward) and is gone before
- * a tour could open.
+ * creating the account after Stripe and showing its receipt, bouncing
+ * onward) and is gone before a tour could open.
  *
  * Listed rather than simply left out of `TOURS`, so the omission reads
  * as a decision instead of an oversight.
@@ -20,7 +23,11 @@ const UNTOURED = [
   "/",
   "/login",
   "/signup",
+  "/signup/plan",
   "/signup/receipt",
+  "/signup/business",
+  "/signup/availability",
+  "/join/:token",
   "/invite",
   "/redirecting",
   "/support-session",

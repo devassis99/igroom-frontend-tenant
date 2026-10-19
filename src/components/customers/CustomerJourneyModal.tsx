@@ -95,19 +95,19 @@ export function CustomerJourneyModal({ customer, onClose }: CustomerJourneyModal
             <div className="grid grid-cols-4 gap-3 rounded-2xl border border-tn-border p-4 text-center">
               <div>
                 <p className="m-0 font-sans text-lg font-semibold text-tn-ink">{detail.visits}</p>
-                <span className="font-sans text-[11px] text-tn-muted-5">visits</span>
+                <span className="font-sans text-[12px] text-tn-muted-5">visits</span>
               </div>
               <div>
                 <p className="m-0 font-sans text-lg font-semibold text-tn-ink">
                   {dollars(detail.lifetimeSpendCents)}
                 </p>
-                <span className="font-sans text-[11px] text-tn-muted-5">lifetime spend</span>
+                <span className="font-sans text-[12px] text-tn-muted-5">lifetime spend</span>
               </div>
               <div>
                 <p className="m-0 font-sans text-lg font-semibold text-tn-ink">
                   {detail.avgTicketCents === null ? "—" : dollars(detail.avgTicketCents)}
                 </p>
-                <span className="font-sans text-[11px] text-tn-muted-5">avg ticket</span>
+                <span className="font-sans text-[12px] text-tn-muted-5">avg ticket</span>
               </div>
               <div>
                 <p className="m-0 font-sans text-lg font-semibold text-tn-ink">
@@ -115,17 +115,17 @@ export function CustomerJourneyModal({ customer, onClose }: CustomerJourneyModal
                     ? "—"
                     : `${detail.avgWeeksBetweenVisits} wks`}
                 </p>
-                <span className="font-sans text-[11px] text-tn-muted-5">avg between visits</span>
+                <span className="font-sans text-[12px] text-tn-muted-5">avg between visits</span>
               </div>
             </div>
 
             <div>
               <p className="m-0 mb-3 font-sans text-sm font-semibold text-tn-ink">Journey</p>
               {detailQuery.isPending && (
-                <p className="m-0 font-sans text-[13px] text-tn-muted-5">Loading history…</p>
+                <p className="m-0 font-sans text-[14px] text-tn-muted-5">Loading history…</p>
               )}
               {!detailQuery.isPending && journey.length === 0 && (
-                <p className="m-0 font-sans text-[13px] text-tn-muted-5">
+                <p className="m-0 font-sans text-[14px] text-tn-muted-5">
                   No bookings yet — this customer&rsquo;s first visit will show up here.
                 </p>
               )}
@@ -139,7 +139,7 @@ export function CustomerJourneyModal({ customer, onClose }: CustomerJourneyModal
                       )}
                     </div>
                     <div className="pb-1">
-                      <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">
+                      <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">
                         {formatDate(event.date)} · {event.serviceName}
                       </p>
                       <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
@@ -155,7 +155,7 @@ export function CustomerJourneyModal({ customer, onClose }: CustomerJourneyModal
               {detail.email ? (
                 <a
                   href={`mailto:${detail.email}`}
-                  className="flex flex-1 cursor-pointer items-center justify-center rounded-[10px] border border-tn-input-border bg-transparent px-[18px] py-[11px] font-sans text-[13px] font-semibold text-tn-ink-soft hover:bg-tn-page"
+                  className="flex flex-1 cursor-pointer items-center justify-center rounded-[10px] border border-tn-input-border bg-transparent px-[18px] py-[11px] font-sans text-[14px] font-semibold text-tn-ink-soft hover:bg-tn-page"
                 >
                   Message
                 </a>

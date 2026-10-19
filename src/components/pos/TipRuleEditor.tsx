@@ -103,8 +103,8 @@ export function TipRuleEditor({ open, onClose, locationId }: TipRuleEditorProps)
     <Modal open={open} onClose={dismiss} width={460}>
       <div className="flex flex-col gap-4">
         <div>
-          <h2 className="m-0 font-serif text-xl font-semibold text-tn-ink">Tip split rule</h2>
-          <p className="m-0 mt-1 font-sans text-[12px] leading-relaxed text-tn-muted-3">
+          <h2 className="m-0 font-sans text-xl font-semibold text-tn-ink">Tip split rule</h2>
+          <p className="m-0 mt-1 font-sans text-[13px] leading-relaxed text-tn-muted-3">
             Applied to every ticket at this branch. Tickets already closed keep the split they were
             given.
           </p>
@@ -114,10 +114,10 @@ export function TipRuleEditor({ open, onClose, locationId }: TipRuleEditorProps)
           {ROLES.map(({ role, label, hint }) => (
             <label key={role} className="flex items-center gap-3">
               <span className="flex-1">
-                <span className="block font-sans text-[13px] font-semibold text-tn-ink">
+                <span className="block font-sans text-[14px] font-semibold text-tn-ink">
                   {label}
                 </span>
-                <span className="block font-sans text-[11px] text-tn-muted-3">{hint}</span>
+                <span className="block font-sans text-[12px] text-tn-muted-3">{hint}</span>
               </span>
               <input
                 value={String(percents[role] ?? 0)}
@@ -130,9 +130,9 @@ export function TipRuleEditor({ open, onClose, locationId }: TipRuleEditorProps)
                 }}
                 inputMode="numeric"
                 aria-label={`${label} percentage`}
-                className="w-[68px] rounded-lg border border-tn-input-border bg-transparent px-3 py-2 text-right font-sans text-[13px] font-semibold text-tn-ink outline-none"
+                className="w-[68px] rounded-lg border border-tn-input-border bg-transparent px-3 py-2 text-right font-sans text-[14px] font-semibold text-tn-ink outline-none"
               />
-              <span className="w-3 font-sans text-[13px] text-tn-muted-3">%</span>
+              <span className="w-3 font-sans text-[14px] text-tn-muted-3">%</span>
             </label>
           ))}
         </div>
@@ -143,19 +143,19 @@ export function TipRuleEditor({ open, onClose, locationId }: TipRuleEditorProps)
           }`}
         >
           <span
-            className={`font-sans text-[12px] font-medium ${balanced ? "text-tn-success" : "text-tn-danger"}`}
+            className={`font-sans text-[13px] font-medium ${balanced ? "text-tn-success" : "text-tn-danger"}`}
           >
             {balanced ? "Adds up" : `Must add up to 100% — currently ${total}%`}
           </span>
           <span
-            className={`font-sans text-[13px] font-semibold ${balanced ? "text-tn-success" : "text-tn-danger"}`}
+            className={`font-sans text-[14px] font-semibold ${balanced ? "text-tn-success" : "text-tn-danger"}`}
           >
             {total}%
           </span>
         </div>
 
         {notice && (
-          <p className="m-0 rounded-lg border border-tn-danger bg-tn-danger-bg px-3 py-2 font-sans text-[12px] text-tn-danger">
+          <p className="m-0 rounded-lg border border-tn-danger bg-tn-danger-bg px-3 py-2 font-sans text-[13px] text-tn-danger">
             {notice}
           </p>
         )}

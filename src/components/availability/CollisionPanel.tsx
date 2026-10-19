@@ -50,7 +50,7 @@ function Bar({
 
   return (
     <div className="flex items-center gap-3">
-      <span className="w-[190px] flex-none font-sans text-[11px] text-tn-ink-soft">{label}</span>
+      <span className="w-[190px] flex-none font-sans text-[12px] text-tn-ink-soft">{label}</span>
       <div className="relative h-4 flex-1 overflow-hidden rounded-full bg-tn-neutral-bg">
         <span
           className={`absolute inset-y-0 rounded-full ${fill}`}
@@ -205,7 +205,7 @@ export function CollisionPanel({
           local times so the manager can still find the fields they
           typed; the bars are the only thing drawn to scale. */}
       <div className="flex flex-col gap-2">
-        <p className="m-0 font-sans text-[11px] font-semibold text-tn-ink">
+        <p className="m-0 font-sans text-[12px] font-semibold text-tn-ink">
           {new Date(dayStartIso).toLocaleDateString("en-US", {
             weekday: "long",
             timeZone: "UTC",
@@ -237,7 +237,7 @@ export function CollisionPanel({
           dayStartIso={dayStartIso}
           tone="clash"
         />
-        <div className="ml-[202px] flex justify-between font-mono text-[10px] text-tn-muted-6">
+        <div className="ml-[202px] flex justify-between font-mono text-[11px] text-tn-muted-6">
           <span>00Z</span>
           <span>06Z</span>
           <span>12Z</span>
@@ -277,7 +277,7 @@ export function CollisionPanel({
         {resolveHref && (
           <Link
             to={resolveHref}
-            className="rounded-lg border border-tn-input-border bg-tn-surface px-3 py-1.5 font-sans text-[13px] font-semibold text-tn-ink no-underline hover:bg-tn-neutral-bg"
+            className="rounded-lg border border-tn-input-border bg-tn-surface px-3 py-1.5 font-sans text-[14px] font-semibold text-tn-ink no-underline hover:bg-tn-neutral-bg"
           >
             {trimmable(a) || trimmable(b)
               ? "Open both shops in Settings › Availability"

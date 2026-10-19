@@ -71,12 +71,12 @@ export function Pagination({
       aria-label="Pagination"
       className="flex flex-wrap items-center justify-between gap-3 border-t border-tn-border-soft pt-4"
     >
-      <label className="flex items-center gap-1.5 font-sans text-[13px] text-tn-muted-5">
+      <label className="flex items-center gap-1.5 font-sans text-[14px] text-tn-muted-5">
         Rows per page
         <select
           value={pageSize}
           onChange={(e) => onPageSizeChange(Number(e.target.value))}
-          className="cursor-pointer border-none bg-transparent font-sans text-[13px] font-semibold text-tn-ink-soft"
+          className="cursor-pointer border-none bg-transparent font-sans text-[14px] font-semibold text-tn-ink-soft"
         >
           {pageSizeOptions.map((size) => (
             <option key={size} value={size}>
@@ -130,7 +130,7 @@ export function PageRange({
   if (totalCount === 0 || rangeStart > totalCount) return null;
   const rangeEnd = Math.min(page * pageSize, totalCount);
   return (
-    <p className={`m-0 font-sans text-[13px] text-tn-muted-5 ${className}`}>
+    <p className={`m-0 font-sans text-[14px] text-tn-muted-5 ${className}`}>
       Showing{" "}
       <span className="font-semibold text-tn-ink-soft">
         {rangeStart}–{rangeEnd}

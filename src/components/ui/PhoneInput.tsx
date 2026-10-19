@@ -586,7 +586,7 @@ export function PhoneInput({
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search country or code"
-                  className="w-full border-none bg-transparent font-sans text-[13px] text-tn-ink outline-none placeholder:text-tn-muted-5"
+                  className="w-full border-none bg-transparent font-sans text-[14px] text-tn-ink outline-none placeholder:text-tn-muted-5"
                 />
               </div>
             </div>
@@ -597,7 +597,7 @@ export function PhoneInput({
                   key={c.iso2}
                   type="button"
                   onClick={() => selectCountry(c)}
-                  className="flex w-full cursor-pointer items-center gap-2.5 border-none bg-transparent px-4 py-2.5 text-left font-sans text-[13px] font-medium text-tn-ink-soft hover:bg-tn-page"
+                  className="flex w-full cursor-pointer items-center gap-2.5 border-none bg-transparent px-4 py-2.5 text-left font-sans text-[14px] font-medium text-tn-ink-soft hover:bg-tn-page"
                 >
                   <span aria-hidden>{flagEmoji(c.iso2)}</span>
                   <span className="min-w-0 flex-1 truncate">{c.name}</span>
@@ -606,7 +606,7 @@ export function PhoneInput({
               ))}
 
               {filteredCountries.length === 0 && (
-                <p className="m-0 px-4 py-3 font-sans text-[13px] text-tn-muted-5">
+                <p className="m-0 px-4 py-3 font-sans text-[14px] text-tn-muted-5">
                   No countries match &ldquo;{query}&rdquo;
                 </p>
               )}

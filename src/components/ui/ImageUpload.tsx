@@ -140,7 +140,7 @@ export function ImageUpload({
           <button
             type="button"
             onClick={() => abortRef.current?.abort()}
-            className="cursor-pointer border-none bg-transparent p-0 font-sans text-[11px] font-semibold text-tn-muted-5 underline"
+            className="cursor-pointer border-none bg-transparent p-0 font-sans text-[12px] font-semibold text-tn-muted-5 underline"
           >
             Cancel
           </button>
@@ -167,7 +167,7 @@ export function ImageUpload({
             type="button"
             disabled={disabled || uploading}
             onClick={() => inputRef.current?.click()}
-            className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-1 border-none bg-transparent font-sans text-[12px] text-tn-muted-5 hover:bg-tn-surface disabled:cursor-default"
+            className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-1 border-none bg-transparent font-sans text-[13px] text-tn-muted-5 hover:bg-tn-surface disabled:cursor-default"
           >
             {isTile && <span className="text-lg leading-none">+</span>}
             {isTile ? label : "Choose an image"}
@@ -206,7 +206,7 @@ export function ImageUpload({
           type="button"
           disabled={disabled || uploading}
           onClick={() => inputRef.current?.click()}
-          className="cursor-pointer rounded-lg border border-tn-input-border bg-tn-surface px-3 py-1.5 font-sans text-[11.5px] font-semibold text-tn-ink hover:bg-tn-page disabled:opacity-50"
+          className="cursor-pointer rounded-lg border border-tn-input-border bg-tn-surface px-3 py-1.5 font-sans text-[12px] font-semibold text-tn-ink hover:bg-tn-page disabled:opacity-50"
         >
           {uploading
             ? `Uploading ${Math.round((fraction ?? 0) * 100)}%`
@@ -219,7 +219,7 @@ export function ImageUpload({
             type="button"
             disabled={disabled}
             onClick={() => void onRemove()}
-            className="cursor-pointer border-none bg-transparent p-0 font-sans text-[11.5px] font-semibold text-tn-danger disabled:opacity-50"
+            className="cursor-pointer border-none bg-transparent p-0 font-sans text-[12px] font-semibold text-tn-danger disabled:opacity-50"
           >
             Remove
           </button>
@@ -227,10 +227,10 @@ export function ImageUpload({
       </div>
 
       {hint && !error && !isTile && (
-        <p className="m-0 font-sans text-[11px] leading-relaxed text-tn-muted-5">{hint}</p>
+        <p className="m-0 font-sans text-[12px] leading-relaxed text-tn-muted-5">{hint}</p>
       )}
       {error && (
-        <p className={`m-0 font-sans text-[11px] text-tn-danger ${isTile ? "col-span-full" : ""}`}>
+        <p className={`m-0 font-sans text-[12px] text-tn-danger ${isTile ? "col-span-full" : ""}`}>
           {error}
         </p>
       )}

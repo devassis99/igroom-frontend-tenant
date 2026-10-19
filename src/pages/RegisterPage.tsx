@@ -75,7 +75,7 @@ function ServiceChip({ state }: { state: ServiceState }) {
         ? "bg-tn-gold-bg text-tn-gold"
         : "bg-tn-page text-tn-muted-3";
   return (
-    <span className={`rounded-full px-2.5 py-1 font-sans text-[11px] font-semibold ${tone}`}>
+    <span className={`rounded-full px-2.5 py-1 font-sans text-[12px] font-semibold ${tone}`}>
       {SERVICE_STATE_LABEL[state]}
     </span>
   );
@@ -89,34 +89,34 @@ function ServiceChip({ state }: { state: ServiceState }) {
 function PaymentChip({ appointment }: { appointment: RegisterAppointment }) {
   if (appointment.ticketStatus === "paid") {
     return (
-      <span className="rounded-full bg-tn-success-bg px-2.5 py-1 font-sans text-[11px] font-semibold text-tn-success">
+      <span className="rounded-full bg-tn-success-bg px-2.5 py-1 font-sans text-[12px] font-semibold text-tn-success">
         PAID · #{appointment.ticketNumber}
       </span>
     );
   }
   if (appointment.ticketStatus === "open") {
     return (
-      <span className="rounded-full bg-tn-gold-bg px-2.5 py-1 font-sans text-[11px] font-semibold text-tn-gold">
+      <span className="rounded-full bg-tn-gold-bg px-2.5 py-1 font-sans text-[12px] font-semibold text-tn-gold">
         OPEN · #{appointment.ticketNumber}
       </span>
     );
   }
   if (appointment.onlinePaymentType === "full") {
     return (
-      <span className="rounded-full bg-tn-success-bg px-2.5 py-1 font-sans text-[11px] font-semibold text-tn-success">
+      <span className="rounded-full bg-tn-success-bg px-2.5 py-1 font-sans text-[12px] font-semibold text-tn-success">
         PAID ONLINE
       </span>
     );
   }
   if (appointment.onlinePaymentType === "deposit") {
     return (
-      <span className="rounded-full bg-tn-page px-2.5 py-1 font-sans text-[11px] font-semibold text-tn-muted-3">
+      <span className="rounded-full bg-tn-page px-2.5 py-1 font-sans text-[12px] font-semibold text-tn-muted-3">
         {formatCents(appointment.paidOnlineCents)} DEP.
       </span>
     );
   }
   return (
-    <span className="font-sans text-[13px] font-semibold text-tn-ink">
+    <span className="font-sans text-[14px] font-semibold text-tn-ink">
       {formatCents(appointment.priceCents)}
     </span>
   );
@@ -190,7 +190,7 @@ export function RegisterPage() {
   if (locationsQuery.isSuccess && locations.length === 0) {
     return (
       <div className="flex flex-col gap-3">
-        <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">Register</h1>
+        <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Register</h1>
         <p className="m-0 max-w-[60ch] font-sans text-sm text-tn-muted-3">
           You are not assigned to a branch yet, so there is no till to open. Ask an owner or manager
           to add you to a location.
@@ -203,7 +203,7 @@ export function RegisterPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">Register</h1>
+          <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Register</h1>
           {locations.length > 1 && (
             <LocationFilterPopover
               locations={locations.map((l) => ({ id: l.id, name: l.name }))}
@@ -225,7 +225,7 @@ export function RegisterPage() {
       </div>
 
       {notice && (
-        <p className="m-0 rounded-xl border border-tn-danger bg-tn-danger-bg px-4 py-3 font-sans text-[13px] text-tn-danger">
+        <p className="m-0 rounded-xl border border-tn-danger bg-tn-danger-bg px-4 py-3 font-sans text-[14px] text-tn-danger">
           {notice}
         </p>
       )}
@@ -256,7 +256,7 @@ export function RegisterPage() {
               <p className="m-0 font-sans text-sm font-semibold text-tn-ink">
                 Nothing booked today
               </p>
-              <p className="m-0 mt-1 font-sans text-[13px] text-tn-muted-3">
+              <p className="m-0 mt-1 font-sans text-[14px] text-tn-muted-3">
                 Start a counter sale for a walk-up, or seat someone from the waitlist first.
               </p>
             </div>
@@ -280,10 +280,10 @@ export function RegisterPage() {
                     {timeLabel(appointment.startAt)}
                   </span>
                   <div className="min-w-[160px] flex-1">
-                    <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">
+                    <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">
                       {appointment.customerName}
                     </p>
-                    <p className="m-0 font-sans text-[11px] text-tn-muted-3">
+                    <p className="m-0 font-sans text-[12px] text-tn-muted-3">
                       {appointment.serviceName} · {appointment.durationMinutes} min
                       {appointment.staffName ? ` · ${appointment.staffName}` : ""}
                     </p>
@@ -319,7 +319,7 @@ export function RegisterPage() {
                     </Button>
                   )}
                   {!isDone && !appointment.payable && appointment.notPayableReason && (
-                    <p className="m-0 w-full font-sans text-[11px] text-tn-muted-3">
+                    <p className="m-0 w-full font-sans text-[12px] text-tn-muted-3">
                       {appointment.notPayableReason}
                     </p>
                   )}

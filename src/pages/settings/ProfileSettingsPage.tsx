@@ -101,7 +101,7 @@ export function ProfileSettingsPage() {
           disabled={saveCover.isPending}
         />
         {saveCover.isError && (
-          <p className="m-0 font-sans text-[11px] text-tn-danger">
+          <p className="m-0 font-sans text-[12px] text-tn-danger">
             {saveCover.error instanceof Error
               ? saveCover.error.message
               : "Couldn’t save that — try again."}

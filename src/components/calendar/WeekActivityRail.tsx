@@ -71,26 +71,26 @@ export function WeekActivityRail({
   return (
     <aside className="flex w-[260px] flex-none flex-col gap-5 rounded-2xl border border-tn-border bg-tn-surface p-4">
       <div className="flex flex-col gap-1.5">
-        <span className="font-sans text-[10px] font-semibold tracking-[0.08em] text-tn-faint">
+        <span className="font-sans text-[11px] font-semibold tracking-[0.08em] text-tn-faint">
           ACTIVITY
         </span>
-        <p className="m-0 font-sans text-[13px] leading-relaxed text-tn-ink">
+        <p className="m-0 font-sans text-[14px] leading-relaxed text-tn-ink">
           Week of {weekLabel} · {liveCount} booking{liveCount === 1 ? "" : "s"} · {staffOnRota}{" "}
           barber{staffOnRota === 1 ? "" : "s"} on rota
         </p>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <span className="font-sans text-[10px] font-semibold tracking-[0.08em] text-tn-faint">
+        <span className="font-sans text-[11px] font-semibold tracking-[0.08em] text-tn-faint">
           BUSIEST OVERLAP
         </span>
         {busiest === null ? (
-          <p className="m-0 font-sans text-[12px] leading-relaxed text-tn-muted-5">
+          <p className="m-0 font-sans text-[13px] leading-relaxed text-tn-muted-5">
             Nothing doubles up this week — every appointment has the shop to itself.
           </p>
         ) : (
           <div className="flex flex-col gap-2 rounded-xl border border-tn-border-soft bg-tn-page p-3">
-            <span className="font-sans text-[12px] font-semibold text-tn-ink">
+            <span className="font-sans text-[13px] font-semibold text-tn-ink">
               {busiest.start.toLocaleDateString(undefined, { weekday: "short", day: "numeric" })} ·{" "}
               {formatTimeLabel(busiest.start, timezone)} · {busiest.bookings.length} chairs
             </span>
@@ -107,10 +107,10 @@ export function WeekActivityRail({
                     style={{ backgroundColor: staffAvatarColorStrong(booking.staffUserId) }}
                   />
                   <span className="flex min-w-0 flex-col">
-                    <span className="truncate font-sans text-[11.5px] font-medium text-tn-ink-soft">
+                    <span className="truncate font-sans text-[12px] font-medium text-tn-ink-soft">
                       {booking.staffName}
                     </span>
-                    <span className="truncate font-sans text-[11px] text-tn-muted-5">
+                    <span className="truncate font-sans text-[12px] text-tn-muted-5">
                       {booking.customerName}
                     </span>
                   </span>
@@ -122,7 +122,7 @@ export function WeekActivityRail({
                 isn't — three barbers is three chairs. The collision guard
                 is what catches a real clash, and it would have refused
                 the save. */}
-            <p className="m-0 font-sans text-[10.5px] leading-relaxed text-tn-faint">
+            <p className="m-0 font-sans text-[11px] leading-relaxed text-tn-faint">
               {new Set(busiest.bookings.map((booking) => booking.staffUserId)).size ===
               busiest.bookings.length
                 ? "Different staff, so not a clash — the column stacks and the count shows the rest."

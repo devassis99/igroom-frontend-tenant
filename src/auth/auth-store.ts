@@ -57,6 +57,8 @@ interface AuthState {
    */
   setTokens: (params: { accessToken: string; refreshToken: string }) => void;
   setPermissions: (permissions: string[]) => void;
+  /** Updates the signed-in owner's cached details — the signup funnel's business step names the shop after the account exists. */
+  updateOwner: (fields: Partial<OwnerAccount>) => void;
   /**
    * The support-session equivalent of loginWithSession. Takes no refresh
    * token because the backend issues none — a support session is a fixed
@@ -109,6 +111,8 @@ export const useAuthStore = create<AuthState>()(
         }),
       setTokens: ({ accessToken, refreshToken }) => set({ accessToken, refreshToken }),
       setPermissions: (permissions) => set({ permissions }),
+      updateOwner: (fields) =>
+        set((state) => (state.owner ? { owner: { ...state.owner, ...fields } } : {})),
       logOut: () =>
         set({
           owner: null,

@@ -10,7 +10,7 @@ interface ToggleProps {
 export function Toggle({ checked, onChange, label, disabled = false }: ToggleProps) {
   return (
     <label className="flex items-center justify-between gap-3 py-1">
-      <span className="font-sans text-[13px] font-medium text-tn-ink-soft">{label}</span>
+      <span className="font-sans text-[14px] font-medium text-tn-ink-soft">{label}</span>
       <button
         type="button"
         role="switch"

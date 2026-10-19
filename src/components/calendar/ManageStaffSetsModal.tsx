@@ -77,12 +77,12 @@ export function ManageStaffSetsModal({
         className="flex w-[420px] flex-col gap-3 rounded-2xl border border-tn-input-border bg-tn-surface p-4 shadow-[0_22px_48px_-22px_rgba(40,30,10,0.42)]"
       >
         <div className="flex items-center justify-between">
-          <span className="font-sans text-[13.5px] font-semibold text-tn-ink">Saved sets</span>
+          <span className="font-sans text-[14px] font-semibold text-tn-ink">Saved sets</span>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="cursor-pointer border-none bg-transparent font-sans text-[13px] font-medium text-tn-muted-1"
+            className="cursor-pointer border-none bg-transparent font-sans text-[14px] font-medium text-tn-muted-1"
           >
             Done
           </button>
@@ -105,7 +105,7 @@ export function ManageStaffSetsModal({
                   disabled={index === 0}
                   onClick={() => move(index, -1)}
                   aria-label="Move up"
-                  className="cursor-pointer border-none bg-transparent p-0 text-[10px] leading-none text-tn-muted-5 disabled:opacity-30"
+                  className="cursor-pointer border-none bg-transparent p-0 text-[11px] leading-none text-tn-muted-5 disabled:opacity-30"
                 >
                   ▲
                 </button>
@@ -114,7 +114,7 @@ export function ManageStaffSetsModal({
                   disabled={index === staffSets.length - 1}
                   onClick={() => move(index, 1)}
                   aria-label="Move down"
-                  className="cursor-pointer border-none bg-transparent p-0 text-[10px] leading-none text-tn-muted-5 disabled:opacity-30"
+                  className="cursor-pointer border-none bg-transparent p-0 text-[11px] leading-none text-tn-muted-5 disabled:opacity-30"
                 >
                   ▼
                 </button>
@@ -140,26 +140,26 @@ export function ManageStaffSetsModal({
                       }
                       setRenamingId(null);
                     }}
-                    className="rounded-md border border-tn-blue bg-tn-surface px-2 py-1 font-sans text-[12.5px] font-semibold text-tn-ink outline-none"
+                    className="rounded-md border border-tn-blue bg-tn-surface px-2 py-1 font-sans text-[13px] font-semibold text-tn-ink outline-none"
                   />
                 ) : (
                   <span className="flex items-center gap-1.5">
-                    <span className="truncate font-sans text-[12.5px] font-semibold text-tn-ink">
+                    <span className="truncate font-sans text-[13px] font-semibold text-tn-ink">
                       {set.name}
                     </span>
                     {set.isDefault && (
-                      <span className="shrink-0 rounded-full bg-tn-success-bg px-1.5 py-0.5 font-sans text-[9.5px] font-bold tracking-wide text-tn-success">
+                      <span className="shrink-0 rounded-full bg-tn-success-bg px-1.5 py-0.5 font-sans text-[11px] font-bold tracking-wide text-tn-success">
                         DEFAULT
                       </span>
                     )}
                   </span>
                 )}
-                <span className="font-sans text-[11px] text-tn-muted-5">
+                <span className="font-sans text-[12px] text-tn-muted-5">
                   {set.staffUserIds.length} people &middot; {set.isShared ? "shared" : "private"}
                 </span>
               </div>
 
-              <div className="flex shrink-0 gap-2.5 font-sans text-[11.5px] font-medium text-tn-muted-4">
+              <div className="flex shrink-0 gap-2.5 font-sans text-[12px] font-medium text-tn-muted-4">
                 <button
                   type="button"
                   onClick={() => {

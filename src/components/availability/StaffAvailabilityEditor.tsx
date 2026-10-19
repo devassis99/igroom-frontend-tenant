@@ -1545,7 +1545,7 @@ export function StaffAvailabilityEditor({
           {locationId && (
             <Link
               to={`/settings/hours?staff=${staffUserId}&shop=${locationId}`}
-              className="mt-2.5 inline-block rounded-lg border border-tn-input-border bg-tn-surface px-3 py-1.5 font-sans text-[12px] font-semibold text-tn-ink no-underline hover:bg-tn-neutral-bg"
+              className="mt-2.5 inline-block rounded-lg border border-tn-input-border bg-tn-surface px-3 py-1.5 font-sans text-[13px] font-semibold text-tn-ink no-underline hover:bg-tn-neutral-bg"
             >
               Open this member&rsquo;s shops in Settings › Availability
             </Link>
@@ -1622,7 +1622,7 @@ export function StaffAvailabilityEditor({
                     type="button"
                     onClick={() => setActiveLocationId(schedule.location.id)}
                     aria-current={isActive ? "page" : undefined}
-                    className={`relative cursor-pointer border-none bg-transparent px-3 py-3 font-sans text-[13px] transition-colors duration-150 ${
+                    className={`relative cursor-pointer border-none bg-transparent px-3 py-3 font-sans text-[14px] transition-colors duration-150 ${
                       isActive
                         ? "font-semibold text-tn-ink"
                         : "font-medium text-tn-muted-5 hover:text-tn-ink-soft"
@@ -1659,7 +1659,7 @@ export function StaffAvailabilityEditor({
                       <span
                         aria-label="This shop is part of a clash that blocks saving"
                         title="This shop is part of a clash that blocks saving"
-                        className="tn-pop-in ml-1.5 inline-block min-w-4 rounded-full bg-tn-danger-strong px-1 text-center align-middle font-sans text-[10px] leading-4 font-semibold text-tn-on-dark"
+                        className="tn-pop-in ml-1.5 inline-block min-w-4 rounded-full bg-tn-danger-strong px-1 text-center align-middle font-sans text-[11px] leading-4 font-semibold text-tn-on-dark"
                       >
                         {blockersByLocation.get(schedule.location.id)}
                       </span>
@@ -1740,7 +1740,7 @@ export function StaffAvailabilityEditor({
                       </button>
                     </div>
                     <span
-                      className={`flex w-24 flex-none items-center font-sans text-[13px] font-medium text-tn-ink-soft ${ROW_LINE}`}
+                      className={`flex w-24 flex-none items-center font-sans text-[14px] font-medium text-tn-ink-soft ${ROW_LINE}`}
                     >
                       {DAY_LABELS[dayOfWeek]}
                     </span>
@@ -1771,7 +1771,7 @@ export function StaffAvailabilityEditor({
                                   // stylesheet order, not by where the class sits in this
                                   // string), which is what made every field balloon to fill
                                   // its row instead of staying a compact 132px.
-                                  className={`!w-[132px] !px-2.5 !py-1.5 !text-[13px] ${fieldTone}`}
+                                  className={`!w-[132px] !px-2.5 !py-1.5 !text-[14px] ${fieldTone}`}
                                 />
                                 <span className="font-sans text-xs text-tn-muted-6">-</span>
                                 <TimePicker
@@ -1780,13 +1780,13 @@ export function StaffAvailabilityEditor({
                                   onChange={(next) =>
                                     updateRange(dayOfWeek, index, "endTime", next)
                                   }
-                                  className={`!w-[132px] !px-2.5 !py-1.5 !text-[13px] ${fieldTone}`} // see the start TimePicker's comment above
+                                  className={`!w-[132px] !px-2.5 !py-1.5 !text-[14px] ${fieldTone}`} // see the start TimePicker's comment above
                                 />
                                 {/* The shop's own abbreviation after the pair,
                                     so a row states its clock even when the tab
                                     strip has scrolled out of view. */}
                                 {index === 0 && (
-                                  <span className="ml-1 font-sans text-[11px] text-tn-faint-2">
+                                  <span className="ml-1 font-sans text-[12px] text-tn-faint-2">
                                     {zoneAbbreviation(activeZone)}
                                   </span>
                                 )}
@@ -1837,7 +1837,7 @@ export function StaffAvailabilityEditor({
                       // empty here is that she's at another shop — that day
                       // isn't a gap in her week, it belongs to somewhere else.
                       <span
-                        className={`flex flex-1 items-center font-sans text-[13px] text-tn-faint-2 ${ROW_LINE}`}
+                        className={`flex flex-1 items-center font-sans text-[14px] text-tn-faint-2 ${ROW_LINE}`}
                       >
                         {elsewhere ? `Not at this shop — ${elsewhere.join(", ")}` : "Unavailable"}
                       </span>
@@ -1921,7 +1921,7 @@ export function StaffAvailabilityEditor({
                   className="flex items-center justify-between gap-2 rounded-xl border border-tn-border-soft px-3.5 py-2.5"
                 >
                   <div className="flex flex-col">
-                    <span className="font-sans text-[13px] font-medium text-tn-ink">
+                    <span className="font-sans text-[14px] font-medium text-tn-ink">
                       {formatOverrideDate(override.date)}
                     </span>
                     <span className="font-sans text-xs text-tn-muted-5">

@@ -76,7 +76,7 @@ function MenuRow({
       type="button"
       role="menuitem"
       onClick={onClick}
-      className="flex w-full cursor-pointer items-center gap-3 border-none bg-transparent px-4 py-2.5 text-left font-sans text-[13px] font-medium text-tn-ink-soft hover:bg-tn-page"
+      className="flex w-full cursor-pointer items-center gap-3 border-none bg-transparent px-4 py-2.5 text-left font-sans text-[14px] font-medium text-tn-ink-soft hover:bg-tn-page"
     >
       <span className="flex h-4 w-4 shrink-0 items-center justify-center text-tn-muted-5">
         {icon}
@@ -170,14 +170,14 @@ export function AccountMenu({
       </div>
 
       <div className="border-t border-tn-border-soft px-4 py-3">
-        <p className="m-0 mb-2 font-sans text-[10px] font-semibold tracking-[0.06em] text-tn-faint">
+        <p className="m-0 mb-2 font-sans text-[11px] font-semibold tracking-[0.06em] text-tn-faint">
           ORGANIZATION
         </p>
         <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[oklch(90%_0.03_20)] font-sans text-[11px] font-semibold text-tn-ink">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[oklch(90%_0.03_20)] font-sans text-[12px] font-semibold text-tn-ink">
             {owner.businessName?.[0]?.toUpperCase() ?? "?"}
           </div>
-          <span className="truncate font-sans text-[13px] font-medium text-tn-ink">
+          <span className="truncate font-sans text-[14px] font-medium text-tn-ink">
             {owner.businessName}
           </span>
         </div>

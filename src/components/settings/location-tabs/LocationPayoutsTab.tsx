@@ -17,10 +17,10 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
   return (
     <div className="flex flex-1 flex-col gap-1 rounded-2xl border border-tn-border px-4 py-3">
       <span className="font-sans text-lg font-semibold text-tn-ink">{value}</span>
-      <span className="font-sans text-[11px] font-semibold tracking-[0.04em] text-tn-muted-5">
+      <span className="font-sans text-[12px] font-semibold tracking-[0.04em] text-tn-muted-5">
         {label.toUpperCase()}
       </span>
-      {hint && <span className="font-sans text-[11px] text-tn-faint">{hint}</span>}
+      {hint && <span className="font-sans text-[12px] text-tn-faint">{hint}</span>}
     </div>
   );
 }
@@ -92,7 +92,7 @@ export function LocationPayoutsTab({ location }: { location: AccountLocation }) 
               {["DATE", "CUSTOMER", "SERVICE", "CAPTURED", "STATUS"].map((heading) => (
                 <span
                   key={heading}
-                  className="font-sans text-[11px] font-semibold tracking-[0.05em] text-tn-muted-5"
+                  className="font-sans text-[12px] font-semibold tracking-[0.05em] text-tn-muted-5"
                 >
                   {heading}
                 </span>
@@ -111,21 +111,21 @@ export function LocationPayoutsTab({ location }: { location: AccountLocation }) 
                     day: "numeric",
                   })}
                 </span>
-                <span className="truncate font-sans text-[13px] text-tn-ink">
+                <span className="truncate font-sans text-[14px] text-tn-ink">
                   {payment.customerName}
                 </span>
-                <span className="truncate font-sans text-[13px] text-tn-muted-5">
+                <span className="truncate font-sans text-[14px] text-tn-muted-5">
                   {payment.serviceName}
                 </span>
-                <span className="font-sans text-[13px] text-tn-ink">
+                <span className="font-sans text-[14px] text-tn-ink">
                   {money(payment.capturedCents)}
                   {payment.remainingCents > 0 && (
-                    <span className="block font-sans text-[10px] text-tn-gold">
+                    <span className="block font-sans text-[11px] text-tn-gold">
                       {money(payment.remainingCents)} due
                     </span>
                   )}
                 </span>
-                <span className="font-sans text-[11px] text-tn-muted-5">
+                <span className="font-sans text-[12px] text-tn-muted-5">
                   {payment.status ? (STATUS_LABELS[payment.status] ?? payment.status) : "—"}
                   {payment.type === "deposit" && " · deposit"}
                 </span>

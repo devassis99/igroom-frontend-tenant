@@ -245,7 +245,7 @@ export function WaitlistPage() {
     <div className="flex flex-col gap-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">Live Waitlist</h1>
+          <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Live Waitlist</h1>
           {locations.length > 1 && (
             <LocationFilterPopover
               locations={locations}
@@ -287,7 +287,7 @@ export function WaitlistPage() {
       {actionError ? (
         <p
           role="alert"
-          className="m-0 rounded-xl border border-tn-danger bg-tn-danger-bg px-4 py-3 font-sans text-[13px] text-tn-danger"
+          className="m-0 rounded-xl border border-tn-danger bg-tn-danger-bg px-4 py-3 font-sans text-[14px] text-tn-danger"
         >
           {actionError}
         </p>
@@ -301,10 +301,10 @@ export function WaitlistPage() {
          * the board query is disabled and so never resolves.
          */
         <div className="rounded-2xl border border-dashed border-tn-border px-5 py-12 text-center">
-          <p className="m-0 font-sans text-[15px] font-semibold text-tn-ink">
+          <p className="m-0 font-sans text-[16px] font-semibold text-tn-ink">
             You&rsquo;re not assigned to a location yet
           </p>
-          <p className="m-0 mt-2 font-sans text-[13px] text-tn-muted-5">
+          <p className="m-0 mt-2 font-sans text-[14px] text-tn-muted-5">
             The waitlist is per shop, so there&rsquo;s no queue to show until an owner adds you to
             one.
           </p>
@@ -441,7 +441,7 @@ function ListView({
   return (
     <>
       <div>
-        <p className="m-0 mb-3 font-sans text-[13px] font-semibold tracking-[0.02em] text-tn-muted-1">
+        <p className="m-0 mb-3 font-sans text-[14px] font-semibold tracking-[0.02em] text-tn-muted-1">
           NOW SERVING
         </p>
         {board.nowServing.length === 0 ? (
@@ -462,7 +462,7 @@ function ListView({
                     color={staffAvatarColorStrong(entry.staffUserId ?? entry.entryId)}
                   />
                   <div className="min-w-[180px] flex-1">
-                    <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">
+                    <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">
                       {entry.customerName} · {entry.serviceName}
                     </p>
                     <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
@@ -511,7 +511,7 @@ function ListView({
       </div>
 
       <div>
-        <p className="m-0 mb-3 font-sans text-[13px] font-semibold tracking-[0.02em] text-tn-muted-1">
+        <p className="m-0 mb-3 font-sans text-[14px] font-semibold tracking-[0.02em] text-tn-muted-1">
           WAITING
         </p>
         {/*
@@ -540,7 +540,7 @@ function ListView({
                   />
                 </span>
                 <div className="min-w-[180px] flex-1">
-                  <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">
+                  <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">
                     {arrival.customerName} · {arrival.serviceName}
                   </p>
                   <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
@@ -554,7 +554,7 @@ function ListView({
                   </p>
                 </div>
                 <span
-                  className={`rounded-full px-2.5 py-1 font-sans text-[11px] font-semibold ${
+                  className={`rounded-full px-2.5 py-1 font-sans text-[12px] font-semibold ${
                     arrival.minutesLateStarting > 5
                       ? "bg-tn-danger-bg text-tn-danger"
                       : "bg-tn-success-bg text-tn-success"
@@ -584,14 +584,14 @@ function ListView({
                 } ${index === 0 ? "bg-tn-detail-bg" : ""}`}
               >
                 <span
-                  className={`w-8 font-sans text-[13px] font-semibold ${
+                  className={`w-8 font-sans text-[14px] font-semibold ${
                     index === 0 ? "text-tn-gold" : "text-tn-muted-5"
                   }`}
                 >
                   #{entry.position}
                 </span>
                 <div className="min-w-[180px] flex-1">
-                  <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">
+                  <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">
                     {entry.customerName} · {entry.serviceName}
                   </p>
                   <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
@@ -676,7 +676,7 @@ function BoardView({
   return (
     <>
       <div>
-        <p className="m-0 mb-3 font-sans text-[13px] font-semibold tracking-[0.02em] text-tn-muted-1">
+        <p className="m-0 mb-3 font-sans text-[14px] font-semibold tracking-[0.02em] text-tn-muted-1">
           CHAIRS — NOW SERVING
         </p>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -687,7 +687,7 @@ function BoardView({
       </div>
 
       <div>
-        <p className="m-0 mb-3 font-sans text-[13px] font-semibold tracking-[0.02em] text-tn-muted-1">
+        <p className="m-0 mb-3 font-sans text-[14px] font-semibold tracking-[0.02em] text-tn-muted-1">
           UP NEXT
         </p>
         {board.waiting.length === 0 ? (
@@ -703,7 +703,7 @@ function BoardView({
               >
                 <span className="relative">
                   <span
-                    className={`flex h-[68px] w-[68px] items-center justify-center rounded-full font-sans text-[15px] font-semibold ${
+                    className={`flex h-[68px] w-[68px] items-center justify-center rounded-full font-sans text-[16px] font-semibold ${
                       index === 0
                         ? "border-2 border-tn-gold bg-tn-gold-bg-soft text-tn-gold"
                         : "bg-tn-neutral-bg text-tn-muted-3"
@@ -711,11 +711,11 @@ function BoardView({
                   >
                     {initialsOf(entry.customerName)}
                   </span>
-                  <span className="absolute -top-1 -right-1 flex h-[22px] w-[22px] items-center justify-center rounded-full bg-tn-dark font-sans text-[11px] font-semibold text-tn-on-dark">
+                  <span className="absolute -top-1 -right-1 flex h-[22px] w-[22px] items-center justify-center rounded-full bg-tn-dark font-sans text-[12px] font-semibold text-tn-on-dark">
                     {entry.position}
                   </span>
                 </span>
-                <span className="font-sans text-[13px] font-semibold text-tn-ink">
+                <span className="font-sans text-[14px] font-semibold text-tn-ink">
                   {entry.customerName}
                 </span>
                 <span className="-mt-1 font-sans text-xs text-tn-muted-5">{entry.serviceName}</span>
@@ -752,8 +752,8 @@ function ChairCard({ chair }: { chair: WaitlistChair }) {
         <span className="flex h-[104px] w-[104px] items-center justify-center rounded-full bg-tn-page">
           <span className="h-4 w-4 rounded-full border-2 border-tn-faint-2" />
         </span>
-        <p className="m-0 font-sans text-[15px] font-semibold text-tn-muted-5">{chair.name}</p>
-        <p className="m-0 font-sans text-[13px] text-tn-muted-6">Open — ready for next</p>
+        <p className="m-0 font-sans text-[16px] font-semibold text-tn-muted-5">{chair.name}</p>
+        <p className="m-0 font-sans text-[14px] text-tn-muted-6">Open — ready for next</p>
       </div>
     );
   }
@@ -798,13 +798,13 @@ function ChairCard({ chair }: { chair: WaitlistChair }) {
           size={80}
         />
       </span>
-      <p className="m-0 font-sans text-[15px] font-semibold text-tn-ink">{chair.name}</p>
-      <p className="m-0 font-sans text-[13px] text-tn-muted-5">with {current.customerName}</p>
+      <p className="m-0 font-sans text-[16px] font-semibold text-tn-ink">{chair.name}</p>
+      <p className="m-0 font-sans text-[14px] text-tn-muted-5">with {current.customerName}</p>
       <span className="rounded-lg bg-tn-page px-3 py-1.5 font-sans text-xs text-tn-muted-3">
         {current.serviceName}
       </span>
       <p
-        className={`m-0 font-sans text-[13px] font-semibold ${
+        className={`m-0 font-sans text-[14px] font-semibold ${
           time.over ? "text-tn-danger" : "text-tn-gold"
         }`}
       >
@@ -816,7 +816,7 @@ function ChairCard({ chair }: { chair: WaitlistChair }) {
 
 function EmptyPanel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-dashed border-tn-border px-5 py-10 text-center font-sans text-[13px] text-tn-muted-5">
+    <div className="rounded-2xl border border-dashed border-tn-border px-5 py-10 text-center font-sans text-[14px] text-tn-muted-5">
       {children}
     </div>
   );

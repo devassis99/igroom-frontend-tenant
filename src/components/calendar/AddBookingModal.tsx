@@ -234,7 +234,7 @@ export function AddBookingModal({
     // behind, so the slot being booked into is still on screen.
     <Modal open={open} onClose={onClose} width={520} variant="sheet">
       <div className="flex items-center justify-between px-6 pt-6">
-        <h2 className="m-0 font-sans text-[19px] font-semibold text-tn-ink">Add Booking</h2>
+        <h2 className="m-0 font-sans text-[18px] font-semibold text-tn-ink">Add Booking</h2>
         <button
           type="button"
           onClick={onClose}
@@ -277,10 +277,10 @@ export function AddBookingModal({
           </p>
 
           {servicesQuery.isPending && (
-            <p className="m-0 font-sans text-[13px] text-tn-muted-5">Loading services…</p>
+            <p className="m-0 font-sans text-[14px] text-tn-muted-5">Loading services…</p>
           )}
           {!servicesQuery.isPending && services.length === 0 && (
-            <p className="m-0 font-sans text-[13px] text-tn-muted-5">
+            <p className="m-0 font-sans text-[14px] text-tn-muted-5">
               No services set up yet — add one on the Services page first.
             </p>
           )}
@@ -300,7 +300,7 @@ export function AddBookingModal({
                     i < services.length - 1 ? "border-b border-tn-border-soft" : ""
                   }`}
                 >
-                  <span className="font-sans text-[13px] text-tn-ink">
+                  <span className="font-sans text-[14px] text-tn-ink">
                     {s.name}
                     {s.categoryName && (
                       <span className="ml-1.5 font-sans text-xs text-tn-muted-5">
@@ -308,10 +308,10 @@ export function AddBookingModal({
                       </span>
                     )}
                   </span>
-                  <span className="font-sans text-[13px] text-tn-muted-3">
+                  <span className="font-sans text-[14px] text-tn-muted-3">
                     ${(s.priceCents / 100).toFixed(2)}
                   </span>
-                  <span className="font-sans text-[13px] text-tn-muted-3">
+                  <span className="font-sans text-[14px] text-tn-muted-3">
                     {s.durationMinutes} min
                   </span>
                   <input
@@ -359,7 +359,7 @@ export function AddBookingModal({
             </Field>
           </div>
 
-          <label className="flex items-center gap-2 font-sans text-[13px] text-tn-muted-1">
+          <label className="flex items-center gap-2 font-sans text-[14px] text-tn-muted-1">
             <input
               type="checkbox"
               checked={isWalkIn}

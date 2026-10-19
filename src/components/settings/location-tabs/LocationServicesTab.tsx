@@ -159,7 +159,7 @@ export function LocationServicesTab({
 
       {grouped.map(([category, rows]) => (
         <div key={category} className="flex flex-col gap-2">
-          <p className="m-0 font-sans text-[11px] font-semibold tracking-[0.05em] text-tn-muted-5">
+          <p className="m-0 font-sans text-[12px] font-semibold tracking-[0.05em] text-tn-muted-5">
             {category.toUpperCase()}
           </p>
           <div className="rounded-2xl border border-tn-border">
@@ -186,10 +186,10 @@ export function LocationServicesTab({
                       className="h-4 w-4 flex-none accent-tn-gold"
                     />
                     <span className="flex min-w-0 flex-col gap-0.5">
-                      <span className="truncate font-sans text-[13px] font-medium text-tn-ink">
+                      <span className="truncate font-sans text-[14px] font-medium text-tn-ink">
                         {entry.name}
                       </span>
-                      <span className="truncate font-sans text-[11px] text-tn-muted-5">
+                      <span className="truncate font-sans text-[12px] text-tn-muted-5">
                         Catalogue: ${(entry.cataloguePriceCents / 100).toFixed(2)} ·{" "}
                         {entry.catalogueDurationMinutes} min
                         {entry.isEnabled ? "" : " · disabled account-wide"}
@@ -208,7 +208,7 @@ export function LocationServicesTab({
                         onChange={(e) => update(entry.serviceId, { price: e.target.value })}
                         placeholder={(entry.cataloguePriceCents / 100).toFixed(2)}
                         aria-label={`Price for ${entry.name} at ${location.name}`}
-                        className="w-20 rounded-lg border border-tn-input-border bg-tn-surface px-2 py-1.5 font-sans text-[13px] text-tn-ink outline-none focus:border-tn-gold placeholder:text-tn-placeholder"
+                        className="w-20 rounded-lg border border-tn-input-border bg-tn-surface px-2 py-1.5 font-sans text-[14px] text-tn-ink outline-none focus:border-tn-gold placeholder:text-tn-placeholder"
                       />
                       <input
                         type="text"
@@ -218,7 +218,7 @@ export function LocationServicesTab({
                         onChange={(e) => update(entry.serviceId, { duration: e.target.value })}
                         placeholder={String(entry.catalogueDurationMinutes)}
                         aria-label={`Duration in minutes for ${entry.name} at ${location.name}`}
-                        className="w-16 rounded-lg border border-tn-input-border bg-tn-surface px-2 py-1.5 font-sans text-[13px] text-tn-ink outline-none focus:border-tn-gold placeholder:text-tn-placeholder"
+                        className="w-16 rounded-lg border border-tn-input-border bg-tn-surface px-2 py-1.5 font-sans text-[14px] text-tn-ink outline-none focus:border-tn-gold placeholder:text-tn-placeholder"
                       />
                       <span className="font-sans text-xs text-tn-muted-5">min</span>
                     </div>

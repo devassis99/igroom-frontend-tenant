@@ -269,10 +269,10 @@ export function TourOverlay({ tour, stepIndex, onNext, onBack, onDismiss }: Tour
         style={{ top: position.top, left: position.left, width }}
       >
         <div className="flex items-start justify-between gap-4">
-          <h2 id={titleId} className="font-serif text-[17px] font-semibold text-tn-ink">
+          <h2 id={titleId} className="font-sans text-[18px] font-semibold text-tn-ink">
             {step.title}
           </h2>
-          <span className="mt-0.5 flex-none font-sans text-[12px] font-medium text-tn-muted-5 tabular-nums">
+          <span className="mt-0.5 flex-none font-sans text-[13px] font-medium text-tn-muted-5 tabular-nums">
             {stepIndex + 1}/{total}
           </span>
         </div>
@@ -282,7 +282,7 @@ export function TourOverlay({ tour, stepIndex, onNext, onBack, onDismiss }: Tour
         </p>
 
         {step.tip ? (
-          <p className="mt-3.5 rounded-xl bg-tn-gold-bg-soft px-3.5 py-3 font-sans text-[13px] leading-relaxed text-tn-ink-soft">
+          <p className="mt-3.5 rounded-xl bg-tn-gold-bg-soft px-3.5 py-3 font-sans text-[14px] leading-relaxed text-tn-ink-soft">
             <span className="font-semibold text-tn-gold">Pro tip: </span>
             {step.tip}
           </p>
@@ -292,7 +292,7 @@ export function TourOverlay({ tour, stepIndex, onNext, onBack, onDismiss }: Tour
           <button
             type="button"
             onClick={onDismiss}
-            className="-ml-1.5 rounded-lg px-1.5 py-2 font-sans text-[13.5px] font-medium text-tn-muted-5 transition-colors hover:text-tn-ink"
+            className="-ml-1.5 rounded-lg px-1.5 py-2 font-sans text-[14px] font-medium text-tn-muted-5 transition-colors hover:text-tn-ink"
           >
             Skip
           </button>
@@ -302,7 +302,7 @@ export function TourOverlay({ tour, stepIndex, onNext, onBack, onDismiss }: Tour
               <button
                 type="button"
                 onClick={onBack}
-                className="rounded-[10px] border border-tn-input-border bg-tn-surface px-3.5 py-2 font-sans text-[13.5px] font-semibold text-tn-ink transition-colors hover:bg-tn-page"
+                className="rounded-[10px] border border-tn-input-border bg-tn-surface px-3.5 py-2 font-sans text-[14px] font-semibold text-tn-ink transition-colors hover:bg-tn-page"
               >
                 Back
               </button>
@@ -310,7 +310,7 @@ export function TourOverlay({ tour, stepIndex, onNext, onBack, onDismiss }: Tour
             <button
               type="button"
               onClick={onNext}
-              className="rounded-[10px] bg-tn-dark px-4 py-2 font-sans text-[13.5px] font-semibold text-tn-on-dark transition-colors hover:opacity-90"
+              className="rounded-[10px] bg-tn-dark px-4 py-2 font-sans text-[14px] font-semibold text-tn-on-dark transition-colors hover:opacity-90"
             >
               {isLast ? "Finish" : "Next"}
             </button>

@@ -73,28 +73,28 @@ function Card({ card, status }: { card: IntegrationCard; status: LoadStatus }) {
 function Footer({ card, status }: { card: IntegrationCard; status: LoadStatus }) {
   if (!card.supported) {
     return (
-      <span className="mt-auto pt-1 font-sans text-[11px] font-medium text-tn-muted-6">
+      <span className="mt-auto pt-1 font-sans text-[12px] font-medium text-tn-muted-6">
         Not available yet
       </span>
     );
   }
   if (status === "pending") {
     return (
-      <span className="mt-auto pt-1 font-sans text-[11px] font-medium text-tn-muted-6">
+      <span className="mt-auto pt-1 font-sans text-[12px] font-medium text-tn-muted-6">
         Checking&hellip;
       </span>
     );
   }
   if (status === "error") {
     return (
-      <span className="mt-auto pt-1 font-sans text-[11px] font-medium text-tn-danger">
+      <span className="mt-auto pt-1 font-sans text-[12px] font-medium text-tn-danger">
         Couldn&rsquo;t load — see the message above
       </span>
     );
   }
   // Reached the server, and it doesn't offer this one yet.
   return (
-    <span className="mt-auto pt-1 font-sans text-[11px] font-medium text-tn-muted-6">
+    <span className="mt-auto pt-1 font-sans text-[12px] font-medium text-tn-muted-6">
       Not available yet
     </span>
   );
@@ -143,14 +143,14 @@ function LiveControls({ live }: { live: LiveIntegration }) {
       {isConnected && (
         <div className="flex flex-col gap-0.5">
           {live.connectedAs && (
-            <span className="truncate font-sans text-[11.5px] text-tn-ink-soft">
+            <span className="truncate font-sans text-[12px] text-tn-ink-soft">
               {live.connectedAs}
             </span>
           )}
           {/* The number, because it is the only honest proof the thing is
               doing anything. "Connected" on its own is a claim; "6 events
               blocking time" is a fact the barber can go and check. */}
-          <span className="font-sans text-[11px] text-tn-muted-5">
+          <span className="font-sans text-[12px] text-tn-muted-5">
             {live.blockedCount === 0
               ? "Nothing on it is blocking time yet"
               : `${live.blockedCount} ${live.blockedCount === 1 ? "event is" : "events are"} blocking time`}
@@ -160,7 +160,7 @@ function LiveControls({ live }: { live: LiveIntegration }) {
       )}
 
       {needsReauth && (
-        <p className="m-0 font-sans text-[11px] leading-relaxed text-tn-danger">
+        <p className="m-0 font-sans text-[12px] leading-relaxed text-tn-danger">
           Google stopped accepting our access — reconnect to start blocking time again. Anything
           already blocked stays put in the meantime.
         </p>
@@ -173,7 +173,7 @@ function LiveControls({ live }: { live: LiveIntegration }) {
           // barber's calendar for them — nobody can authorise somebody
           // else's Google account — and finding that out at Google's
           // consent screen is finding it out too late.
-          <span className="font-sans text-[11px] text-tn-muted-6">
+          <span className="font-sans text-[12px] text-tn-muted-6">
             Connects your own calendar. Each barber connects theirs.
           </span>
         )}
@@ -206,7 +206,7 @@ function LiveControls({ live }: { live: LiveIntegration }) {
       </div>
 
       {(error ?? live.lastError) && (
-        <p className="m-0 font-sans text-[11px] leading-relaxed text-tn-danger">
+        <p className="m-0 font-sans text-[12px] leading-relaxed text-tn-danger">
           {error ?? live.lastError}
         </p>
       )}

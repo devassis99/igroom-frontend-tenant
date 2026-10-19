@@ -48,7 +48,7 @@ export function TravelBufferField() {
 
   return (
     <label className="flex items-center gap-2 rounded-xl border border-tn-input-border px-3 py-1.5">
-      <span className="font-sans text-[11px] text-tn-muted-5">Travel between shops</span>
+      <span className="font-sans text-[12px] text-tn-muted-5">Travel between shops</span>
       <select
         value={value}
         disabled={mutation.isPending}
@@ -57,7 +57,7 @@ export function TravelBufferField() {
           setValue(next);
           mutation.mutate(next);
         }}
-        className="cursor-pointer border-none bg-transparent font-sans text-[13px] font-semibold text-tn-ink outline-none"
+        className="cursor-pointer border-none bg-transparent font-sans text-[14px] font-semibold text-tn-ink outline-none"
       >
         {OPTIONS.map((minutes) => (
           <option key={minutes} value={minutes}>

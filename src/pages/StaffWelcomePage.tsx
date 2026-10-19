@@ -102,8 +102,8 @@ export function StaffWelcomePage() {
       <TourProvider />
       <div className="mx-auto flex w-full max-w-[860px] flex-col gap-6">
         <div className="flex flex-col gap-1">
-          <span className="font-serif text-lg font-semibold text-tn-ink">iGroom</span>
-          <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">
+          <span className="font-sans text-lg font-semibold text-tn-ink">iGroom</span>
+          <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">
             Welcome{onboarding.name ? `, ${onboarding.name.split(" ")[0]}` : ""}
           </h1>
           <p className="m-0 font-sans text-sm text-tn-muted-5">
@@ -234,7 +234,7 @@ export function StaffWelcomePage() {
                 <button
                   type="button"
                   onClick={() => setStep(2)}
-                  className="cursor-pointer border-none bg-transparent p-0 font-sans text-[13px] font-semibold text-tn-muted-5 transition-colors duration-150 hover:text-tn-ink"
+                  className="cursor-pointer border-none bg-transparent p-0 font-sans text-[14px] font-semibold text-tn-muted-5 transition-colors duration-150 hover:text-tn-ink"
                 >
                   Skip for now
                 </button>

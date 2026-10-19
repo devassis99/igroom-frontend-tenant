@@ -30,7 +30,7 @@ export function WizardTabs({ steps, activeIndex, onSelect }: WizardTabsProps) {
             role="tab"
             aria-selected={i === activeIndex}
             onClick={() => onSelect(i)}
-            className={`cursor-pointer border-none bg-transparent p-0 font-sans text-[13px] ${
+            className={`cursor-pointer border-none bg-transparent p-0 font-sans text-[14px] ${
               // The interactive form never uses the "already walked past
               // it" gold state — with no ordered flow, a tab is either
               // the one you're on or one you could switch to.
@@ -40,7 +40,7 @@ export function WizardTabs({ steps, activeIndex, onSelect }: WizardTabsProps) {
             {step}
           </button>
         ) : (
-          <span key={step} className={`font-sans text-[13px] ${labelClass(i, activeIndex)}`}>
+          <span key={step} className={`font-sans text-[14px] ${labelClass(i, activeIndex)}`}>
             {step}
           </span>
         ),

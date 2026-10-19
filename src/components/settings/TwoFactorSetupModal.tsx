@@ -123,7 +123,7 @@ export function TwoFactorSetupModal({
                   alt="Scan this QR code with your authenticator app"
                   className="h-40 w-40 rounded-lg border border-tn-border-soft"
                 />
-                <p className="m-0 break-all text-center font-sans text-[11px] text-tn-muted-6">
+                <p className="m-0 break-all text-center font-sans text-[12px] text-tn-muted-6">
                   Can&rsquo;t scan? Enter this code manually: <strong>{setup.secret}</strong>
                 </p>
               </div>

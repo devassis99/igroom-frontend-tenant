@@ -256,7 +256,7 @@ export function DatePicker({
               >
                 <ChevronLeftIcon />
               </button>
-              <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">{monthLabel}</p>
+              <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">{monthLabel}</p>
               <button
                 type="button"
                 onClick={() => goMonth(1)}
@@ -271,7 +271,7 @@ export function DatePicker({
               {WEEKDAY_LABELS.map((wd) => (
                 <span
                   key={wd}
-                  className="flex h-7 items-center justify-center font-sans text-[11px] font-semibold text-tn-muted-5"
+                  className="flex h-7 items-center justify-center font-sans text-[12px] font-semibold text-tn-muted-5"
                 >
                   {wd}
                 </span>
@@ -290,7 +290,7 @@ export function DatePicker({
                     disabled={isBlocked}
                     onClick={() => select(cell.date)}
                     aria-current={isToday ? "date" : undefined}
-                    className={`m-auto flex h-8 w-8 items-center justify-center rounded-full border-none font-sans text-[13px] ${
+                    className={`m-auto flex h-8 w-8 items-center justify-center rounded-full border-none font-sans text-[14px] ${
                       isBlocked
                         ? "cursor-not-allowed bg-transparent text-tn-faint-2"
                         : isSelected

@@ -13,10 +13,10 @@ import { ApiError } from "@/lib/http";
 
 /**
  * Matches the mockup's T2 "Create your owner account" frame — step 1 of
- * the funnel: Account → Business details → Availability → Plan → Checkout
- * → Receipt. Business details and availability now come before payment
- * so the Receipt page (T5) can show the real business name and a
- * just-completed weekly schedule — see ReceiptPage's comment.
+ * the funnel: Account → Plan → Checkout → Business details →
+ * Availability. Payment comes straight after this step (after the plan
+ * picker, or directly for an invite link), and ReceiptPage creates the
+ * account the moment Stripe sends the visitor back — see its comment.
  */
 export function CreateAccountPage() {
   const navigate = useNavigate();
@@ -120,15 +120,15 @@ export function CreateAccountPage() {
         }
 
         // No staff account matched this Google identity yet — carry the
-        // verified idToken through the rest of the wizard. ReceiptPage
-        // finishes the job by calling POST /accounts/signup with this same
-        // idToken instead of a password, right after checkout completes.
+        // verified idToken to checkout. ReceiptPage finishes the job by
+        // calling POST /accounts/signup with this same idToken instead of
+        // a password, right after checkout completes.
         setGoogleIdentity({
           googleIdToken: idToken,
           fullName: outcome.name,
           workEmail: outcome.email,
         });
-        navigate("/signup/business");
+        navigate("/signup/plan");
       } catch (err) {
         const message =
           err instanceof ApiError || err instanceof Error
@@ -161,7 +161,7 @@ export function CreateAccountPage() {
       setError("Fill in your name, work email, and a password to continue.");
       return;
     }
-    navigate("/signup/business");
+    navigate("/signup/plan");
   }
 
   if (challengeToken) {
@@ -169,10 +169,10 @@ export function CreateAccountPage() {
       <div className="flex min-h-screen items-center justify-center bg-tn-page px-4">
         <div className="flex w-[380px] flex-col gap-6">
           <div className="flex flex-col items-center gap-1.5 text-center">
-            <p className="m-0 font-serif text-2xl font-semibold text-tn-ink">
+            <p className="m-0 font-sans text-2xl font-semibold text-tn-ink">
               Enter verification code
             </p>
-            <p className="m-0 font-sans text-[13px] text-tn-muted-3">
+            <p className="m-0 font-sans text-[14px] text-tn-muted-3">
               This Google account already has an iGroom shop — open your authenticator app and enter
               the current code.
             </p>
@@ -207,7 +207,7 @@ export function CreateAccountPage() {
               setMfaCode("");
               setError(null);
             }}
-            className="cursor-pointer self-center border-none bg-transparent p-0 font-sans text-[13px] font-medium text-tn-muted-5"
+            className="cursor-pointer self-center border-none bg-transparent p-0 font-sans text-[14px] font-medium text-tn-muted-5"
           >
             Back
           </button>
@@ -220,10 +220,10 @@ export function CreateAccountPage() {
     <div className="flex min-h-screen items-center justify-center bg-tn-surface px-6 py-12">
       <form onSubmit={handleSubmit} className="flex w-[420px] flex-col gap-6">
         <div>
-          <h1 className="m-0 mb-1.5 font-serif text-[28px] font-semibold text-tn-ink">
+          <h1 className="m-0 mb-1.5 font-sans text-[24px] font-semibold text-tn-ink">
             Create your owner account
           </h1>
-          <p className="m-0 font-sans text-[13px] text-tn-muted-5">Step 1 of {totalSteps}</p>
+          <p className="m-0 font-sans text-[14px] text-tn-muted-5">Step 1 of {totalSteps}</p>
         </div>
 
         <StepProgress step={1} total={totalSteps} />

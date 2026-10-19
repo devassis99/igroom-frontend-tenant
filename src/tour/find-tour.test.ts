@@ -36,17 +36,18 @@ describe("findTourForPath", () => {
 
   it("covers the screens outside the app shell", () => {
     expect(findTourForPath("/welcome")?.id).toBe("staff-welcome");
-    expect(findTourForPath("/signup/business")?.id).toBe("signup-business");
-    expect(findTourForPath("/signup/availability")?.id).toBe("signup-availability");
-    expect(findTourForPath("/signup/plan")?.id).toBe("signup-plan");
   });
 
-  it("leaves the marketing, sign-in and pass-through screens alone", () => {
+  it("leaves the marketing, sign-in, signup and pass-through screens alone", () => {
     for (const path of [
       "/",
       "/login",
       "/signup",
+      "/signup/plan",
       "/signup/receipt",
+      "/signup/business",
+      "/signup/availability",
+      "/join/abc123",
       "/invite",
       "/redirecting",
       "/support-session",
@@ -104,9 +105,6 @@ describe("the tour registry", () => {
       "/settings/integrations",
       "/settings/billing",
       "/welcome",
-      "/signup/business",
-      "/signup/availability",
-      "/signup/plan",
     ];
     const missing = ROUTES.filter((path) => findTourForPath(path) === undefined);
     expect(missing).toEqual([]);

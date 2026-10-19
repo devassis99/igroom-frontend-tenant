@@ -173,7 +173,7 @@ function RoleFormModal({ open, onClose, role, permissionsCatalog }: RoleFormModa
           </Field>
 
           <div>
-            <p className="m-0 mb-2 font-sans text-[11px] font-semibold tracking-[0.04em] text-tn-faint">
+            <p className="m-0 mb-2 font-sans text-[12px] font-semibold tracking-[0.04em] text-tn-faint">
               PERMISSIONS
             </p>
             <div className="flex flex-col gap-2 rounded-xl border border-tn-border p-3.5">
@@ -187,7 +187,7 @@ function RoleFormModal({ open, onClose, role, permissionsCatalog }: RoleFormModa
                     className="mt-0.5 accent-tn-gold"
                   />
                   <span>
-                    <p className="m-0 font-sans text-[13px] font-medium text-tn-ink">{p.name}</p>
+                    <p className="m-0 font-sans text-[14px] font-medium text-tn-ink">{p.name}</p>
                     {p.description && (
                       <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
                         {p.description}
@@ -222,7 +222,7 @@ function RoleFormModal({ open, onClose, role, permissionsCatalog }: RoleFormModa
 }
 
 function tabButtonClass(active: boolean) {
-  return `flex cursor-pointer items-center gap-1.5 border-none bg-transparent border-b-2 px-0.5 pb-3 font-sans text-[13px] font-semibold ${
+  return `flex cursor-pointer items-center gap-1.5 border-none bg-transparent border-b-2 px-0.5 pb-3 font-sans text-[14px] font-semibold ${
     active
       ? "border-tn-gold text-tn-ink"
       : "border-transparent text-tn-muted-3 hover:text-tn-ink-soft"
@@ -538,7 +538,7 @@ export function StaffManagementPage() {
                         size={28}
                       />
                       <span>
-                        <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">
+                        <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">
                           {member.name}
                         </p>
                         <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
@@ -546,12 +546,12 @@ export function StaffManagementPage() {
                         </p>
                       </span>
                     </span>
-                    <span className="font-sans text-[13px] text-tn-muted-2">{member.roleName}</span>
+                    <span className="font-sans text-[14px] text-tn-muted-2">{member.roleName}</span>
                     {/* Every shop, comma-joined — one line per person, not
                         one per membership, so a member working two sites
                         doesn't read as two people. */}
                     <span
-                      className="truncate font-sans text-[13px] text-tn-muted-2"
+                      className="truncate font-sans text-[14px] text-tn-muted-2"
                       title={member.locations.map((loc) => loc.name).join(", ")}
                     >
                       {member.locations.length > 0
@@ -585,7 +585,7 @@ export function StaffManagementPage() {
                           aria-label={`Resend the invite to ${member.name}`}
                           onClick={() => resendInviteMutation.mutate(member.id)}
                           disabled={!canManageStaff || resendInviteMutation.isPending}
-                          className="cursor-pointer border-none bg-transparent p-0 font-sans text-[11px] font-semibold text-tn-gold disabled:cursor-not-allowed disabled:opacity-40"
+                          className="cursor-pointer border-none bg-transparent p-0 font-sans text-[12px] font-semibold text-tn-gold disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           {resentFor === member.id ? "Sent" : "Resend"}
                         </button>
@@ -601,7 +601,7 @@ export function StaffManagementPage() {
                           aria-label={`Copy a setup link for ${member.name}`}
                           onClick={() => copyLinkMutation.mutate(member.id)}
                           disabled={!canManageStaff || copyLinkMutation.isPending}
-                          className="cursor-pointer border-none bg-transparent p-0 font-sans text-[11px] font-semibold text-tn-muted-5 hover:text-tn-ink disabled:cursor-not-allowed disabled:opacity-40"
+                          className="cursor-pointer border-none bg-transparent p-0 font-sans text-[12px] font-semibold text-tn-muted-5 hover:text-tn-ink disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           {copiedFor === member.id ? "Copied" : "Copy link"}
                         </button>
@@ -693,19 +693,19 @@ export function StaffManagementPage() {
                     i < roles.length - 1 ? "border-b border-tn-border-soft" : ""
                   }`}
                 >
-                  <span className="flex items-center gap-2 font-sans text-[13px] font-semibold text-tn-ink">
+                  <span className="flex items-center gap-2 font-sans text-[14px] font-semibold text-tn-ink">
                     {role.name}
                     {role.isSystem && (
-                      <span className="rounded-full bg-tn-gold-bg px-2 py-0.5 font-sans text-[10px] font-semibold text-tn-gold">
+                      <span className="rounded-full bg-tn-gold-bg px-2 py-0.5 font-sans text-[11px] font-semibold text-tn-gold">
                         OWNER
                       </span>
                     )}
                   </span>
-                  <span className="truncate font-sans text-[13px] text-tn-muted-2">
+                  <span className="truncate font-sans text-[14px] text-tn-muted-2">
                     {role.description || "—"}
                   </span>
-                  <span className="font-sans text-[13px] text-tn-muted-2">{role.memberCount}</span>
-                  <span className="font-sans text-[13px] text-tn-muted-2">
+                  <span className="font-sans text-[14px] text-tn-muted-2">{role.memberCount}</span>
+                  <span className="font-sans text-[14px] text-tn-muted-2">
                     {role.isSystem
                       ? "All permissions"
                       : `${role.permissions.length} permission${role.permissions.length === 1 ? "" : "s"}`}

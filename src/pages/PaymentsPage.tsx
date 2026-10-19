@@ -14,7 +14,7 @@ import { RECENT_TRANSACTIONS } from "@/lib/sample-data";
 export function PaymentsPage() {
   return (
     <div className="flex flex-col gap-7">
-      <h1 className="m-0 font-serif text-[26px] font-semibold text-tn-ink">Payouts</h1>
+      <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Payouts</h1>
 
       <div data-tour="payouts-stats" className="grid grid-cols-1 gap-5 sm:grid-cols-3">
         <StatCard label="This week" value="$3,420" />
@@ -32,10 +32,10 @@ export function PaymentsPage() {
                 i < RECENT_TRANSACTIONS.length - 1 ? "border-b border-tn-border-soft" : ""
               }`}
             >
-              <span className="font-sans text-[13px] font-medium text-tn-ink-soft">
+              <span className="font-sans text-[14px] font-medium text-tn-ink-soft">
                 {txn.customer} · {txn.date}
               </span>
-              <span className="font-sans text-[13px] font-semibold text-tn-ink">
+              <span className="font-sans text-[14px] font-semibold text-tn-ink">
                 ${txn.amount.toFixed(2)}
               </span>
             </div>

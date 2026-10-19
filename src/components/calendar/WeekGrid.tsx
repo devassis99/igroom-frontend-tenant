@@ -237,7 +237,7 @@ export function WeekGrid({
           className="sticky top-0 z-20 grid border-b border-tn-border-softer bg-tn-table-head"
           style={{ gridTemplateColumns: `56px repeat(7, minmax(0, 1fr))` }}
         >
-          <div className="flex items-center justify-center border-r border-tn-border-soft p-2 text-center font-sans text-[11px] font-medium text-tn-muted-5">
+          <div className="flex items-center justify-center border-r border-tn-border-soft p-2 text-center font-sans text-[12px] font-medium text-tn-muted-5">
             {formatUtcOffset(timezone ?? "UTC")}
           </div>
           {days.map((day) => {
@@ -253,7 +253,7 @@ export function WeekGrid({
                 }`}
               >
                 <span
-                  className={`truncate font-sans text-[13px] font-semibold ${
+                  className={`truncate font-sans text-[14px] font-semibold ${
                     isToday ? "text-tn-gold" : isPast ? "text-tn-faint-2" : "text-tn-ink"
                   }`}
                 >
@@ -264,7 +264,7 @@ export function WeekGrid({
                     in it — which a stacked column deliberately hides, so
                     this is the one number that always tells the truth. */}
                 <span
-                  className={`truncate font-sans text-[10.5px] ${
+                  className={`truncate font-sans text-[11px] ${
                     isPast ? "text-tn-faint-2" : "text-tn-muted-5"
                   }`}
                 >
@@ -285,7 +285,7 @@ export function WeekGrid({
             {hours.map((hour, index) => (
               <span
                 key={hour}
-                className="absolute right-2 -translate-y-1/2 font-sans text-[10px] text-tn-faint"
+                className="absolute right-2 -translate-y-1/2 font-sans text-[11px] text-tn-faint"
                 style={{ top: index * HOUR_PX + GRID_TOP_PAD }}
               >
                 {hourLabel(hour)}
@@ -408,19 +408,17 @@ function StackCards({
             rows only has room for the name — a 15-minute appointment
             showing a truncated time and nothing else is worse than
             showing who it is. */}
-        <span className="flex items-baseline gap-1 truncate font-sans text-[11.5px] font-semibold text-tn-ink">
+        <span className="flex items-baseline gap-1 truncate font-sans text-[12px] font-semibold text-tn-ink">
           <ArrivedDot checkedInAt={lead.checkedInAt} />
           <span className="truncate">{lead.customerName}</span>
         </span>
         {height >= MIN_CARD_PX + 12 && (
-          <span className="truncate font-sans text-[10px] text-tn-faint">
+          <span className="truncate font-sans text-[11px] text-tn-faint">
             {formatTimeLabel(new Date(lead.startAt), timezone)} · {lead.staffName}
           </span>
         )}
         {height >= MIN_CARD_PX + 30 && (
-          <span className="truncate font-sans text-[10.5px] text-tn-muted-5">
-            {lead.serviceName}
-          </span>
+          <span className="truncate font-sans text-[11px] text-tn-muted-5">{lead.serviceName}</span>
         )}
       </button>
 
@@ -431,7 +429,7 @@ function StackCards({
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
           aria-label={`${hidden} more booking${hidden === 1 ? "" : "s"} at this time`}
-          className="absolute flex items-center justify-center rounded-lg border border-dashed border-tn-border font-sans text-[11px] font-semibold text-tn-muted-5 transition-colors hover:border-tn-ink-soft hover:text-tn-ink"
+          className="absolute flex items-center justify-center rounded-lg border border-dashed border-tn-border font-sans text-[12px] font-semibold text-tn-muted-5 transition-colors hover:border-tn-ink-soft hover:text-tn-ink"
           /* Sized to the card it belongs to, not to the run.
              Stretched over the whole run, a short lead beside a long
              sibling produced a dashed box several times the height of
@@ -515,11 +513,11 @@ function StackPopover({
         }}
       >
         <div className="border-b border-tn-border-softer px-3 py-2">
-          <span className="block font-sans text-[11px] font-semibold text-tn-ink">
+          <span className="block font-sans text-[12px] font-semibold text-tn-ink">
             {day.toLocaleDateString(undefined, { weekday: "short", day: "numeric" })} ·{" "}
             {formatTimeLabel(new Date(stack.bookings[0]!.startAt), timezone)}
           </span>
-          <span className="block font-sans text-[10.5px] text-tn-faint">
+          <span className="block font-sans text-[11px] text-tn-faint">
             {stack.bookings.length} in the chair at once
           </span>
         </div>
@@ -541,14 +539,14 @@ function StackPopover({
                 style={{ backgroundColor: staffAvatarColorStrong(booking.staffUserId) }}
               />
               <span className="flex min-w-0 flex-col">
-                <span className="truncate font-sans text-[11.5px] font-semibold text-tn-ink">
+                <span className="truncate font-sans text-[12px] font-semibold text-tn-ink">
                   <ArrivedDot checkedInAt={booking.checkedInAt} />
                   {booking.customerName}
                 </span>
-                <span className="truncate font-sans text-[10.5px] text-tn-muted-5">
+                <span className="truncate font-sans text-[11px] text-tn-muted-5">
                   {booking.staffName} · {booking.serviceName}
                 </span>
-                <span className="truncate font-sans text-[10px] text-tn-faint">
+                <span className="truncate font-sans text-[11px] text-tn-faint">
                   {formatTimeLabel(new Date(booking.startAt), timezone)} –{" "}
                   {formatTimeLabel(new Date(booking.endAt), timezone)}
                 </span>
@@ -559,7 +557,7 @@ function StackPopover({
         <button
           type="button"
           onClick={onOpenDay}
-          className="border-t border-tn-border-softer bg-tn-page px-3 py-2 text-left font-sans text-[11px] font-semibold text-tn-ink hover:bg-tn-surface"
+          className="border-t border-tn-border-softer bg-tn-page px-3 py-2 text-left font-sans text-[12px] font-semibold text-tn-ink hover:bg-tn-surface"
         >
           Open this day →
         </button>

@@ -12,13 +12,16 @@ import { LocationStaffTab } from "@/components/settings/location-tabs/LocationSt
 import { LocationServicesTab } from "@/components/settings/location-tabs/LocationServicesTab";
 import { LocationPayoutsTab } from "@/components/settings/location-tabs/LocationPayoutsTab";
 import { LocationGalleryTab } from "@/components/settings/location-tabs/LocationGalleryTab";
+import { LocationSetupGuide } from "@/components/settings/LocationSetupGuide";
 import { useAuthStore } from "@/auth/auth-store";
 import {
   reverseGeocodeLocation,
   type GeocodeResult,
   updateLocation,
   type AccountLocation,
+  type LocationSetupStep,
 } from "@/lib/locations-api";
+import { LOCATION_SETUP_STEPS } from "@/lib/location-setup";
 import { Toggle } from "@/components/ui/Toggle";
 import { usePermissions } from "@/auth/use-permissions";
 import {
@@ -80,9 +83,9 @@ export function LocationDetailPanel({
       <div className="tn-content-in flex flex-wrap items-start justify-between gap-3 border-b border-tn-border-soft pb-4">
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex items-center gap-2.5">
-            <h2 className="m-0 font-serif text-2xl font-semibold text-tn-ink">{location.name}</h2>
+            <h2 className="m-0 font-sans text-2xl font-semibold text-tn-ink">{location.name}</h2>
             <span
-              className={`rounded-full px-2.5 py-0.5 font-sans text-[10px] font-semibold tracking-[0.04em] ${
+              className={`rounded-full px-2.5 py-0.5 font-sans text-[11px] font-semibold tracking-[0.04em] ${
                 location.status === "active"
                   ? "bg-tn-success-bg text-tn-success"
                   : "bg-tn-neutral-bg text-tn-muted-5"
@@ -91,7 +94,7 @@ export function LocationDetailPanel({
               {location.status === "active" ? "ACTIVE" : "INACTIVE"}
             </span>
             {location.isPrimary && (
-              <span className="rounded-full bg-tn-gold-bg px-2.5 py-0.5 font-sans text-[10px] font-semibold tracking-[0.04em] text-tn-gold">
+              <span className="rounded-full bg-tn-gold-bg px-2.5 py-0.5 font-sans text-[11px] font-semibold tracking-[0.04em] text-tn-gold">
                 PRIMARY
               </span>
             )}
@@ -109,7 +112,7 @@ export function LocationDetailPanel({
               type="button"
               onClick={() => setTab(option.key)}
               aria-current={isActive ? "page" : undefined}
-              className={`relative cursor-pointer border-none bg-transparent px-3 py-3 font-sans text-[13px] transition-colors duration-150 ${
+              className={`relative cursor-pointer border-none bg-transparent px-3 py-3 font-sans text-[14px] transition-colors duration-150 ${
                 isActive
                   ? "font-semibold text-tn-ink"
                   : "font-medium text-tn-muted-5 hover:text-tn-ink-soft"
@@ -143,6 +146,7 @@ export function LocationDetailPanel({
             accessToken={accessToken ?? ""}
             accountSlug={accountSlug}
             onSaved={() => void queryClient.invalidateQueries({ queryKey: ["locations"] })}
+            onOpenTab={setTab}
           />
         )}
         {tab === "availability" && <LocationAvailabilityTab location={location} />}
@@ -163,6 +167,7 @@ function DetailsTab({
   accessToken,
   accountSlug,
   onSaved,
+  onOpenTab,
 }: {
   location: AccountLocation;
   canManage: boolean;
@@ -171,6 +176,8 @@ function DetailsTab({
   /** The account's own half of every public link — fixed at signup, same for every branch. */
   accountSlug: string | null;
   onSaved: () => void;
+  /** Switches the location's tab — where the setup guide sends the owner. */
+  onOpenTab: (tab: TabKey) => void;
 }) {
   const [name, setName] = useState(location.name);
   const [address, setAddress] = useState(location.address);
@@ -184,6 +191,26 @@ function DetailsTab({
   /** Reverse-geocoded address for the current pin, offered as a suggestion rather than written into ADDRESS. */
   const [pinAddress, setPinAddress] = useState<string | null>(null);
   const pinRequest = useRef(0);
+  const addressRef = useRef(address);
+  useEffect(() => {
+    addressRef.current = address;
+  }, [address]);
+  const timezoneFieldRef = useRef<HTMLDivElement>(null);
+  const [flashTimezone, setFlashTimezone] = useState(false);
+
+  /** The setup guide's buttons: the timezone is on this tab, the rest are tabs of their own. */
+  function goToSetupStep(step: LocationSetupStep) {
+    const target = LOCATION_SETUP_STEPS.find((s) => s.step === step);
+    if (!target) return;
+    if (target.tab !== "details") {
+      onOpenTab(target.tab);
+      return;
+    }
+    timezoneFieldRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    timezoneFieldRef.current?.querySelector<HTMLElement>("button")?.focus({ preventScroll: true });
+    setFlashTimezone(true);
+    window.setTimeout(() => setFlashTimezone(false), 1800);
+  }
 
   // Re-seeded whenever the selected location changes — the panel stays
   // mounted while you click between shops in the list beside it.
@@ -218,25 +245,28 @@ function DetailsTab({
   });
 
   /**
-   * A map-search result was picked. Moves the pin only — ADDRESS is the
-   * owner's to write, and this panel always has one already (a saved
-   * location can't exist without it), so there's never a blank worth
-   * prefilling here.
+   * A map-search result was picked. Moves the pin, and fills ADDRESS
+   * only when it's blank — ADDRESS is the owner's to write, so one they
+   * typed is never replaced. Blank does happen: the location signup
+   * creates has no address, because signup doesn't ask for one.
    */
   function onSearchSelected(result: GeocodeResult) {
     pinRequest.current++;
     setLatitude(result.latitude);
     setLongitude(result.longitude);
+    if (!addressRef.current.trim()) setAddress(result.displayName);
     setPinAddress(null);
     setError(null);
   }
 
   /**
-   * Dragging the pin *offers* the nearest address rather than writing it
-   * — newest response wins, same guard as the Add sheet. It used to
-   * overwrite ADDRESS outright, which is how a shop on Valencia Town Main
-   * Boulevard ended up stored as "Lahore, Punjab, Pakistan": accurate for
-   * the pin, no use to a customer trying to find the door.
+   * Dragging the pin *offers* the nearest address rather than writing
+   * over the one typed — newest response wins, same guard as the Add
+   * sheet. It used to overwrite ADDRESS outright, which is how a shop on
+   * Valencia Town Main Boulevard ended up stored as "Lahore, Punjab,
+   * Pakistan": accurate for the pin, no use to a customer trying to find
+   * the door. A blank ADDRESS is the exception: there's nothing to
+   * protect, and the pin's address is a start the owner can correct.
    */
   async function onPinMoved(nextLat: number, nextLng: number) {
     setLatitude(nextLat);
@@ -244,7 +274,12 @@ function DetailsTab({
     const request = ++pinRequest.current;
     try {
       const { displayName } = await reverseGeocodeLocation(accessToken, nextLat, nextLng);
-      if (request === pinRequest.current) setPinAddress(displayName);
+      if (request !== pinRequest.current) return;
+      // Nothing typed yet — the pin's address is a better start than a
+      // blank, and a blank is what keeps Save switched off. Read through
+      // the ref: the map holds on to this callback across renders.
+      if (addressRef.current.trim()) setPinAddress(displayName);
+      else setAddress(displayName);
     } catch {
       // A failed reverse lookup just leaves the address as typed — the pin
       // still moved, which is the part the owner asked for.
@@ -289,13 +324,28 @@ function DetailsTab({
 
   const canSave =
     canManage && name.trim().length > 0 && address.trim().length > 0 && isPhoneValid(phone);
+  // Said out loud, next to the button: a Save that's simply greyed out
+  // gives no clue which field is holding it back — and the usual culprit,
+  // a blank address, is a field signup never asked for.
+  const missingForSave = [
+    !name.trim() ? "a name" : null,
+    !address.trim() ? "an address" : null,
+  ].filter((part): part is string => part !== null);
+  const saveHint = !canManage
+    ? null
+    : missingForSave.length > 0
+      ? `To save, add ${missingForSave.join(" and ")}${isPhoneValid(phone) ? "" : " and fix the phone number"}.`
+      : !isPhoneValid(phone)
+        ? "To save, fix the phone number — it doesn't look right for the selected country."
+        : null;
   const bookingUrl = branchBookingUrl(accountSlug, location);
   const shopUrl = publicBookingUrl(accountSlug);
 
   return (
     <div className="flex flex-col gap-5">
       {canManage && (
-        <div className="flex justify-end">
+        <div className="flex items-center justify-end gap-3">
+          {saveHint && <span className="font-sans text-xs text-tn-gold">{saveHint}</span>}
           <Button onClick={() => save.mutate()} disabled={!canSave || save.isPending}>
             {save.isPending ? "Saving…" : "Save changes"}
           </Button>
@@ -327,15 +377,24 @@ function DetailsTab({
             Two fields on purpose. ADDRESS is what's stored and what a
             customer reads; the search box below only moves the pin.
           */}
-          <Field label="ADDRESS">
-            <input
-              type="text"
-              value={address}
-              disabled={!canManage}
-              onChange={(e) => setAddress(e.target.value)}
-              className={formInputClass}
-            />
-          </Field>
+          <div className="flex flex-col gap-1">
+            <Field label="ADDRESS">
+              <input
+                type="text"
+                value={address}
+                disabled={!canManage}
+                placeholder="Street address customers will come to"
+                onChange={(e) => setAddress(e.target.value)}
+                className={formInputClass}
+              />
+            </Field>
+            {!address.trim() && (
+              <p className="m-0 font-sans text-[12px] text-tn-gold">
+                Needed to save — it&rsquo;s shown on your booking page. Type it, or search the map
+                or move the pin below and it fills in.
+              </p>
+            )}
+          </div>
 
           <Field label="FIND ON MAP">
             <MapSearchField
@@ -385,7 +444,12 @@ function DetailsTab({
           </div>
 
           <div className="flex flex-wrap gap-4">
-            <div className="min-w-[180px] flex-1">
+            <div
+              ref={timezoneFieldRef}
+              className={`min-w-[180px] flex-1 rounded-xl transition-shadow duration-300 ${
+                flashTimezone ? "ring-2 ring-tn-gold ring-offset-4 ring-offset-tn-surface" : ""
+              }`}
+            >
               <Field label="TIMEZONE">
                 <TimezonePicker
                   value={timezone}
@@ -435,7 +499,7 @@ function DetailsTab({
                   </button>
                 </div>
               </Field>
-              <p className="m-0 pt-1 font-sans text-[11px] leading-relaxed text-tn-muted-5">
+              <p className="m-0 pt-1 font-sans text-[12px] leading-relaxed text-tn-muted-5">
                 {location.isPrimary
                   ? "Your primary location is always open — it's the one every booking falls back to."
                   : active
@@ -468,7 +532,7 @@ function DetailsTab({
               />
               <Figure value={String(location.staffCount)} label="Staff" />
             </div>
-            <p className="m-0 font-sans text-[11px] text-tn-faint">
+            <p className="m-0 font-sans text-[12px] text-tn-faint">
               {location.slotsCapacity === null || location.slotsBooked === null
                 ? "Today's figures are only shown for locations you manage"
                 : location.slotsCapacity > 0
@@ -483,6 +547,7 @@ function DetailsTab({
             shopUrl={shopUrl}
             liveBranchCount={liveBranchCount}
             canManage={canManage}
+            onSetupStep={goToSetupStep}
           />
           <OnlineDepositCard
             location={location}
@@ -499,8 +564,8 @@ function DetailsTab({
 function Figure({ value, label }: { value: string; label: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="font-sans text-[15px] font-semibold text-tn-ink">{value}</span>
-      <span className="font-sans text-[10px] text-tn-muted-5">{label}</span>
+      <span className="font-sans text-[16px] font-semibold text-tn-ink">{value}</span>
+      <span className="font-sans text-[11px] text-tn-muted-5">{label}</span>
     </div>
   );
 }
@@ -568,12 +633,12 @@ function OnlineDepositCard({
         onChange={(next) => save.mutate(next)}
         label="Ask for a deposit"
       />
-      <p className="m-0 font-sans text-[11px] leading-relaxed text-tn-muted-5">
+      <p className="m-0 font-sans text-[12px] leading-relaxed text-tn-muted-5">
         {location.requireDepositOnline
           ? "A card is taken before the slot is held. Fewer no-shows — and fewer bookings."
           : "Customers book with a name and a number, and pay at the shop."}
       </p>
-      {error && <p className="m-0 font-sans text-[11px] text-tn-danger">{error}</p>}
+      {error && <p className="m-0 font-sans text-[12px] text-tn-danger">{error}</p>}
     </div>
   );
 }
@@ -589,6 +654,7 @@ function BookingLinkCard({
   shopUrl,
   liveBranchCount,
   canManage,
+  onSetupStep,
 }: {
   location: AccountLocation;
   /** This branch's own link — the shop's bare link for the primary branch. */
@@ -599,13 +665,19 @@ function BookingLinkCard({
   liveBranchCount: number;
   /** Only whether to point at the status control; nothing here writes. */
   canManage: boolean;
+  /** Where the setup guide's buttons go. */
+  onSetupStep: (step: LocationSetupStep) => void;
 }) {
   const [svg, setSvg] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const open = location.status === "active";
+  // Copy, open and the QR all wait until the branch can take a booking —
+  // see LocationSetupGuide. The URL is still shown, greyed, so the owner
+  // can see what they're working towards.
+  const locked = location.needsSetup;
 
   useEffect(() => {
-    if (!url) {
+    if (!url || locked) {
       setSvg(null);
       return;
     }
@@ -620,10 +692,10 @@ function BookingLinkCard({
     return () => {
       cancelled = true;
     };
-  }, [url]);
+  }, [url, locked]);
 
   async function copy() {
-    if (!url) return;
+    if (!url || locked) return;
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -634,7 +706,7 @@ function BookingLinkCard({
   }
 
   function download() {
-    if (!svg) return;
+    if (!svg || locked) return;
     const blob = new Blob([svg], { type: "image/svg+xml" });
     const href = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
@@ -651,7 +723,7 @@ function BookingLinkCard({
         {/* Said plainly, because this is the one thing on the page an
             owner is meant to take somewhere else — into an Instagram
             bio, a Google listing, a WhatsApp reply. */}
-        <p className="m-0 font-sans text-[11px] leading-relaxed text-tn-muted-5">
+        <p className="m-0 font-sans text-[12px] leading-relaxed text-tn-muted-5">
           Paste this anywhere customers find you. It opens your shop&rsquo;s booking page — no app
           and no account needed.
         </p>
@@ -666,12 +738,16 @@ function BookingLinkCard({
           the link doesn't work — they copy it, open it, get "shop not
           found", and come back here. The answer should be in the same
           card as the question, even when the control isn't. */}
+      {locked && (
+        <LocationSetupGuide location={location} onGo={canManage ? onSetupStep : undefined} />
+      )}
+
       {!open && (
         <div className="flex flex-col gap-1.5 rounded-xl border border-tn-border-soft bg-tn-page px-3 py-2.5">
           <p className="m-0 font-sans text-xs font-semibold text-tn-ink">
             This link won&rsquo;t open
           </p>
-          <p className="m-0 font-sans text-[11px] leading-relaxed text-tn-muted-5">
+          <p className="m-0 font-sans text-[12px] leading-relaxed text-tn-muted-5">
             {location.name} is closed, so its page answers nothing and it stays out of search.
             {canManage
               ? " Set BRANCH STATUS to Open on the left when its services and hours are ready."
@@ -680,9 +756,9 @@ function BookingLinkCard({
         </div>
       )}
       {url === null ? (
-        <p className="m-0 font-sans text-[11px] leading-relaxed text-tn-muted-5">
+        <p className="m-0 font-sans text-[12px] leading-relaxed text-tn-muted-5">
           No public booking site is configured yet, so there&rsquo;s nothing for a link or a code to
-          point at. Set <code className="font-mono text-[10px]">VITE_BOOKING_BASE_URL</code>.
+          point at. Set <code className="font-mono text-[11px]">VITE_BOOKING_BASE_URL</code>.
         </p>
       ) : (
         <>
@@ -690,10 +766,21 @@ function BookingLinkCard({
               somebody dictating it over the phone is a real thing that
               happens, and it is why the URL is words rather than a uuid. */}
           <div className="flex items-center justify-between gap-2 rounded-xl border border-tn-input-border bg-tn-page px-3 py-2.5">
-            <span className="min-w-0 flex-1 font-mono text-[11.5px] break-all text-tn-ink">
+            <span
+              className={`min-w-0 flex-1 font-mono text-[12px] break-all ${
+                locked ? "text-tn-faint" : "text-tn-ink"
+              }`}
+            >
               {displayUrl(url)}
             </span>
-            <Button variant="secondary" size="sm" onClick={copy} className="flex-none">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={copy}
+              disabled={locked}
+              title={locked ? "Finish setup to share this link" : undefined}
+              className="flex-none"
+            >
               {copied ? "Copied" : "Copy link"}
             </Button>
           </div>
@@ -704,10 +791,10 @@ function BookingLinkCard({
               that fits on a poster; for any other branch it is where
               somebody lands if they hand out the wrong one. Either way
               the link above is the one that says which door it opens. */}
-          {hasOwnBranchLink(location) && shopUrl ? (
-            <p className="m-0 font-sans text-[11px] leading-relaxed text-tn-muted-5">
+          {!locked && hasOwnBranchLink(location) && shopUrl ? (
+            <p className="m-0 font-sans text-[12px] leading-relaxed text-tn-muted-5">
               This link opens {location.name} directly.{" "}
-              <span className="font-mono text-[11px] text-tn-ink-soft">{displayUrl(shopUrl)}</span>{" "}
+              <span className="font-mono text-[12px] text-tn-ink-soft">{displayUrl(shopUrl)}</span>{" "}
               {shopLinkOpensBranch(location)
                 ? "is the short version of it — the one to put on a poster."
                 : "opens your main branch."}
@@ -720,13 +807,13 @@ function BookingLinkCard({
               short link is that shop; two and it becomes a chooser — and
               until this line existed the only way to find out was to open
               it in a private window. */}
-          {shopUrl ? (
+          {!locked && shopUrl ? (
             <p
-              className={`m-0 font-sans text-[11px] leading-relaxed ${
+              className={`m-0 font-sans text-[12px] leading-relaxed ${
                 liveBranchCount === 0 ? "text-tn-gold" : "text-tn-muted-5"
               }`}
             >
-              <span className="font-mono text-[11px] text-tn-ink-soft">{displayUrl(shopUrl)}</span>{" "}
+              <span className="font-mono text-[12px] text-tn-ink-soft">{displayUrl(shopUrl)}</span>{" "}
               {liveBranchCount === 0
                 ? "opens nothing at the moment — no branch is taking bookings from its link."
                 : liveBranchCount === 1
@@ -735,7 +822,12 @@ function BookingLinkCard({
             </p>
           ) : null}
 
-          {svg && (
+          {locked && (
+            <div className="flex h-[132px] w-[132px] items-center justify-center rounded-lg border border-dashed border-tn-border px-3 text-center font-sans text-[11px] leading-snug text-tn-faint">
+              Your QR code appears here once setup is done
+            </div>
+          )}
+          {svg && !locked && (
             <div
               className="h-[132px] w-[132px] [&>svg]:h-full [&>svg]:w-full"
               aria-label={`Booking QR code for ${location.name}`}
@@ -744,15 +836,27 @@ function BookingLinkCard({
             />
           )}
           <div className="flex gap-2">
-            <a
-              href={url}
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-lg border border-tn-input-border bg-tn-surface px-3.5 py-2 font-sans text-xs font-semibold text-tn-ink no-underline hover:bg-tn-page"
+            {locked ? (
+              <Button variant="secondary" size="sm" disabled title="Finish setup to open this page">
+                Open page
+              </Button>
+            ) : (
+              <a
+                href={url}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-lg border border-tn-input-border bg-tn-surface px-3.5 py-2 font-sans text-xs font-semibold text-tn-ink no-underline hover:bg-tn-page"
+              >
+                Open page
+              </a>
+            )}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={download}
+              disabled={locked || !svg}
+              title={locked ? "Finish setup to download the QR code" : undefined}
             >
-              Open page
-            </a>
-            <Button variant="secondary" size="sm" onClick={download} disabled={!svg}>
               Download QR
             </Button>
           </div>

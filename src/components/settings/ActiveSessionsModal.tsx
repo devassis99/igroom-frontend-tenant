@@ -141,7 +141,7 @@ export function ActiveSessionsModal({ open, onClose, accessToken }: ActiveSessio
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="cursor-pointer border-none bg-transparent font-sans text-[13px] font-medium text-tn-muted-1"
+            className="cursor-pointer border-none bg-transparent font-sans text-[14px] font-medium text-tn-muted-1"
           >
             Done
           </button>
@@ -166,16 +166,16 @@ export function ActiveSessionsModal({ open, onClose, accessToken }: ActiveSessio
               >
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <span className="flex items-center gap-1.5">
-                    <span className="truncate font-sans text-[12.5px] font-semibold text-tn-ink">
+                    <span className="truncate font-sans text-[13px] font-semibold text-tn-ink">
                       {describeUserAgent(session.userAgent)}
                     </span>
                     {session.isCurrent && (
-                      <span className="shrink-0 rounded-full bg-tn-success-bg px-1.5 py-0.5 font-sans text-[9.5px] font-bold tracking-wide text-tn-success">
+                      <span className="shrink-0 rounded-full bg-tn-success-bg px-1.5 py-0.5 font-sans text-[11px] font-bold tracking-wide text-tn-success">
                         THIS DEVICE
                       </span>
                     )}
                   </span>
-                  <span className="font-sans text-[11px] text-tn-muted-5">
+                  <span className="font-sans text-[12px] text-tn-muted-5">
                     {describeRelativeTime(session.createdAt)}
                   </span>
                 </div>
@@ -183,7 +183,7 @@ export function ActiveSessionsModal({ open, onClose, accessToken }: ActiveSessio
                   type="button"
                   onClick={() => handleRevoke(session)}
                   disabled={anyActionInFlight}
-                  className="shrink-0 cursor-pointer border-none bg-transparent p-0 font-sans text-[11.5px] font-medium text-tn-danger-strong disabled:cursor-not-allowed disabled:opacity-50"
+                  className="shrink-0 cursor-pointer border-none bg-transparent p-0 font-sans text-[12px] font-medium text-tn-danger-strong disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {revokingId === session.id ? "Logging out…" : "Log out"}
                 </button>

@@ -101,6 +101,10 @@ export function ServiceModal({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["services"] });
+      // Whether a location has anything bookable online is part of its
+      // setup state (AccountLocation.setupMissing) — hiding or enabling a
+      // service can change it.
+      queryClient.invalidateQueries({ queryKey: ["locations"] });
       onClose();
     },
     onError: (err) => {

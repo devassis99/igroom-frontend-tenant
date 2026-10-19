@@ -91,6 +91,13 @@ export interface CreateCheckoutSessionPayload {
   /** A back-office signup link's token — checks out that link's price instead of a picked plan. */
   signupLinkToken?: string;
   email?: string;
+  /**
+   * The owner's name from the account step. Not used for checkout: if
+   * they stop here, it goes on the back office's automatic "abandoned
+   * signup" lead so someone can call and help them finish. (The business
+   * step comes after payment, so there's no shop name yet.)
+   */
+  ownerName?: string;
 }
 
 export interface CheckoutSessionResponse {
@@ -102,9 +109,9 @@ export interface CheckoutSessionResponse {
 /**
  * ChoosePlanPage calls this right before redirecting the browser to
  * Stripe's real hosted Checkout page for the plan/price picked. No
- * account exists yet at this point — signup() (called later, from
- * BusinessDetailsPage) is what actually verifies the resulting session
- * and creates the account.
+ * account exists yet at this point — signup() (called from ReceiptPage,
+ * once Stripe sends the visitor back) is what actually verifies the
+ * resulting session and creates the account.
  */
 export function createCheckoutSession(
   payload: CreateCheckoutSessionPayload,
@@ -120,7 +127,12 @@ export interface SignupPayload {
   workEmail: string;
   password?: string;
   googleIdToken?: string;
-  businessName: string;
+  /**
+   * Not sent by this app any more: the account is created at payment,
+   * before the business step, and named afterwards with
+   * setBusinessDetails. The backend gives it a placeholder until then.
+   */
+  businessName?: string;
   category?: string;
   /** No longer collected during onboarding (see BusinessDetailsPage) — optional, add later via Settings' Locations page. */
   address?: string;
@@ -172,10 +184,47 @@ export interface MeResponse {
         slug?: string;
         /** A signed URL for the business's cover photograph, or null. Not a permanent address. */
         coverPhotoUrl?: string | null;
+        /** True until the owner has done signup's business step (it comes after payment) — ProtectedRoute sends them back to it. */
+        needsBusinessDetails?: boolean;
       })
     | null;
   /** The full location rows for staffUser.locationIds, ordered by name. */
   locations: Record<string, unknown>[];
+}
+
+export interface BusinessDetailsPayload {
+  businessName: string;
+  /** The first branch's own name ("Downtown") — the second half of its booking link. The backend falls back to businessName without it. */
+  locationName?: string;
+  category?: string;
+  phone?: string;
+}
+
+/**
+ * Signup's business step, which runs after payment — names the account
+ * ReceiptPage just created. The backend also gives the shop its public
+ * booking address from the name here (it's a placeholder until then),
+ * and refuses a second call: after this, the name changes in Settings.
+ */
+export function setBusinessDetails(
+  accessToken: string,
+  payload: BusinessDetailsPayload,
+): Promise<{
+  account: {
+    id: string;
+    name: string;
+    slug: string;
+    category: string | null;
+    phone: string | null;
+    needsBusinessDetails: boolean;
+    primaryLocation: { id: string; name: string; slug: string } | null;
+  };
+}> {
+  return request("/accounts/me/business", {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: payload,
+  });
 }
 
 export function getMe(accessToken: string): Promise<MeResponse> {

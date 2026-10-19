@@ -87,7 +87,7 @@ export function WhatsNewDrawer({ open, onClose, anchorRef }: WhatsNewDrawerProps
       <div className="flex flex-1 flex-col gap-[18px] overflow-y-auto px-5 py-[18px]">
         {latest && (
           <div className="flex flex-col gap-2.5 rounded-2xl border border-tn-border bg-tn-page p-4">
-            <span className="flex w-fit items-center gap-1 rounded-full bg-tn-dark px-2.5 py-1 font-sans text-[11px] font-semibold text-tn-on-dark">
+            <span className="flex w-fit items-center gap-1 rounded-full bg-tn-dark px-2.5 py-1 font-sans text-[12px] font-semibold text-tn-on-dark">
               ★ Latest
             </span>
             <div className="flex items-center gap-2.5 font-sans text-xs font-medium text-tn-muted-5">
@@ -97,7 +97,7 @@ export function WhatsNewDrawer({ open, onClose, anchorRef }: WhatsNewDrawerProps
               <span>{latest.date}</span>
             </div>
             <p className="m-0 font-sans text-base font-semibold text-tn-ink">{latest.title}</p>
-            <p className="m-0 font-sans text-[13px] leading-relaxed text-tn-muted-4">
+            <p className="m-0 font-sans text-[14px] leading-relaxed text-tn-muted-4">
               {latest.body}
             </p>
           </div>
@@ -125,7 +125,7 @@ export function WhatsNewDrawer({ open, onClose, anchorRef }: WhatsNewDrawerProps
       </div>
 
       <div className="border-t border-tn-border-soft px-5 py-3.5">
-        <span className="flex cursor-pointer items-center gap-1.5 font-sans text-[13px] font-semibold text-tn-ink-soft">
+        <span className="flex cursor-pointer items-center gap-1.5 font-sans text-[14px] font-semibold text-tn-ink-soft">
           View All ↗
         </span>
       </div>

@@ -50,7 +50,7 @@ function Initials({ name }: { name: string }) {
     .join("")
     .toUpperCase();
   return (
-    <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-tn-avatar-tan font-sans text-[11px] font-semibold text-tn-ink">
+    <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-tn-avatar-tan font-sans text-[12px] font-semibold text-tn-ink">
       {initials}
     </span>
   );
@@ -148,10 +148,10 @@ export function LocationStaffTab({
       <div className="flex flex-wrap items-start gap-5">
         <div className="flex min-w-[420px] flex-1 flex-col gap-4">
           <section className="rounded-2xl border border-tn-border-soft bg-tn-surface p-5">
-            <h3 className="m-0 font-sans text-[15px] font-semibold text-tn-ink">
+            <h3 className="m-0 font-sans text-[16px] font-semibold text-tn-ink">
               Can customers choose their barber?
             </h3>
-            <p className="mt-1 mb-4 font-sans text-[12.5px] text-tn-muted-5">
+            <p className="mt-1 mb-4 font-sans text-[13px] text-tn-muted-5">
               Applies to this location’s booking page only. Your other branches set their own.
             </p>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -170,7 +170,7 @@ export function LocationStaffTab({
                         : "border border-tn-border bg-tn-surface hover:border-tn-input-border"
                     }`}
                   >
-                    <span className="flex items-center gap-2 font-sans text-[13px] font-semibold text-tn-ink">
+                    <span className="flex items-center gap-2 font-sans text-[14px] font-semibold text-tn-ink">
                       <span
                         aria-hidden
                         className={`h-2 w-2 flex-none rounded-full ${
@@ -179,7 +179,7 @@ export function LocationStaffTab({
                       />
                       {option.title}
                     </span>
-                    <span className="font-sans text-[12px] leading-snug text-tn-muted-5">
+                    <span className="font-sans text-[13px] leading-snug text-tn-muted-5">
                       {option.body}
                     </span>
                   </button>
@@ -189,7 +189,7 @@ export function LocationStaffTab({
           </section>
 
           <section className="rounded-2xl border border-tn-border-soft bg-tn-surface p-5">
-            <h3 className="m-0 mb-4 font-sans text-[15px] font-semibold text-tn-ink">
+            <h3 className="m-0 mb-4 font-sans text-[16px] font-semibold text-tn-ink">
               How requests are limited
             </h3>
 
@@ -197,16 +197,16 @@ export function LocationStaffTab({
               /* Nothing to limit: with the shop assigning, no booking is a
                  request in the first place. Said rather than shown greyed
                  with no explanation. */
-              <p className="m-0 rounded-xl border border-dashed border-tn-border px-4 py-5 text-center font-sans text-[12.5px] text-tn-muted-5">
+              <p className="m-0 rounded-xl border border-dashed border-tn-border px-4 py-5 text-center font-sans text-[13px] text-tn-muted-5">
                 Nothing to limit while the shop assigns — no booking is a request.
               </p>
             ) : (
               <div className="flex flex-col gap-2">
                 <div className="flex items-baseline justify-between gap-4">
-                  <span className="font-sans text-[13px] text-tn-ink-soft">
+                  <span className="font-sans text-[14px] text-tn-ink-soft">
                     Keep for any-barber bookings
                   </span>
-                  <span className="font-sans text-[13px] font-semibold text-tn-ink">
+                  <span className="font-sans text-[14px] font-semibold text-tn-ink">
                     {reserve === 0 ? "Off" : `${reserve}% of each day`}
                   </span>
                 </div>
@@ -231,7 +231,7 @@ export function LocationStaffTab({
                     }%, var(--color-tn-border-softer) 100%)`,
                   }}
                 />
-                <p className="m-0 font-sans text-[12.5px] leading-relaxed text-tn-muted-5">
+                <p className="m-0 font-sans text-[13px] leading-relaxed text-tn-muted-5">
                   {reserve === 0
                     ? "Named requests can fill the whole day. Turn this up if one barber books out weeks ahead while the others sit empty."
                     : `Named requests can fill ${100 - reserve}% of ${
@@ -245,7 +245,7 @@ export function LocationStaffTab({
           <section className="flex flex-col gap-3 rounded-2xl border border-tn-border-soft bg-tn-surface p-5">
             <div className="flex items-start justify-between gap-4">
               <div className="flex flex-col gap-1">
-                <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">
+                <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">
                   Roster · {staffQuery.data?.staff.length ?? 0}{" "}
                   {staffQuery.data?.staff.length === 1 ? "person" : "people"}
                 </p>
@@ -255,7 +255,7 @@ export function LocationStaffTab({
               </div>
               <Link
                 to="/staff"
-                className="rounded-lg border border-tn-input-border px-2.5 py-1.5 font-sans text-[11px] font-semibold text-tn-ink-soft no-underline hover:bg-tn-page"
+                className="rounded-lg border border-tn-input-border px-2.5 py-1.5 font-sans text-[12px] font-semibold text-tn-ink-soft no-underline hover:bg-tn-page"
               >
                 Staff Management
               </Link>
@@ -282,10 +282,10 @@ export function LocationStaffTab({
                   >
                     <Initials name={member.name} />
                     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="truncate font-sans text-[13px] font-semibold text-tn-ink">
+                      <span className="truncate font-sans text-[14px] font-semibold text-tn-ink">
                         {member.name}
                       </span>
-                      <span className="truncate font-sans text-[11px] text-tn-muted-5">
+                      <span className="truncate font-sans text-[12px] text-tn-muted-5">
                         {[member.displayTitle ?? member.roleName, member.email]
                           .filter(Boolean)
                           .join(" · ")}
@@ -332,7 +332,7 @@ export function LocationStaffTab({
 function RosterBadge({ children, tone }: { children: string; tone?: "gold" }) {
   return (
     <span
-      className={`rounded-full px-2 py-0.5 font-sans text-[10px] font-semibold ${
+      className={`rounded-full px-2 py-0.5 font-sans text-[11px] font-semibold ${
         tone === "gold" ? "bg-tn-gold-bg text-tn-gold" : "bg-tn-neutral-bg text-tn-muted-5"
       }`}
     >
@@ -377,17 +377,17 @@ function WhyThisMattersCard({
 
   return (
     <section className="flex flex-col gap-3 rounded-2xl border border-tn-gold-bg bg-tn-gold-bg-soft p-4">
-      <h3 className="m-0 font-sans text-[13px] font-semibold text-tn-ink">Why this matters here</h3>
+      <h3 className="m-0 font-sans text-[14px] font-semibold text-tn-ink">Why this matters here</h3>
 
       {loading ? (
-        <p className="m-0 font-sans text-[12.5px] text-tn-muted-5">Reading the last few weeks…</p>
+        <p className="m-0 font-sans text-[13px] text-tn-muted-5">Reading the last few weeks…</p>
       ) : !top ? (
-        <p className="m-0 font-sans text-[12.5px] leading-relaxed text-tn-muted-5">
+        <p className="m-0 font-sans text-[13px] leading-relaxed text-tn-muted-5">
           Nobody here has working hours yet, so there’s nothing to measure. Set hours on the
           Availability tab and this fills in.
         </p>
       ) : (
-        <p className="m-0 font-sans text-[12.5px] leading-relaxed text-tn-muted-3">
+        <p className="m-0 font-sans text-[13px] leading-relaxed text-tn-muted-3">
           {firstName(top.name)} is {top.bookedPct}% booked over the next{" "}
           {bookedWindowDays === 7 ? "week" : `${bookedWindowDays} days`}
           {top.namedSharePct !== null && ` and takes ${top.namedSharePct}% of named requests`}
@@ -405,7 +405,7 @@ function WhyThisMattersCard({
 
       <Link
         to={`/calendar?view=week&location=${encodeURIComponent(locationId)}`}
-        className="rounded-lg border border-tn-border bg-tn-surface px-3 py-2.5 text-center font-sans text-[12px] font-semibold text-tn-ink no-underline hover:bg-tn-page"
+        className="rounded-lg border border-tn-border bg-tn-surface px-3 py-2.5 text-center font-sans text-[13px] font-semibold text-tn-ink no-underline hover:bg-tn-page"
       >
         See the week by barber
       </Link>
@@ -437,14 +437,14 @@ function CustomerPreviewCard({
 }) {
   return (
     <section className="flex flex-col gap-3 rounded-2xl border border-tn-border-soft bg-tn-surface p-4">
-      <h3 className="m-0 font-sans text-[13px] font-semibold text-tn-ink">
+      <h3 className="m-0 font-sans text-[14px] font-semibold text-tn-ink">
         What the customer will see
       </h3>
 
       {loading ? (
-        <p className="m-0 font-sans text-[12.5px] text-tn-muted-5">Checking today’s times…</p>
+        <p className="m-0 font-sans text-[13px] text-tn-muted-5">Checking today’s times…</p>
       ) : probeServiceName === null ? (
-        <p className="m-0 font-sans text-[12.5px] leading-relaxed text-tn-muted-5">
+        <p className="m-0 font-sans text-[13px] leading-relaxed text-tn-muted-5">
           Nothing is bookable online here yet, so there is nothing to preview.
         </p>
       ) : (
@@ -455,15 +455,15 @@ function CustomerPreviewCard({
               they'll never see. */}
           {choice !== "required" && (
             <div className="flex items-center justify-between gap-3 rounded-xl border-[1.5px] border-tn-gold bg-tn-gold-bg-soft px-3.5 py-2.5">
-              <span className="font-sans text-[13px] font-semibold text-tn-ink">Any barber</span>
-              <span className="font-sans text-[12px] text-tn-muted-4">
+              <span className="font-sans text-[14px] font-semibold text-tn-ink">Any barber</span>
+              <span className="font-sans text-[13px] text-tn-muted-4">
                 {slotLabel(anyBarberSlotsToday)}
               </span>
             </div>
           )}
 
           {choice === "none" ? (
-            <p className="m-0 font-sans text-[12px] leading-relaxed text-tn-muted-5">
+            <p className="m-0 font-sans text-[13px] leading-relaxed text-tn-muted-5">
               With the shop assigning, that’s the whole screen — no barber list is shown.
             </p>
           ) : (
@@ -472,11 +472,11 @@ function CustomerPreviewCard({
                 key={barber.id}
                 className="flex items-center justify-between gap-3 rounded-xl border border-tn-border-soft px-3.5 py-2.5"
               >
-                <span className="min-w-0 truncate font-sans text-[13px] text-tn-ink">
+                <span className="min-w-0 truncate font-sans text-[14px] text-tn-ink">
                   {barber.name}
                 </span>
                 <span
-                  className={`flex-none font-sans text-[12px] ${
+                  className={`flex-none font-sans text-[13px] ${
                     barber.capReached ? "text-tn-gold" : "text-tn-muted-4"
                   }`}
                 >
@@ -486,7 +486,7 @@ function CustomerPreviewCard({
             ))
           )}
 
-          <p className="m-0 font-sans text-[11.5px] leading-relaxed text-tn-muted-6">
+          <p className="m-0 font-sans text-[12px] leading-relaxed text-tn-muted-6">
             Today, for {probeServiceName} — the shortest thing you sell online. Saved settings only;
             the slider above updates this after you save.
           </p>
