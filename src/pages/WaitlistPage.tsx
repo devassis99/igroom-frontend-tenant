@@ -6,6 +6,7 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { LocationFilterPopover } from "@/components/ui/LocationFilterPopover";
 import { AddWalkInModal } from "@/components/waitlist/AddWalkInModal";
 import { SeatChairModal } from "@/components/waitlist/SeatChairModal";
+import { WaitlistEmptyState } from "@/components/waitlist/WaitlistEmptyState";
 import { useAuthStore } from "@/auth/auth-store";
 import { ApiError } from "@/lib/http";
 import { listLocations } from "@/lib/locations-api";
@@ -355,7 +356,20 @@ export function WaitlistPage() {
           }`}
           aria-busy={isSwitchingBranch}
         >
-          {view === "list" ? (
+          {isQueueEmpty(board) ? (
+            /*
+             * Nobody serving, waiting or checked in: what the queue is for
+             * and a way to start it, instead of empty boxes. In Board view
+             * that replaces the chair cards too — with nobody in a chair,
+             * every one of them only says "Open". The example picture
+             * follows the List/Board switch.
+             */
+            <WaitlistEmptyState
+              view={view}
+              onAdd={() => setWalkInOpen(true)}
+              addDisabled={!selectedLocationId}
+            />
+          ) : view === "list" ? (
             <ListView
               board={board}
               onCallIn={(entryId) => callIn.mutate(entryId)}
@@ -406,6 +420,10 @@ export function WaitlistPage() {
       />
     </div>
   );
+}
+
+function isQueueEmpty(board: WaitlistBoard): boolean {
+  return board.nowServing.length === 0 && board.waiting.length === 0 && board.arrivals.length === 0;
 }
 
 function BoardSkeleton() {
