@@ -243,7 +243,8 @@ export function WaitlistPage() {
     errorMessage(cancel.error);
 
   return (
-    <div className="flex flex-col gap-7">
+    // White components on the cream page — see .tn-white-components (index.css).
+    <div className="tn-white-components flex flex-col gap-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Live Waitlist</h1>
@@ -301,7 +302,7 @@ export function WaitlistPage() {
          * this the page sits on its loading skeleton for good, because
          * the board query is disabled and so never resolves.
          */
-        <div className="rounded-2xl border border-dashed border-tn-border px-5 py-12 text-center">
+        <div className="rounded-2xl border border-dashed border-tn-border bg-tn-surface px-5 py-12 text-center">
           <p className="m-0 font-sans text-[16px] font-semibold text-tn-ink">
             You&rsquo;re not assigned to a location yet
           </p>
@@ -465,7 +466,7 @@ function ListView({
         {board.nowServing.length === 0 ? (
           <EmptyPanel>Nobody's in a chair right now.</EmptyPanel>
         ) : (
-          <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
+          <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface">
             {board.nowServing.map((entry, index) => {
               const time = chairTimeLabel(entry.minutesLeft);
               return (
@@ -543,7 +544,7 @@ function ListView({
           nothing at all.
         */}
         {board.arrivals.length > 0 && (
-          <div className="mb-3 flex flex-col overflow-hidden rounded-2xl border border-tn-border">
+          <div className="mb-3 flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface">
             {board.arrivals.map((arrival, index) => (
               <div
                 key={arrival.bookingId}
@@ -593,7 +594,7 @@ function ListView({
             here.
           </EmptyPanel>
         ) : board.waiting.length === 0 ? null : (
-          <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
+          <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface">
             {board.waiting.map((entry, index) => (
               <div
                 key={entry.entryId}
@@ -766,7 +767,7 @@ function ChairCard({ chair }: { chair: WaitlistChair }) {
 
   if (!current) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-tn-border px-5 py-8">
+      <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-tn-border bg-tn-surface px-5 py-8">
         <span className="flex h-[104px] w-[104px] items-center justify-center rounded-full bg-tn-page">
           <span className="h-4 w-4 rounded-full border-2 border-tn-faint-2" />
         </span>
@@ -777,7 +778,7 @@ function ChairCard({ chair }: { chair: WaitlistChair }) {
   }
 
   return (
-    <div className="flex flex-col items-center gap-3 rounded-2xl border border-tn-border px-5 py-8">
+    <div className="flex flex-col items-center gap-3 rounded-2xl border border-tn-border bg-tn-surface px-5 py-8">
       <span className="relative flex h-[104px] w-[104px] items-center justify-center">
         <svg
           viewBox="0 0 100 100"
@@ -834,7 +835,7 @@ function ChairCard({ chair }: { chair: WaitlistChair }) {
 
 function EmptyPanel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-dashed border-tn-border px-5 py-10 text-center font-sans text-[14px] text-tn-muted-5">
+    <div className="rounded-2xl border border-dashed border-tn-border bg-tn-surface px-5 py-10 text-center font-sans text-[14px] text-tn-muted-5">
       {children}
     </div>
   );

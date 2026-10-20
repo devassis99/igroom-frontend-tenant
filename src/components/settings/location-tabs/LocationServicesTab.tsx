@@ -162,7 +162,7 @@ export function LocationServicesTab({
           <p className="m-0 font-sans text-[12px] font-semibold tracking-[0.05em] text-tn-muted-5">
             {category.toUpperCase()}
           </p>
-          <div className="rounded-2xl border border-tn-border">
+          <div className="rounded-2xl border border-tn-border bg-tn-surface">
             {rows.map((entry, index) => {
               const row = draft[entry.serviceId] ?? { offered: false, price: "", duration: "" };
               return (

@@ -122,9 +122,14 @@ function BillingIcon({ className = "" }: { className?: string }) {
   );
 }
 
+// Selected row in the logo's clay (a light clay tint, deeper clay text)
+// rather than the old blue — trying the brand colour here first, before
+// deciding whether the main sidebar's selection should follow.
 function navClass(isActive: boolean) {
-  return `flex items-center gap-2.5 rounded-lg px-4 py-2.5 font-sans text-[14px] ${
-    isActive ? "bg-tn-blue-bg font-semibold text-tn-blue" : "font-medium text-tn-nav-inactive"
+  return `flex items-center gap-2.5 rounded-lg px-4 py-2.5 font-sans text-[14px] transition-colors duration-150 ${
+    isActive
+      ? "bg-brand-clay/10 font-semibold text-brand-clay-deep"
+      : "font-medium text-tn-nav-inactive hover:bg-tn-page hover:text-tn-ink-soft"
   }`;
 }
 

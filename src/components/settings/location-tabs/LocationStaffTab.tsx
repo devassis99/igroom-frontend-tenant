@@ -270,7 +270,7 @@ export function LocationStaffTab({
                 Nobody works here yet — this location can’t take a booking until someone does.
               </p>
             ) : (
-              <div className="rounded-2xl border border-tn-border">
+              <div className="rounded-2xl border border-tn-border bg-tn-surface">
                 {staffQuery.data.staff.map((member, index) => (
                   <div
                     key={member.id}

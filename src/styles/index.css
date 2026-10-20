@@ -17,6 +17,10 @@
   --font-brand: "Playfair Display", Georgia, "Times New Roman", serif;
   --color-brand-ink: #211813;
   --color-brand-clay: #a75b3c;
+  /* The logo clay a shade deeper, for text: plain clay is about 3.9:1 on
+     the light surfaces, short of 4.5:1 for small text; this is about 5.4:1.
+     Used by the Settings sidebar's selected row. */
+  --color-brand-clay-deep: #8b4730;
   --color-brand-clay-soft: #dd9571;
   --color-brand-paper: #faf8f5;
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -51,6 +55,14 @@
   /* Dark surfaces — active nav item, primary buttons, avatars, loading/plan screens */
   --color-tn-dark: oklch(30% 0.02 50);
   --color-tn-on-dark: oklch(98% 0.005 80);
+  /*
+   * The two ends of bg-tn-dark-gradient (below): espresso on the left,
+   * easing to a warm mid brown on the right. The light end still gives
+   * tn-on-dark text about 6.9:1, so a label that runs to the right edge
+   * stays readable.
+   */
+  --color-tn-dark-from: oklch(22% 0.018 50);
+  --color-tn-dark-to: oklch(46% 0.068 45);
   --color-tn-plan-bg: oklch(22% 0.015 55);
   --color-tn-plan-track: oklch(24% 0.015 55);
 
@@ -81,6 +93,25 @@
 
   /* Modal backdrop */
   --color-tn-backdrop: oklch(20% 0.01 50 / 0.45);
+}
+
+/*
+ * The dark brown fill as a left-to-right gradient: darkest on the left,
+ * lightening toward the right edge. Used on everything you press or pick
+ * that used to be flat bg-tn-dark — primary buttons, the List/Board and
+ * Day/Week switches, selected filter chips, the current page number.
+ * Small markers (the waitlist's position numbers, progress steps, badges)
+ * stay flat, where a gradient would be too small to read as one.
+ *
+ * A utility rather than a class so it composes with Tailwind's variants.
+ * The flat colour underneath is the gradient's dark end, so anything
+ * drawn before the image (or with images off) still looks right. Hovers
+ * on these use opacity, because a hover:bg-* colour sits under the image
+ * and would never show.
+ */
+@utility bg-tn-dark-gradient {
+  background-color: var(--color-tn-dark-from);
+  background-image: linear-gradient(90deg, var(--color-tn-dark-from), var(--color-tn-dark-to));
 }
 
 body {
@@ -263,6 +294,24 @@ body {
     opacity: 0;
     transform: scale(0.96) translateY(-4px);
   }
+}
+
+/*
+ * Components on pure white, page on cream.
+ *
+ * Inside an element with this class, `--color-tn-surface` is pure white,
+ * so every `bg-tn-surface` in there — inputs, pickers, cards, table
+ * bodies, small buttons — turns white, while the page behind keeps its
+ * near-white cream (that background is set on AppShell's content area,
+ * outside this element). One switch rather than a `bg-white` on each
+ * component, so shared ones (the form inputs, the time and timezone
+ * pickers) follow without being edited. Portaled popovers and modals sit
+ * outside it and keep their own surface.
+ *
+ * Tried on the Locations page first.
+ */
+.tn-white-components {
+  --color-tn-surface: #ffffff;
 }
 
 /*

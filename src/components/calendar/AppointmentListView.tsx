@@ -184,7 +184,7 @@ export function AppointmentListView({
             <p className="m-0 font-sans text-[12px] font-semibold tracking-wide text-tn-muted-5">
               {formatListDateHeader(group.date, timezone)}
             </p>
-            <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
+            <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface">
               {group.bookings.map((booking, i) => {
                 const status = BOOKING_STATUS_TONE[booking.status];
                 const expanded = expandedId === booking.id;

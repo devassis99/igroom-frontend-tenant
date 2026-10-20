@@ -310,7 +310,7 @@ export function TourOverlay({ tour, stepIndex, onNext, onBack, onDismiss }: Tour
             <button
               type="button"
               onClick={onNext}
-              className="rounded-[10px] bg-tn-dark px-4 py-2 font-sans text-[14px] font-semibold text-tn-on-dark transition-colors hover:opacity-90"
+              className="rounded-[10px] bg-tn-dark-gradient px-4 py-2 font-sans text-[14px] font-semibold text-tn-on-dark transition-colors hover:opacity-90"
             >
               {isLast ? "Finish" : "Next"}
             </button>

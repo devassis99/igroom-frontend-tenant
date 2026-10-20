@@ -15,7 +15,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="flex flex-1 flex-col gap-1 rounded-2xl border border-tn-border px-4 py-3">
+    <div className="flex flex-1 flex-col gap-1 rounded-2xl border border-tn-border bg-tn-surface px-4 py-3">
       <span className="font-sans text-lg font-semibold text-tn-ink">{value}</span>
       <span className="font-sans text-[12px] font-semibold tracking-[0.04em] text-tn-muted-5">
         {label.toUpperCase()}
@@ -86,7 +86,7 @@ export function LocationPayoutsTab({ location }: { location: AccountLocation }) 
           No online payments here yet — every booking at this location was taken in person.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-tn-border">
+        <div className="overflow-x-auto rounded-2xl border border-tn-border bg-tn-surface">
           <div style={{ minWidth: 620 }}>
             <div className="grid grid-cols-[110px_1fr_1fr_90px_100px] gap-3 border-b border-tn-border-softer bg-tn-table-head px-4 py-2.5">
               {["DATE", "CUSTOMER", "SERVICE", "CAPTURED", "STATUS"].map((heading) => (

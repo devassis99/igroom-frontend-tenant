@@ -97,7 +97,7 @@ export function TipSplit({ ticket, locationId, onApplied, onBack, onContinue }: 
               disabled={apply.isPending}
               className={`cursor-pointer rounded-[9px] px-3.5 py-2.5 font-sans text-[13px] font-semibold ${
                 isActive
-                  ? "border-none bg-tn-dark text-tn-on-dark"
+                  ? "border-none bg-tn-dark-gradient text-tn-on-dark"
                   : "border border-tn-input-border bg-transparent text-tn-muted-3 hover:bg-tn-page"
               }`}
             >

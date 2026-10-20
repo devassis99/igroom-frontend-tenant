@@ -183,7 +183,7 @@ export function StaffFilterBar({
       <button
         type="button"
         onClick={() => setPickerOpen((v) => !v)}
-        className="flex cursor-pointer items-center gap-2 rounded-full border-none bg-tn-dark px-3.5 py-2 font-sans text-[13px] font-semibold text-tn-on-dark transition-[background-color,transform] duration-200 hover:bg-tn-ink active:scale-[0.97]"
+        className="flex cursor-pointer items-center gap-2 rounded-full border-none bg-tn-dark-gradient px-3.5 py-2 font-sans text-[13px] font-semibold text-tn-on-dark transition-[opacity,transform] duration-200 hover:opacity-90 active:scale-[0.97]"
       >
         Staff: {selectedStaffIds.length} of {allStaff.length}
         {/* Rotated rather than swapped for a second glyph, so the arrow
@@ -208,7 +208,7 @@ export function StaffFilterBar({
             className={`cursor-pointer rounded-full border px-3.5 py-2 font-sans text-[13px] font-medium transition-[background-color,border-color,color,transform] duration-200 active:scale-[0.97] ${
               isActive
                 ? "border-transparent bg-tn-blue-bg text-tn-blue"
-                : "border-tn-input-border bg-transparent text-tn-muted-1 hover:bg-tn-page"
+                : "border-tn-input-border bg-tn-surface text-tn-muted-1 hover:bg-tn-page/60"
             }`}
           >
             {set.name}
@@ -291,7 +291,7 @@ export function StaffFilterBar({
                 onClick={() => setQuickFilter(value)}
                 className={`cursor-pointer rounded-full px-2.5 py-1.5 font-sans text-[12px] font-medium transition-[background-color,border-color,color,transform] duration-200 active:scale-[0.96] ${
                   quickFilter === value
-                    ? "border-none bg-tn-dark text-tn-on-dark"
+                    ? "border-none bg-tn-dark-gradient text-tn-on-dark"
                     : "border border-tn-input-border bg-transparent text-tn-muted-1"
                 }`}
               >
@@ -344,7 +344,7 @@ export function StaffFilterBar({
                   onApply(Array.from(pending));
                   setPickerOpen(false);
                 }}
-                className="cursor-pointer rounded-lg border-none bg-tn-dark px-3.5 py-2 font-sans text-xs font-semibold text-tn-on-dark transition-[background-color,transform] duration-200 hover:bg-tn-ink active:scale-[0.97]"
+                className="cursor-pointer rounded-lg border-none bg-tn-dark-gradient px-3.5 py-2 font-sans text-xs font-semibold text-tn-on-dark transition-[opacity,transform] duration-200 hover:opacity-90 active:scale-[0.97]"
               >
                 Apply &middot; {pending.size}
               </button>
@@ -397,7 +397,7 @@ export function StaffFilterBar({
                   onCreateSet(saveName.trim(), selectedStaffIds.slice(), saveShared);
                   setSaveDialogOpen(false);
                 }}
-                className="cursor-pointer rounded-lg border-none bg-tn-dark px-3.5 py-2 font-sans text-xs font-semibold text-tn-on-dark disabled:cursor-not-allowed disabled:opacity-50"
+                className="cursor-pointer rounded-lg border-none bg-tn-dark-gradient px-3.5 py-2 font-sans text-xs font-semibold text-tn-on-dark hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Save set
               </button>

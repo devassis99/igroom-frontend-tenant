@@ -214,7 +214,7 @@ export function CustomersPage() {
               onClick={() => chooseFilter(f)}
               aria-pressed={filter === f}
               className={`rounded-full px-3.5 py-2 font-sans text-xs font-medium ${
-                filter === f ? "bg-tn-dark text-tn-on-dark" : "bg-tn-page text-tn-muted-2"
+                filter === f ? "bg-tn-dark-gradient text-tn-on-dark" : "bg-tn-page text-tn-muted-2"
               }`}
             >
               {f}

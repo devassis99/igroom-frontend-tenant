@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes } from "react";
 
 const VARIANT_CLASSES = {
-  primary: "border-none bg-tn-dark text-tn-on-dark hover:opacity-90",
+  primary: "border-none bg-tn-dark-gradient text-tn-on-dark hover:opacity-90",
   secondary: "border border-tn-input-border bg-transparent text-tn-ink-soft hover:bg-tn-page",
   danger: "border-none bg-tn-danger-strong text-tn-on-dark hover:opacity-90",
   /** Outlined red pill — e.g. the List view's inline "Cancel appointment" row action, less final-looking than the solid `danger` variant used for the actual confirm-cancel step. */
@@ -20,7 +20,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: keyof typeof SIZE_CLASSES;
 }
 
-/** Shared button styling so every CTA across the app (mostly `bg-tn-dark` pills) stays in sync. */
+/** Shared button styling so every CTA across the app (mostly dark brown gradient pills — `bg-tn-dark-gradient`) stays in sync. */
 export function Button({
   variant = "primary",
   size = "md",

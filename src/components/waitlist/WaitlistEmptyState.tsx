@@ -147,7 +147,7 @@ function ListExample() {
             {/* Only the front of the line gets the button, as on the real list. */}
             <span
               className={`shrink-0 rounded-lg px-3 py-1.5 font-sans text-[12px] font-semibold ${
-                i === 0 ? "bg-tn-dark text-tn-on-dark" : "invisible"
+                i === 0 ? "bg-tn-dark-gradient text-tn-on-dark" : "invisible"
               }`}
             >
               Call In
@@ -196,8 +196,9 @@ function BoardExample() {
             {EXAMPLE_SERVING.time}
           </p>
         </div>
-        <div className="flex min-w-0 flex-col items-center gap-1.5 rounded-xl border border-dashed border-tn-border px-3 py-4">
-          <span className="mb-1 flex h-16 w-16 items-center justify-center rounded-full bg-tn-surface">
+        {/* White card, cream circle — the same as a free chair on the real board. */}
+        <div className="flex min-w-0 flex-col items-center gap-1.5 rounded-xl border border-dashed border-tn-border bg-tn-surface px-3 py-4">
+          <span className="mb-1 flex h-16 w-16 items-center justify-center rounded-full bg-tn-page">
             <span className="h-3 w-3 rounded-full border-2 border-tn-faint-2" />
           </span>
           <p className="m-0 font-sans text-[14px] font-semibold text-tn-muted-5">Alex</p>

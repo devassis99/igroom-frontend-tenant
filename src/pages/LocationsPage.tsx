@@ -156,7 +156,8 @@ export function LocationsPage() {
 
   if (selected) {
     return (
-      <div className="flex flex-col gap-4">
+      // White components on the cream page — see .tn-white-components (index.css).
+      <div className="tn-white-components flex flex-col gap-4">
         <button
           type="button"
           onClick={backToTable}
@@ -187,8 +188,8 @@ export function LocationsPage() {
                     aria-current={isSelected ? "true" : undefined}
                     className={`flex cursor-pointer flex-col gap-1 rounded-xl border px-3 py-2.5 text-left transition-colors duration-150 ${
                       isSelected
-                        ? "border-tn-border bg-tn-page"
-                        : "border-transparent bg-transparent hover:bg-tn-page"
+                        ? "border-tn-border bg-tn-surface shadow-[0_1px_2px_rgba(20,15,5,0.06)]"
+                        : "border-transparent bg-transparent hover:bg-tn-surface/70"
                     }`}
                   >
                     <span className="flex items-center gap-2">
@@ -230,13 +231,13 @@ export function LocationsPage() {
               <button
                 type="button"
                 onClick={openAdd}
-                className="cursor-pointer rounded-xl border border-dashed border-tn-border bg-transparent px-3 py-2.5 font-sans text-[14px] font-semibold text-tn-ink-soft hover:bg-tn-page"
+                className="cursor-pointer rounded-xl border border-dashed border-tn-border bg-transparent px-3 py-2.5 font-sans text-[14px] font-semibold text-tn-ink-soft hover:bg-tn-surface"
               >
                 + Add location
               </button>
             )}
 
-            <div className="flex flex-col gap-1.5 rounded-xl bg-tn-page px-3 py-2.5">
+            <div className="flex flex-col gap-1.5 rounded-xl border border-tn-border-soft bg-tn-surface px-3 py-2.5">
               <span className="font-sans text-[12px] font-semibold text-tn-ink">
                 {usedSeats} of {TOTAL_SEATS} seats used
               </span>
@@ -275,7 +276,8 @@ export function LocationsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    // White components on the cream page — see .tn-white-components (index.css).
+    <div className="tn-white-components flex flex-col gap-5">
       <div className="flex items-end justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h1 className="m-0 font-sans text-2xl font-semibold text-tn-ink">Locations</h1>
@@ -315,8 +317,8 @@ export function LocationsPage() {
                   aria-pressed={isActive}
                   className={`cursor-pointer rounded-full px-3.5 py-1.5 font-sans text-xs ${
                     isActive
-                      ? "border-none bg-tn-dark font-semibold text-tn-on-dark"
-                      : "border border-tn-input-border bg-transparent font-medium text-tn-ink-soft hover:bg-tn-page"
+                      ? "border-none bg-tn-dark-gradient font-semibold text-tn-on-dark"
+                      : "border border-tn-input-border bg-tn-surface font-medium text-tn-ink-soft hover:bg-tn-page/60"
                   }`}
                 >
                   {option.label} ({counts[option.key]})
@@ -332,7 +334,7 @@ export function LocationsPage() {
             <span className="font-sans text-xs text-tn-muted-5">Revenue · last 7 days</span>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-tn-border">
+          <div className="overflow-x-auto rounded-2xl border border-tn-border bg-tn-surface">
             <div style={{ minWidth: 900 }}>
               <div
                 style={{ gridTemplateColumns: ROW_GRID }}
@@ -370,7 +372,7 @@ export function LocationsPage() {
                     // column to say one word.
                     borderLeftColor: statusColour(loc),
                   }}
-                  className={`group grid cursor-pointer items-center gap-3.5 border-l-[3px] py-3.5 pr-4 pl-4 hover:bg-tn-page ${
+                  className={`group grid cursor-pointer items-center gap-3.5 border-l-[3px] py-3.5 pr-4 pl-4 hover:bg-tn-page/60 ${
                     index < visible.length - 1 ? "border-b border-tn-border-soft" : ""
                   }`}
                 >
@@ -443,7 +445,7 @@ export function LocationsPage() {
                         loc.needsSetup ? "Finish setup to get this location's QR code" : undefined
                       }
                       aria-label={`QR code for ${loc.name}`}
-                      className="cursor-pointer rounded-lg border border-tn-input-border bg-transparent px-2.5 py-1.5 font-sans text-[12px] font-semibold text-tn-ink-soft hover:bg-tn-surface disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+                      className="cursor-pointer rounded-lg border border-tn-input-border bg-tn-surface px-2.5 py-1.5 font-sans text-[12px] font-semibold text-tn-ink-soft hover:bg-tn-page/60 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-tn-surface"
                     >
                       QR
                     </button>
@@ -467,7 +469,7 @@ export function LocationsPage() {
                             setSheetOpen(true);
                           }}
                           aria-label={`Edit ${loc.name}`}
-                          className="cursor-pointer rounded-lg border border-tn-input-border bg-transparent px-2.5 py-1.5 font-sans text-[12px] font-semibold text-tn-ink-soft hover:bg-tn-surface"
+                          className="cursor-pointer rounded-lg border border-tn-input-border bg-tn-surface px-2.5 py-1.5 font-sans text-[12px] font-semibold text-tn-ink-soft hover:bg-tn-page/60"
                         >
                           Edit
                         </button>

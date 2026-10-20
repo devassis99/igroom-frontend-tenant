@@ -168,7 +168,7 @@ export function BusinessDetailsPage() {
                 type="button"
                 onClick={() => setBusinessDetails({ category: c })}
                 className={`rounded-full px-4 py-2 font-sans text-[14px] font-medium ${
-                  category === c ? "bg-tn-dark text-tn-on-dark" : "bg-tn-page text-tn-dark"
+                  category === c ? "bg-tn-dark-gradient text-tn-on-dark" : "bg-tn-page text-tn-dark"
                 }`}
               >
                 {c}

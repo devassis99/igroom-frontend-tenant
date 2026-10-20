@@ -128,6 +128,17 @@ function LocationsIcon({ className = "" }: { className?: string }) {
  * tn-on-dark, inactive = tn-nav-inactive) via `currentColor` instead of
  * taking an `active` prop — no per-icon active/inactive variant needed.
  */
+/**
+ * The selected row in this sidebar: a light tint of the logo's clay, the
+ * label in a deeper clay (plain clay is too light for small text on this
+ * background; the deeper one is about 4.9:1), and a thin clay bar on the
+ * left edge — an inset shadow, so it takes no space. Same colours as the
+ * Settings sidebar's selected row (pages/settings/SettingsLayout.tsx).
+ * It replaced a dark ink bar.
+ */
+const NAV_ACTIVE_CLASS =
+  "bg-brand-clay/12 font-semibold text-brand-clay-deep shadow-[inset_3px_0_0_var(--color-brand-clay)]";
+
 const ICON_PROPS = {
   viewBox: "0 0 24 24",
   fill: "none",
@@ -408,8 +419,11 @@ export function AppShell() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-tn-page">
+      {/* Pure white, with a hairline on its right edge: the page beside it
+          is a near-white cream, so without the line the two would run
+          together. */}
       <aside
-        className={`relative flex ${collapsed ? "w-[76px]" : "w-[220px]"} shrink-0 flex-col overflow-y-auto overflow-x-hidden py-6 transition-[width] duration-300 ease-in-out`}
+        className={`relative flex ${collapsed ? "w-[76px]" : "w-[220px]"} shrink-0 flex-col overflow-y-auto overflow-x-hidden border-r border-tn-border bg-white py-6 transition-[width] duration-300 ease-in-out`}
       >
         <div className="mb-3.5 flex items-center justify-between px-6">
           <CollapsibleLabel collapsed={collapsed} className="flex">
@@ -477,8 +491,8 @@ export function AppShell() {
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-6 py-[11px] font-sans text-[14px] transition-colors duration-200 ${
                       isActive
-                        ? "bg-tn-dark font-semibold text-tn-on-dark"
-                        : "font-medium text-tn-nav-inactive hover:bg-tn-page hover:text-tn-ink-soft"
+                        ? NAV_ACTIVE_CLASS
+                        : "font-medium text-tn-nav-inactive hover:bg-tn-page/60 hover:text-tn-ink-soft"
                     }`
                   }
                 >
@@ -520,9 +534,7 @@ export function AppShell() {
             onClick={() => setIntegrationsOpen(true)}
             title={collapsed ? "Integrations" : undefined}
             className={`flex items-center justify-between px-6 py-[11px] font-sans text-[14px] ${
-              integrationsOpen
-                ? "bg-tn-dark font-semibold text-tn-on-dark"
-                : "font-medium text-tn-nav-inactive"
+              integrationsOpen ? NAV_ACTIVE_CLASS : "font-medium text-tn-nav-inactive"
             }`}
           >
             <span className="flex items-center gap-3">
@@ -542,8 +554,8 @@ export function AppShell() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-6 py-[11px] font-sans text-[14px] transition-colors duration-200 ${
                 isActive
-                  ? "bg-tn-dark font-semibold text-tn-on-dark"
-                  : "font-medium text-tn-nav-inactive hover:bg-tn-page hover:text-tn-ink-soft"
+                  ? NAV_ACTIVE_CLASS
+                  : "font-medium text-tn-nav-inactive hover:bg-tn-page/60 hover:text-tn-ink-soft"
               }`
             }
           >

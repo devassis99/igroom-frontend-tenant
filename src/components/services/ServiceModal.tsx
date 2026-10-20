@@ -1,8 +1,9 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { Field, formInputClass, formSelectClass } from "@/components/ui/FormField";
+import { Field, formInputClass } from "@/components/ui/FormField";
+import { Select, type SelectOption } from "@/components/ui/Select";
 import { Toggle } from "@/components/ui/Toggle";
 import {
   createService,
@@ -23,6 +24,16 @@ interface ServiceModalProps {
 
 const HOURS_OPTIONS = [0, 1, 2, 3, 4];
 const MINUTES_OPTIONS = [0, 15, 30, 45];
+
+/**
+ * The fixed choices, plus the current value if it isn't one of them — a
+ * service saved as 50 minutes, say. A native select showed the first
+ * option for a value it didn't have, which then saved over the real one.
+ */
+function withCurrent(choices: number[], current: number): number[] {
+  if (choices.includes(current)) return choices;
+  return [...choices.filter((c) => c < current), current, ...choices.filter((c) => c > current)];
+}
 
 function minutesToParts(durationMinutes: number) {
   return { hours: Math.floor(durationMinutes / 60), minutes: durationMinutes % 60 };
@@ -62,6 +73,26 @@ export function ServiceModal({
   const [requiresDeposit, setRequiresDeposit] = useState(false);
   const [kioskBookable, setKioskBookable] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const categoryOptions = useMemo<SelectOption<string>[]>(
+    () => [
+      { value: "", label: "No category" },
+      ...categories.map((c) => ({ value: c.id, label: c.name })),
+    ],
+    [categories],
+  );
+  const hourOptions = useMemo<SelectOption<number>[]>(
+    () =>
+      withCurrent(HOURS_OPTIONS, hours).map((h) => ({
+        value: h,
+        label: `${h} ${h === 1 ? "hour" : "hours"}`,
+      })),
+    [hours],
+  );
+  const minuteOptions = useMemo<SelectOption<number>[]>(
+    () => withCurrent(MINUTES_OPTIONS, minutes).map((m) => ({ value: m, label: `${m} min` })),
+    [minutes],
+  );
 
   // Re-sync whenever the modal is (re)opened, for whichever service (or
   // none, for Add) it was opened with — same pattern as AddBookingModal.
@@ -171,18 +202,12 @@ export function ServiceModal({
           </Field>
 
           <Field label="CATEGORY">
-            <select
+            <Select
+              label="Category"
               value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              className={formSelectClass}
-            >
-              <option value="">No category</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+              options={categoryOptions}
+              onChange={setCategoryId}
+            />
           </Field>
 
           <div className="flex flex-col gap-1.5">
@@ -200,50 +225,46 @@ export function ServiceModal({
             </label>
           </div>
 
+          {/* 5:4, so each duration dropdown gets about as much room as the
+              native selects took for themselves, and pricing the rest. */}
           <div className="flex gap-4">
-            <div className="flex flex-1 flex-col gap-1.5">
+            <div className="flex min-w-0 flex-[5] flex-col gap-1.5">
               <span className="font-sans text-xs font-medium text-tn-muted-1">
                 SERVICE DURATION
               </span>
               <div className="flex gap-2">
-                <select
+                <Select
+                  label="Hours"
                   value={hours}
-                  onChange={(e) => setHours(Number(e.target.value))}
-                  className={`${formSelectClass} flex-1`}
-                >
-                  {HOURS_OPTIONS.map((h) => (
-                    <option key={h} value={h}>
-                      {h} {h === 1 ? "hour" : "hours"}
-                    </option>
-                  ))}
-                </select>
-                <select
+                  options={hourOptions}
+                  onChange={setHours}
+                  className="flex-1"
+                />
+                <Select
+                  label="Minutes"
                   value={minutes}
-                  onChange={(e) => setMinutes(Number(e.target.value))}
-                  className={`${formSelectClass} flex-1`}
-                >
-                  {MINUTES_OPTIONS.map((m) => (
-                    <option key={m} value={m}>
-                      {m} min
-                    </option>
-                  ))}
-                </select>
+                  options={minuteOptions}
+                  onChange={setMinutes}
+                  className="flex-1"
+                />
               </div>
             </div>
 
-            <Field label="PRICING">
-              <div className="flex items-center gap-1.5 rounded-xl border border-tn-input-border px-3.5 py-3 focus-within:border-2 focus-within:border-tn-gold">
-                <span className="font-sans text-sm text-tn-muted-4">$</span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={priceInput}
-                  onChange={(e) => setPriceInput(e.target.value)}
-                  onBlur={() => setPriceInput(centsToPriceInput(parsePriceCents(priceInput)))}
-                  className="w-full border-none bg-transparent font-sans text-sm text-tn-ink outline-none"
-                />
-              </div>
-            </Field>
+            <div className="min-w-0 flex-[4]">
+              <Field label="PRICING">
+                <div className="flex items-center gap-1.5 rounded-xl border border-tn-input-border px-3.5 py-3 focus-within:border-2 focus-within:border-tn-gold">
+                  <span className="font-sans text-sm text-tn-muted-4">$</span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={priceInput}
+                    onChange={(e) => setPriceInput(e.target.value)}
+                    onBlur={() => setPriceInput(centsToPriceInput(parsePriceCents(priceInput)))}
+                    className="w-full border-none bg-transparent font-sans text-sm text-tn-ink outline-none"
+                  />
+                </div>
+              </Field>
+            </div>
           </div>
 
           <div className="flex flex-col gap-1 border-t border-tn-border-soft pt-3">

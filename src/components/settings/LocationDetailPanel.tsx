@@ -475,7 +475,7 @@ function DetailsTab({
                */}
               <Field label="BRANCH STATUS">
                 <div
-                  className={`flex items-center justify-between gap-3 rounded-xl border border-tn-input-border px-3.5 py-2.5 ${formControlHeightClass}`}
+                  className={`flex items-center justify-between gap-3 rounded-xl border border-tn-input-border bg-tn-surface px-3.5 py-2.5 ${formControlHeightClass}`}
                 >
                   <span className="font-sans text-sm text-tn-ink">
                     {active ? "Open" : "Closed"}
@@ -513,7 +513,7 @@ function DetailsTab({
         </div>
 
         <div className="flex w-full max-w-[280px] flex-col gap-3">
-          <div className="flex flex-col gap-3 rounded-2xl border border-tn-border px-4 py-3.5">
+          <div className="flex flex-col gap-3 rounded-2xl border border-tn-border bg-tn-surface px-4 py-3.5">
             <p className="m-0 font-sans text-xs font-semibold text-tn-ink">
               Today at {location.name}
             </p>
@@ -622,7 +622,7 @@ function OnlineDepositCard({
   });
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-tn-border px-4 py-3.5">
+    <div className="flex flex-col gap-3 rounded-2xl border border-tn-border bg-tn-surface px-4 py-3.5">
       <p className="m-0 font-sans text-xs font-semibold text-tn-ink">Online bookings</p>
       {/* Toggle brings its own label row, so the consequence goes
           underneath rather than inside it — and it is written as what
@@ -717,7 +717,7 @@ function BookingLinkCard({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-tn-border px-4 py-3.5">
+    <div className="flex flex-col gap-3 rounded-2xl border border-tn-border bg-tn-surface px-4 py-3.5">
       <div className="flex flex-col gap-1">
         <p className="m-0 font-sans text-xs font-semibold text-tn-ink">Booking link &amp; QR</p>
         {/* Said plainly, because this is the one thing on the page an

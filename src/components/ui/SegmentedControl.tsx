@@ -92,7 +92,7 @@ export function SegmentedControl<T extends string>({
       <span
         ref={thumbRef}
         aria-hidden
-        className="pointer-events-none absolute top-[3px] bottom-[3px] left-0 rounded-full bg-tn-dark"
+        className="pointer-events-none absolute top-[3px] bottom-[3px] left-0 rounded-full bg-tn-dark-gradient"
       />
       {options.map((option) => (
         <button

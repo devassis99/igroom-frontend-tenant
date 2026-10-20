@@ -46,7 +46,7 @@ export function CategoryNav({ value, onChange }: CategoryNavProps) {
             onClick={() => onChange(c.label)}
             className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-left font-sans text-[14px] ${
               active
-                ? "bg-tn-dark font-semibold text-tn-on-dark"
+                ? "bg-tn-dark-gradient font-semibold text-tn-on-dark"
                 : "font-medium text-tn-nav-inactive"
             }`}
           >

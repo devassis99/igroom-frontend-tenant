@@ -14,7 +14,8 @@ import { ResourcesSupportSection } from "@/components/dashboard/ResourcesSupport
  */
 export function HomePage() {
   return (
-    <div className="flex flex-col gap-7">
+    // White components on the cream page — see .tn-white-components (index.css).
+    <div className="tn-white-components flex flex-col gap-7">
       <div data-tour="home-checklist">
         <LaunchChecklistCard />
       </div>

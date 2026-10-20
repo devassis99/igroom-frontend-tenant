@@ -223,7 +223,7 @@ export function WeekGrid({
   }, [timezone]);
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface">
       {/* One scroll box for header and body together, so MON..SUN stays
           pinned while the hours scroll under it — the same arrangement
           Day and Month use. */}

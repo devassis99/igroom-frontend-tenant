@@ -1244,7 +1244,8 @@ export function CalendarPage() {
   if (!locationsQuery.isPending && locations.length === 0) {
     const failed = locationsQuery.isError;
     return (
-      <div className="flex flex-col gap-7">
+      // White components on the cream page — see .tn-white-components (index.css).
+      <div className="tn-white-components flex flex-col gap-7">
         <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Calendar</h1>
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-tn-input-border bg-tn-page px-8 py-16 text-center">
           <span className="font-sans text-[16px] font-semibold text-tn-ink">
@@ -1261,7 +1262,8 @@ export function CalendarPage() {
   }
 
   return (
-    <div className="flex flex-col gap-7">
+    // White components on the cream page — see .tn-white-components (index.css).
+    <div className="tn-white-components flex flex-col gap-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3.5" data-tour="calendar-location">
           <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Calendar</h1>
@@ -1281,7 +1283,7 @@ export function CalendarPage() {
               <button
                 type="button"
                 onClick={goToday}
-                className="cursor-pointer rounded-lg border border-tn-input-border px-2.5 py-1.5 font-sans text-xs font-semibold text-tn-ink-soft hover:bg-tn-page"
+                className="cursor-pointer rounded-lg border border-tn-input-border bg-tn-surface px-2.5 py-1.5 font-sans text-xs font-semibold text-tn-ink-soft hover:bg-tn-page/60"
               >
                 Today
               </button>
@@ -1290,7 +1292,7 @@ export function CalendarPage() {
                   type="button"
                   onClick={goPrev}
                   aria-label="Previous"
-                  className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-lg border border-tn-input-border text-tn-muted-4 hover:bg-tn-page"
+                  className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-lg border border-tn-input-border bg-tn-surface text-tn-muted-4 hover:bg-tn-page/60"
                 >
                   ‹
                 </button>
@@ -1301,7 +1303,7 @@ export function CalendarPage() {
                   type="button"
                   onClick={goNext}
                   aria-label="Next"
-                  className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-lg border border-tn-input-border text-tn-muted-4 hover:bg-tn-page"
+                  className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-lg border border-tn-input-border bg-tn-surface text-tn-muted-4 hover:bg-tn-page/60"
                 >
                   ›
                 </button>
@@ -1366,7 +1368,7 @@ export function CalendarPage() {
             </span>
             <Link
               to="/staff"
-              className="mt-1 cursor-pointer rounded-lg border-none bg-tn-dark px-4 py-2.5 font-sans text-[14px] font-semibold text-tn-on-dark no-underline"
+              className="mt-1 cursor-pointer rounded-lg border-none bg-tn-dark-gradient px-4 py-2.5 font-sans text-[14px] font-semibold text-tn-on-dark no-underline"
             >
               Add staff
             </Link>
@@ -1399,7 +1401,7 @@ export function CalendarPage() {
               <>
                 <div
                   data-tour="calendar-grid"
-                  className="relative flex flex-col overflow-hidden rounded-2xl border border-tn-border"
+                  className="relative flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface"
                 >
                   {/* Fixed-height, self-scrolling grid (independent of the page's own scroll container) so the
                   header row below can stay pinned while the hour rows scroll under it, and so the
@@ -1662,7 +1664,7 @@ export function CalendarPage() {
                               </span>
                               <Link
                                 to="/staff"
-                                className="mt-1 cursor-pointer rounded-lg border-none bg-tn-dark px-4 py-2.5 font-sans text-[14px] font-semibold text-tn-on-dark no-underline"
+                                className="mt-1 cursor-pointer rounded-lg border-none bg-tn-dark-gradient px-4 py-2.5 font-sans text-[14px] font-semibold text-tn-on-dark no-underline"
                               >
                                 Invite staff
                               </Link>
@@ -1875,7 +1877,7 @@ export function CalendarPage() {
                     // src/tour/TourLauncher.tsx) sits in that corner on
                     // every screen, and two circles on top of each other
                     // means one of them can't be pressed.
-                    className="fixed bottom-8 right-[92px] z-20 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-none bg-tn-dark text-tn-on-dark shadow-[0_14px_30px_-10px_rgba(40,30,10,0.5)]"
+                    className="fixed bottom-8 right-[92px] z-20 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-none bg-tn-dark-gradient text-tn-on-dark shadow-[0_14px_30px_-10px_rgba(40,30,10,0.5)]"
                   >
                     ›
                   </button>
@@ -1919,7 +1921,7 @@ export function CalendarPage() {
         {view === "month" && (
           <div
             data-tour="calendar-grid"
-            className="flex flex-col overflow-hidden rounded-2xl border border-tn-border"
+            className="flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface"
           >
             {/* Same sticky-header-in-a-scrollbox treatment as Day/Week above — a 6-week month
                 (a month that spills into a leading/trailing week, see getMonthGrid) can run
