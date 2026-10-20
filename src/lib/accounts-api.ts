@@ -168,6 +168,8 @@ export interface MeResponse {
     hasPassword: boolean;
     /** Whether this caller has TOTP 2FA enabled — see SetPasswordModal.tsx, which asks for an authenticator code instead of emailing one when this is true. */
     mfaEnabled: boolean;
+    /** False only for an owner who signed up with an email and password and hasn't typed the emailed code yet — ProtectedRoute shows VerifyEmailGate, and the API refuses the rest of the app. Absent from an older API: treat as verified. */
+    emailVerified?: boolean;
   };
   /** Permission keys granted to staffUser.roleId — see use-permissions.ts. */
   permissions: string[];
@@ -439,5 +441,53 @@ export function updateCoverPhoto(
     method: "PATCH",
     headers: { Authorization: `Bearer ${accessToken}` },
     body: { imageKey },
+  });
+}
+
+// --- Verify your email (password signups) -----------------------------------
+
+/** Where verification stands — see the backend's email-verification.service.ts. */
+export interface EmailVerificationStatus {
+  email: string;
+  verified: boolean;
+  /** The code waiting to be typed, if one is still usable. */
+  code: { sentAt: string; expiresAt: string; attemptsLeft: number } | null;
+  /** When another code can be sent; null if now. */
+  nextSendAt: string | null;
+  sendsLeftThisHour: number;
+  emailChangesLeft: number;
+  nextEmailChangeAt: string | null;
+}
+
+export function getEmailVerification(accessToken: string): Promise<EmailVerificationStatus> {
+  return request("/accounts/me/email-verification", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function sendEmailVerificationCode(accessToken: string): Promise<EmailVerificationStatus> {
+  return request("/accounts/me/email-verification/send", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function verifyEmailCode(accessToken: string, code: string): Promise<{ verified: true }> {
+  return request("/accounts/me/email-verification/verify", {
+    method: "POST",
+    body: { code },
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+/** Only while unverified — moves the login address and sends a code to the new one. */
+export function changeUnverifiedEmail(
+  accessToken: string,
+  email: string,
+): Promise<EmailVerificationStatus> {
+  return request("/accounts/me/email", {
+    method: "PUT",
+    body: { email },
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
 }

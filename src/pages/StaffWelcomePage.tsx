@@ -10,6 +10,7 @@ import { Field, formInputClass } from "@/components/ui/FormField";
 import { WizardTabs } from "@/components/ui/WizardTabs";
 import { StaffAvailabilityEditor } from "@/components/availability/StaffAvailabilityEditor";
 import { setInitialPassword, updateOwnProfile } from "@/lib/accounts-api";
+import { Wordmark } from "@/components/brand/Logo";
 
 const STEPS = ["Sign in", "About you", "Your hours"];
 
@@ -102,7 +103,7 @@ export function StaffWelcomePage() {
       <TourProvider />
       <div className="mx-auto flex w-full max-w-[860px] flex-col gap-6">
         <div className="flex flex-col gap-1">
-          <span className="font-sans text-lg font-semibold text-tn-ink">iGroom</span>
+          <Wordmark className="mb-2 self-start text-[24px]" />
           <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">
             Welcome{onboarding.name ? `, ${onboarding.name.split(" ")[0]}` : ""}
           </h1>

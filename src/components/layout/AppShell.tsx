@@ -7,6 +7,7 @@ import { IntegrationsModal } from "@/components/integrations/IntegrationsModal";
 import { TourProvider } from "@/tour";
 import { AccountMenu } from "./AccountMenu";
 import { WhatsNewDrawer } from "./WhatsNewDrawer";
+import { LogoMark, Wordmark } from "@/components/brand/Logo";
 
 type NavIconComponent = (props: { className?: string }) => ReactNode;
 
@@ -411,20 +412,32 @@ export function AppShell() {
         className={`relative flex ${collapsed ? "w-[76px]" : "w-[220px]"} shrink-0 flex-col overflow-y-auto overflow-x-hidden py-6 transition-[width] duration-300 ease-in-out`}
       >
         <div className="mb-3.5 flex items-center justify-between px-6">
-          <CollapsibleLabel
-            collapsed={collapsed}
-            className="font-sans text-lg font-semibold text-tn-ink"
-          >
-            iGroom
+          <CollapsibleLabel collapsed={collapsed} className="flex">
+            <Wordmark className="text-[24px]" />
           </CollapsibleLabel>
           <button
             type="button"
             onClick={toggleCollapsed}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md border-none bg-transparent text-tn-muted-5 transition-colors duration-150 hover:bg-tn-page hover:text-tn-ink"
+            className="group relative flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md border-none bg-transparent text-tn-muted-5 transition-colors duration-150 hover:bg-tn-page hover:text-tn-ink"
           >
-            <SidebarToggleIcon />
+            {collapsed ? (
+              // The rail is too narrow for the wordmark, so the app icon
+              // stands in for it, and turns into the expand icon on hover or
+              // keyboard focus, so it's clear the icon is what opens the menu.
+              <>
+                <LogoMark
+                  size={28}
+                  className="transition-opacity duration-150 group-hover:opacity-0 group-focus-visible:opacity-0"
+                />
+                <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100">
+                  <SidebarToggleIcon />
+                </span>
+              </>
+            ) : (
+              <SidebarToggleIcon />
+            )}
           </button>
         </div>
 

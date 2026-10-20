@@ -14,6 +14,15 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Fired when the API answers 403 EMAIL_NOT_VERIFIED — an owner who hasn't
+ * proved their email yet reached something besides the verify flow (a
+ * page loaded before /accounts/me came back, or a stale cache).
+ * ProtectedRoute listens and refetches /accounts/me, which brings up
+ * VerifyEmailGate.
+ */
+export const EMAIL_NOT_VERIFIED_EVENT = "igroom:email-not-verified";
+
 export interface RequestOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
   /** Skip JSON-encoding `body` (e.g. FormData). Off by default. */
@@ -69,6 +78,12 @@ async function rawRequest<T>(path: string, options: RequestOptions = {}): Promis
       typeof payloadMessage === "string" && payloadMessage.length > 0
         ? payloadMessage
         : `Request to ${path} failed with status ${response.status}`;
+    if (
+      response.status === 403 &&
+      (payload as { code?: unknown } | undefined)?.code === "EMAIL_NOT_VERIFIED"
+    ) {
+      window.dispatchEvent(new Event(EMAIL_NOT_VERIFIED_EVENT));
+    }
     throw new ApiError(response.status, message, payload);
   }
 

@@ -10,6 +10,7 @@ import { useAuthStore } from "@/auth/auth-store";
 import { findTourForPath } from "./find-tour";
 import { useTourStore } from "./tour-store";
 import { TOURS } from "./tours";
+import { Wordmark } from "@/components/brand/Logo";
 
 /**
  * The help button in the bottom-right corner, and the panel it opens.
@@ -198,7 +199,7 @@ export function TourLauncher() {
         >
           <header className="flex flex-col gap-1 bg-tn-plan-bg px-5 pt-5 pb-14">
             <div className="flex items-start justify-between gap-3">
-              <span className="font-sans text-[16px] font-semibold text-tn-on-dark">iGroom</span>
+              <Wordmark onDark className="text-[20px]" />
               <button
                 type="button"
                 onClick={() => setOpen(false)}

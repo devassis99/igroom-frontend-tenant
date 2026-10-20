@@ -1,9 +1,12 @@
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Navigate, Outlet } from "react-router";
 import { useAuthStore } from "@/auth/auth-store";
 import { getMe } from "@/lib/accounts-api";
 import { LoadingScreen } from "@/components/layout/LoadingScreen";
 import { SupportSessionBar } from "@/components/layout/SupportSessionBar";
+import { VerifyEmailGate } from "@/components/auth/VerifyEmailGate";
+import { EMAIL_NOT_VERIFIED_EVENT } from "@/lib/http";
 
 /**
  * Gates the authenticated app on a mock session created at the end of the
@@ -39,14 +42,31 @@ export function ProtectedRoute() {
     staleTime: 60_000,
   });
 
+  // The API refused something because this owner hasn't verified their
+  // email — find out now rather than when the cached /me goes stale.
+  const refetchMe = me.refetch;
+  useEffect(() => {
+    const onUnverified = () => void refetchMe();
+    window.addEventListener(EMAIL_NOT_VERIFIED_EVENT, onUnverified);
+    return () => window.removeEventListener(EMAIL_NOT_VERIFIED_EVENT, onUnverified);
+  }, [refetchMe]);
+
   if (status === "unknown") return <LoadingScreen />;
   if (status === "anonymous") return <Navigate to="/login" replace />;
+  // Who this is decides what renders: an unverified owner gets the
+  // verify-your-email modal, not the app, so nothing behind it fires
+  // requests the API would only refuse.
+  if (!support && me.isLoading) return <LoadingScreen />;
   // Paid, account created, shop not named yet — signup's business step
   // comes after payment, and an owner who closed the tab there would
   // otherwise land in an app (and hand out a booking link) under the
   // placeholder "Jordan Rivera's shop". Back to that step until it's done,
   // on any device.
   if (me.data?.account?.needsBusinessDetails) return <Navigate to="/signup/business" replace />;
+  // Signed up with an email and a password, and hasn't typed the code we
+  // emailed. The app stays disabled — here and at the API — until they do.
+  // Not for a support session: that's an operator, not the owner.
+  if (!support && me.data?.staffUser.emailVerified === false) return <VerifyEmailGate />;
 
   // SupportSessionBar renders null unless this tab holds a support token,
   // so a normal shop-owner session is completely unaffected. It sits here

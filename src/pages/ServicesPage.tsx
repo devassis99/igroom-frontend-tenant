@@ -6,6 +6,7 @@ import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { ServiceModal } from "@/components/services/ServiceModal";
 import { CategoriesModal } from "@/components/services/CategoriesModal";
 import { ServiceLocationsModal } from "@/components/services/ServiceLocationsModal";
+import { ServicesEmptyState } from "@/components/services/ServicesEmptyState";
 import { useAuthStore } from "@/auth/auth-store";
 import { usePermissions } from "@/auth/use-permissions";
 import { listLocations } from "@/lib/locations-api";
@@ -238,114 +239,124 @@ export function ServicesPage() {
         </p>
       )}
 
-      <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
-        <div
-          className="grid bg-tn-table-head px-[18px] py-3 font-sans text-xs font-semibold text-tn-muted-5"
-          style={{ gridTemplateColumns: GRID_COLUMNS }}
-        >
-          <span>SORT</span>
-          <span>SERVICE NAME</span>
-          <span>DURATION</span>
-          <span>PRICE</span>
-          <span>TAX</span>
-          <span>CATEGORY</span>
-          <span>LOCATIONS</span>
-          <span>STATUS</span>
-          <span />
-        </div>
-
-        {servicesQuery.isPending && (
-          <p className="m-0 p-[18px] font-sans text-sm text-tn-muted-5">Loading services…</p>
-        )}
-        {!servicesQuery.isPending && filtered.length === 0 && (
-          <p className="m-0 p-[18px] font-sans text-sm text-tn-muted-5">
-            {search ? `No services match "${search}".` : "No services yet — add your first one."}
-          </p>
-        )}
-
-        {filtered.map((service, i) => (
+      {/* No services at all (not just none matching a search): explain the
+          page and offer the first one, instead of an empty table. */}
+      {!servicesQuery.isPending && !servicesQuery.isError && services.length === 0 ? (
+        <ServicesEmptyState canManage={canManageServices} onAdd={() => setModalService(null)} />
+      ) : (
+        <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
           <div
-            key={service.id}
-            draggable={canReorder}
-            onDragStart={() => setDraggedId(service.id)}
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, service.id)}
-            onDragEnd={() => setDraggedId(null)}
-            onClick={() => setModalService(service)}
-            // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- a real <button> can't contain the status-toggle/delete <button>s further down this row (nested buttons are invalid HTML and get silently broken apart by the browser) — same reasoning as Modal.tsx's identical disable.
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") setModalService(service);
-            }}
-            className={`grid cursor-pointer items-center px-[18px] py-3.5 text-left ${
-              i < filtered.length - 1 ? "border-b border-tn-border-soft" : ""
-            } ${draggedId === service.id ? "opacity-40" : ""}`}
+            className="grid bg-tn-table-head px-[18px] py-3 font-sans text-xs font-semibold text-tn-muted-5"
             style={{ gridTemplateColumns: GRID_COLUMNS }}
           >
-            <span
-              className={canReorder ? "cursor-grab text-tn-faint-2" : "text-tn-faint-2 opacity-40"}
-              title={canReorder ? "Drag to reorder" : "Clear search to reorder"}
-            >
-              &#8645;
-            </span>
-            <span className="font-sans text-[14px] font-semibold text-tn-ink">{service.name}</span>
-            <span className="font-sans text-[14px] text-tn-muted-2">
-              {formatDuration(service.durationMinutes)}
-            </span>
-            <span className="font-sans text-[14px] text-tn-muted-2">
-              {formatPrice(service.priceCents)}
-            </span>
-            <span className="font-sans text-[14px] text-tn-muted-2">
-              {service.taxable ? SALES_TAX_LABEL : "—"}
-            </span>
-            <span className="font-sans text-[14px] text-tn-muted-2">
-              {service.categoryName ?? "—"}
-            </span>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setLocationsService(service);
-              }}
-              title="Choose which locations offer this"
-              className={`w-fit cursor-pointer rounded-full border px-2.5 py-1 font-sans text-[12px] font-medium ${
-                service.locations.length === 0
-                  ? "border-tn-gold-soft bg-tn-gold-bg text-tn-gold"
-                  : "border-tn-input-border bg-transparent text-tn-ink-soft hover:bg-tn-page"
-              }`}
-            >
-              {locationsLabel(service, locationCount)}
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleMutation.mutate({ id: service.id, isEnabled: !service.isEnabled });
-              }}
-              disabled={toggleMutation.isPending}
-              className="w-fit"
-              title="Toggle enabled/disabled"
-            >
-              <StatusPill tone={service.isEnabled ? "success" : "neutral"}>
-                {service.isEnabled ? "Enabled" : "Disabled"}
-              </StatusPill>
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setPendingDelete(service);
-              }}
-              aria-label={`Delete ${service.name}`}
-              title="Delete service"
-              className="cursor-pointer justify-self-end border-none bg-transparent font-sans text-base text-tn-muted-6 hover:text-tn-danger"
-            >
-              &times;
-            </button>
+            <span>SORT</span>
+            <span>SERVICE NAME</span>
+            <span>DURATION</span>
+            <span>PRICE</span>
+            <span>TAX</span>
+            <span>CATEGORY</span>
+            <span>LOCATIONS</span>
+            <span>STATUS</span>
+            <span />
           </div>
-        ))}
-      </div>
+
+          {servicesQuery.isPending && (
+            <p className="m-0 p-[18px] font-sans text-sm text-tn-muted-5">Loading services…</p>
+          )}
+          {!servicesQuery.isPending && search && filtered.length === 0 && (
+            <p className="m-0 p-[18px] font-sans text-sm text-tn-muted-5">
+              No services match &ldquo;{search}&rdquo;.
+            </p>
+          )}
+
+          {filtered.map((service, i) => (
+            <div
+              key={service.id}
+              draggable={canReorder}
+              onDragStart={() => setDraggedId(service.id)}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, service.id)}
+              onDragEnd={() => setDraggedId(null)}
+              onClick={() => setModalService(service)}
+              // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- a real <button> can't contain the status-toggle/delete <button>s further down this row (nested buttons are invalid HTML and get silently broken apart by the browser) — same reasoning as Modal.tsx's identical disable.
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") setModalService(service);
+              }}
+              className={`grid cursor-pointer items-center px-[18px] py-3.5 text-left ${
+                i < filtered.length - 1 ? "border-b border-tn-border-soft" : ""
+              } ${draggedId === service.id ? "opacity-40" : ""}`}
+              style={{ gridTemplateColumns: GRID_COLUMNS }}
+            >
+              <span
+                className={
+                  canReorder ? "cursor-grab text-tn-faint-2" : "text-tn-faint-2 opacity-40"
+                }
+                title={canReorder ? "Drag to reorder" : "Clear search to reorder"}
+              >
+                &#8645;
+              </span>
+              <span className="font-sans text-[14px] font-semibold text-tn-ink">
+                {service.name}
+              </span>
+              <span className="font-sans text-[14px] text-tn-muted-2">
+                {formatDuration(service.durationMinutes)}
+              </span>
+              <span className="font-sans text-[14px] text-tn-muted-2">
+                {formatPrice(service.priceCents)}
+              </span>
+              <span className="font-sans text-[14px] text-tn-muted-2">
+                {service.taxable ? SALES_TAX_LABEL : "—"}
+              </span>
+              <span className="font-sans text-[14px] text-tn-muted-2">
+                {service.categoryName ?? "—"}
+              </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLocationsService(service);
+                }}
+                title="Choose which locations offer this"
+                className={`w-fit cursor-pointer rounded-full border px-2.5 py-1 font-sans text-[12px] font-medium ${
+                  service.locations.length === 0
+                    ? "border-tn-gold-soft bg-tn-gold-bg text-tn-gold"
+                    : "border-tn-input-border bg-transparent text-tn-ink-soft hover:bg-tn-page"
+                }`}
+              >
+                {locationsLabel(service, locationCount)}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleMutation.mutate({ id: service.id, isEnabled: !service.isEnabled });
+                }}
+                disabled={toggleMutation.isPending}
+                className="w-fit"
+                title="Toggle enabled/disabled"
+              >
+                <StatusPill tone={service.isEnabled ? "success" : "neutral"}>
+                  {service.isEnabled ? "Enabled" : "Disabled"}
+                </StatusPill>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPendingDelete(service);
+                }}
+                aria-label={`Delete ${service.name}`}
+                title="Delete service"
+                className="cursor-pointer justify-self-end border-none bg-transparent font-sans text-base text-tn-muted-6 hover:text-tn-danger"
+              >
+                &times;
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       <ServiceLocationsModal
         service={locationsService}

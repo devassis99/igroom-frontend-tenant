@@ -3,6 +3,7 @@ import { useAuthStore } from "@/auth/auth-store";
 import { useOnboardingStore } from "@/auth/onboarding-store";
 import { Button } from "@/components/ui/Button";
 import { LoadingScreen } from "@/components/layout/LoadingScreen";
+import { Wordmark } from "@/components/brand/Logo";
 
 const FEATURES = [
   {
@@ -49,7 +50,10 @@ export function LandingPage() {
   return (
     <div className="min-h-screen bg-tn-surface">
       <header className="flex items-center justify-between px-16 py-6">
-        <span className="font-sans text-xl font-semibold text-tn-ink">iGroom for Business</span>
+        <span className="flex items-baseline gap-2">
+          <Wordmark className="text-[28px]" />
+          <span className="font-sans text-[14px] font-medium text-tn-muted-5">for Business</span>
+        </span>
         <nav className="flex items-center gap-7 font-sans text-sm font-medium text-tn-muted-2">
           <span className="hidden sm:inline">Features</span>
           <span className="hidden sm:inline">Pricing</span>

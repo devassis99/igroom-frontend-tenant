@@ -12,6 +12,13 @@
  */
 @theme {
   --font-serif: var(--font-sans);
+  /* The groomee logo — src/components/brand/Logo.tsx. The wordmark is the
+     only serif in the app. */
+  --font-brand: "Playfair Display", Georgia, "Times New Roman", serif;
+  --color-brand-ink: #211813;
+  --color-brand-clay: #a75b3c;
+  --color-brand-clay-soft: #dd9571;
+  --color-brand-paper: #faf8f5;
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
   /* Surfaces */
