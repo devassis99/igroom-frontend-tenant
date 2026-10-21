@@ -355,7 +355,7 @@ export function StaffFilterBar({
 
       {saveDialogOpen && (
         <div className="fixed inset-0 z-30 flex items-center justify-center bg-tn-backdrop">
-          <div className="flex w-[330px] flex-col gap-3.5 rounded-2xl border border-tn-input-border bg-tn-surface p-4 shadow-[0_22px_48px_-22px_rgba(40,30,10,0.42)]">
+          <div className="flex w-[330px] flex-col gap-3.5 rounded-2xl border border-tn-input-border bg-white p-4 shadow-[0_22px_48px_-22px_rgba(40,30,10,0.42)]">
             <div className="flex flex-col gap-0.5">
               <span className="font-sans text-[14px] font-semibold text-tn-ink">
                 Save this selection

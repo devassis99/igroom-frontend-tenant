@@ -112,7 +112,7 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
     return (
       <aside
         data-tour="register-ticket"
-        className="rounded-2xl border border-dashed border-tn-border px-6 py-12 text-center lg:sticky lg:top-6"
+        className="rounded-2xl border border-dashed border-tn-border bg-tn-surface px-6 py-12 text-center lg:sticky lg:top-6"
       >
         <p className="m-0 font-sans text-sm font-semibold text-tn-ink">No ticket open</p>
         <p className="m-0 mt-1.5 font-sans text-[14px] leading-relaxed text-tn-muted-3">
@@ -127,7 +127,7 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
     return (
       <aside
         data-tour="register-ticket"
-        className="rounded-2xl border border-tn-border px-6 py-12 text-center lg:sticky lg:top-6"
+        className="rounded-2xl border border-tn-border bg-tn-surface px-6 py-12 text-center lg:sticky lg:top-6"
       >
         <p className="m-0 font-sans text-[14px] text-tn-muted-3">Opening ticket…</p>
       </aside>

@@ -13,7 +13,8 @@ import { RECENT_TRANSACTIONS } from "@/lib/sample-data";
  */
 export function PaymentsPage() {
   return (
-    <div className="flex flex-col gap-7">
+    // White components on the cream page — see .tn-white-components (index.css).
+    <div className="tn-white-components flex flex-col gap-7">
       <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Payouts</h1>
 
       <div data-tour="payouts-stats" className="grid grid-cols-1 gap-5 sm:grid-cols-3">
@@ -24,7 +25,7 @@ export function PaymentsPage() {
 
       <div data-tour="payouts-transactions" className="flex flex-col gap-3">
         <p className="m-0 font-sans text-base font-semibold text-tn-ink">Recent transactions</p>
-        <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
+        <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface">
           {RECENT_TRANSACTIONS.map((txn, i) => (
             <div
               key={txn.id}

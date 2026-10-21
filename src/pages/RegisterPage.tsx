@@ -180,10 +180,13 @@ export function RegisterPage() {
 
   if (isForbidden(dayQuery.error)) {
     return (
-      <PermissionNotice
-        title="Register"
-        what="Ringing up sales needs the “Use the register” permission."
-      />
+      // White components on the cream page — see .tn-white-components (index.css).
+      <div className="tn-white-components">
+        <PermissionNotice
+          title="Register"
+          what="Ringing up sales needs the “Use the register” permission."
+        />
+      </div>
     );
   }
 
@@ -200,7 +203,8 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    // White components on the cream page — see .tn-white-components (index.css).
+    <div className="tn-white-components flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Register</h1>
@@ -217,6 +221,9 @@ export function RegisterPage() {
         <Button
           data-tour="register-counter-sale"
           variant="secondary"
+          // The secondary variant is see-through; !bg-* gives this one a
+          // white face like the rest of the page's controls.
+          className="!bg-tn-surface hover:!bg-tn-page/60"
           onClick={() => open.mutate(null)}
           disabled={open.isPending}
         >
@@ -252,7 +259,7 @@ export function RegisterPage() {
           )}
 
           {day && day.appointments.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-tn-border px-5 py-10 text-center">
+            <div className="rounded-2xl border border-dashed border-tn-border bg-tn-surface px-5 py-10 text-center">
               <p className="m-0 font-sans text-sm font-semibold text-tn-ink">
                 Nothing booked today
               </p>
@@ -270,10 +277,10 @@ export function RegisterPage() {
                   key={appointment.bookingId}
                   className={`flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3 ${
                     isDone
-                      ? "border-tn-border-soft opacity-60"
+                      ? "border-tn-border-soft bg-tn-surface opacity-60"
                       : appointment.ticketStatus === "open"
                         ? "border-tn-gold bg-tn-gold-bg-soft"
-                        : "border-tn-border"
+                        : "border-tn-border bg-tn-surface"
                   }`}
                 >
                   <span className="w-[64px] shrink-0 font-sans text-xs font-medium text-tn-muted-5">

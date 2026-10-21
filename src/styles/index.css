@@ -308,6 +308,10 @@ body {
  * pickers) follow without being edited. Portaled popovers and modals sit
  * outside it and keep their own surface.
  *
+ * Forms are the other way round: Modal (and the few hand-rolled dialogs)
+ * paint the panel itself `bg-white` and leave this switch off, so the
+ * panel is pure white while its fields keep the cream surface.
+ *
  * Tried on the Locations page first.
  */
 .tn-white-components {

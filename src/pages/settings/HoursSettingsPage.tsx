@@ -133,7 +133,8 @@ export function HoursSettingsPage() {
   const viewingSelf = selectedStaffUserId === staffUser?.id;
 
   return (
-    <div className="flex flex-col gap-6">
+    // White components on the cream page — see .tn-white-components (index.css).
+    <div className="tn-white-components flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="m-0 font-sans text-2xl font-semibold text-tn-ink">Availability</h1>
 

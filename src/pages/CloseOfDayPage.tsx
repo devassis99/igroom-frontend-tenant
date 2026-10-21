@@ -122,10 +122,13 @@ export function CloseOfDayPage() {
 
   if (isForbidden(closeQuery.error)) {
     return (
-      <PermissionNotice
-        title="Close of day"
-        what="Counting the drawer and seeing what each chair took home needs the “Close the day” permission."
-      />
+      // White components on the cream page — see .tn-white-components (index.css).
+      <div className="tn-white-components">
+        <PermissionNotice
+          title="Close of day"
+          what="Counting the drawer and seeing what each chair took home needs the “Close the day” permission."
+        />
+      </div>
     );
   }
 
@@ -141,7 +144,8 @@ export function CloseOfDayPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    // White components on the cream page — see .tn-white-components (index.css).
+    <div className="tn-white-components flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Close of day</h1>
@@ -165,6 +169,8 @@ export function CloseOfDayPage() {
             data-tour="close-tip-rule"
             variant="secondary"
             size="sm"
+            // The secondary variant is see-through; !bg-* gives it a white face.
+            className="!bg-tn-surface hover:!bg-tn-page/60"
             onClick={() => setRuleOpen(true)}
           >
             Tip split rule
@@ -200,7 +206,7 @@ export function CloseOfDayPage() {
           </p>
 
           {day && day.staff.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-tn-border px-5 py-10 text-center">
+            <div className="rounded-2xl border border-dashed border-tn-border bg-tn-surface px-5 py-10 text-center">
               <p className="m-0 font-sans text-sm font-semibold text-tn-ink">
                 Nothing rung up yet today
               </p>
@@ -209,7 +215,7 @@ export function CloseOfDayPage() {
               </p>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-tn-border">
+            <div className="overflow-hidden rounded-2xl border border-tn-border bg-tn-surface">
               <div className="flex bg-tn-table-head px-4 py-2.5">
                 <span className="flex-[1.4] font-sans text-[12px] font-semibold tracking-[0.06em] text-tn-muted-5">
                   BARBER

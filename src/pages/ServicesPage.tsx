@@ -190,7 +190,8 @@ export function ServicesPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    // White components on the cream page — see .tn-white-components (index.css).
+    <div className="tn-white-components flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Services</h1>
         <div className="flex items-center gap-3">
@@ -209,12 +210,19 @@ export function ServicesPage() {
       </div>
 
       <div className="flex items-center gap-3" data-tour="services-tools">
-        <Button variant="secondary" size="sm" onClick={() => setCategoriesOpen(true)}>
+        {/* The secondary variant is see-through; !bg-* gives these three a white face. */}
+        <Button
+          variant="secondary"
+          size="sm"
+          className="!bg-tn-surface hover:!bg-tn-page/60"
+          onClick={() => setCategoriesOpen(true)}
+        >
           Categories
         </Button>
         <Button
           variant="secondary"
           size="sm"
+          className="!bg-tn-surface hover:!bg-tn-page/60"
           onClick={resetServiceOrder}
           disabled={reorderMutation.isPending || services.length === 0}
         >
@@ -224,6 +232,7 @@ export function ServicesPage() {
         <Button
           variant="secondary"
           size="sm"
+          className="!bg-tn-surface hover:!bg-tn-page/60"
           onClick={() => downloadServicesCsv(filtered)}
           disabled={filtered.length === 0}
         >
@@ -244,7 +253,7 @@ export function ServicesPage() {
       {!servicesQuery.isPending && !servicesQuery.isError && services.length === 0 ? (
         <ServicesEmptyState canManage={canManageServices} onAdd={() => setModalService(null)} />
       ) : (
-        <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
+        <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface">
           <div
             className="grid bg-tn-table-head px-[18px] py-3 font-sans text-xs font-semibold text-tn-muted-5"
             style={{ gridTemplateColumns: GRID_COLUMNS }}

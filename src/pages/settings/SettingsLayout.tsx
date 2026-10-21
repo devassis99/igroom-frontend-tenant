@@ -129,7 +129,9 @@ function navClass(isActive: boolean) {
   return `flex items-center gap-2.5 rounded-lg px-4 py-2.5 font-sans text-[14px] transition-colors duration-150 ${
     isActive
       ? "bg-brand-clay/10 font-semibold text-brand-clay-deep"
-      : "font-medium text-tn-nav-inactive hover:bg-tn-page hover:text-tn-ink-soft"
+      : // Half-strength hover, as in AppShell's main menu: on white, the full
+        // tn-page tint would read stronger than the clay selection.
+        "font-medium text-tn-nav-inactive hover:bg-tn-page/60 hover:text-tn-ink-soft"
   }`;
 }
 
@@ -139,7 +141,7 @@ function navClass(isActive: boolean) {
  * flush against AppShell's main nav (same background, no card/border),
  * not a card floating inside the page's normal content padding. AppShell
  * applies that padding uniformly to every route's content
- * (px-10 py-8 on the Outlet wrapper), so the only way for this one route
+ * (px-10, pt-8 pb-24 on the Outlet wrapper), so the only way for this one route
  * to visually escape it is to cancel it back out here with matching
  * negative margins, then let the two inner columns re-apply their own
  * padding independently — the nav's for its own inset content, the
@@ -150,10 +152,24 @@ function navClass(isActive: boolean) {
  * own rail through useAppChrome instead, so nothing was left asking this
  * one to shrink.
  *
- * The mockup gives this nav its own shade (oklch(96% .012 75), same
- * tone as a table header) rather than reusing AppShell's sidebar
- * background — with a border to match, the two otherwise blend into one
- * long sidebar with no visible seam between "app nav" and "settings nav".
+ * Pure white, the same as AppShell's main menu, so the two read as one
+ * family of menus. (The mockup gave this nav its own table-header shade;
+ * that changed when the main menu went white.) The border on each keeps
+ * a visible seam between "app nav" and "settings nav".
+ *
+ * The nav stays put while the page beside it scrolls, like the main
+ * menu. This layout is exactly one screen tall and cancels all of
+ * AppShell's content padding (top, right and the pb-24 bottom), so
+ * AppShell's own scroll area has nothing to scroll; the content column
+ * is the scroller instead, and the nav never moves. That beat
+ * `position: sticky` on the nav inside AppShell's scroller: sticky
+ * measures from inside the scroller's padding, so the nav sat 32px down
+ * from the top until the last stretch of a long page — fixable with a
+ * negative offset, but only in browsers that measure it that way. The
+ * column puts the padding back (pr-10 to keep its scrollbar at the
+ * window's edge, pb-24 so a page's last control still clears the help
+ * button). Every page here remounts with its route, so each one opens
+ * scrolled to the top.
  */
 export function SettingsLayout() {
   const { has } = usePermissions();
@@ -164,10 +180,10 @@ export function SettingsLayout() {
   const workspaceItems = visible(WORKSPACE_ITEMS);
 
   return (
-    <div className="-my-8 flex min-h-screen">
+    <div className="-mt-8 -mr-10 -mb-24 flex h-screen">
       <nav
         data-tour="settings-nav"
-        className="-ml-10 flex w-[240px] flex-none flex-col gap-6 border-r border-tn-border bg-tn-table-head py-8"
+        className="-ml-10 flex w-[240px] flex-none flex-col gap-6 overflow-y-auto border-r border-tn-border bg-white py-8"
       >
         <p className="m-0 px-4 font-sans text-[20px] font-semibold text-tn-ink">Settings</p>
         <div>
@@ -215,7 +231,7 @@ export function SettingsLayout() {
         )}
       </nav>
 
-      <div className="min-w-0 flex-1 py-8 pl-10">
+      <div className="min-w-0 flex-1 overflow-y-auto pt-8 pr-10 pb-24 pl-10">
         <Outlet />
       </div>
     </div>

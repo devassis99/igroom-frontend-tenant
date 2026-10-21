@@ -47,7 +47,9 @@ export function TravelBufferField() {
   });
 
   return (
-    <label className="flex items-center gap-2 rounded-xl border border-tn-input-border px-3 py-1.5">
+    // bg-tn-surface like the location and staff filters beside it, so the
+    // three controls in the header match.
+    <label className="flex items-center gap-2 rounded-xl border border-tn-input-border bg-tn-surface px-3 py-1.5">
       <span className="font-sans text-[12px] text-tn-muted-5">Travel between shops</span>
       <select
         value={value}

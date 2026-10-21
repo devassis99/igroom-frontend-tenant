@@ -1484,7 +1484,7 @@ export function StaffAvailabilityEditor({
 
   if (editableSchedules.length === 0) {
     return (
-      <p className="m-0 rounded-2xl border border-dashed border-tn-border px-4 py-6 text-center font-sans text-sm text-tn-muted-5">
+      <p className="m-0 rounded-2xl border border-dashed border-tn-border bg-tn-surface px-4 py-6 text-center font-sans text-sm text-tn-muted-5">
         This member isn&rsquo;t assigned to a location yet, so there&rsquo;s nowhere to set hours.
         Add them to one in Staff Management first.
       </p>
@@ -1597,7 +1597,7 @@ export function StaffAvailabilityEditor({
       )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
-        <section className="flex flex-col rounded-2xl border border-tn-border">
+        <section className="flex flex-col rounded-2xl border border-tn-border bg-tn-surface">
           <div className="border-b border-tn-border-soft px-5 pt-5 pb-4">
             <p className="m-0 font-sans text-sm font-semibold text-tn-ink">{heading}</p>
             <p className="m-0 mt-1 font-sans text-xs text-tn-muted-5">
@@ -1903,7 +1903,7 @@ export function StaffAvailabilityEditor({
           </div>
         </section>
 
-        <section className="flex h-fit flex-col gap-3 rounded-2xl border border-tn-border p-5">
+        <section className="flex h-fit flex-col gap-3 rounded-2xl border border-tn-border bg-tn-surface p-5">
           <p className="m-0 font-sans text-sm font-semibold text-tn-ink">
             Date-specific availability
           </p>

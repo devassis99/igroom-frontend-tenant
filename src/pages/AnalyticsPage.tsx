@@ -19,7 +19,8 @@ const STATUS_TONE: Record<Appointment["status"], "success" | "neutral"> = {
  */
 export function AnalyticsPage() {
   return (
-    <div className="flex flex-col gap-7">
+    // White components on the cream page — see .tn-white-components (index.css).
+    <div className="tn-white-components flex flex-col gap-7">
       <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Analytics</h1>
 
       <div data-tour="analytics-stats" className="grid grid-cols-2 gap-5 sm:grid-cols-4">
@@ -38,7 +39,7 @@ export function AnalyticsPage() {
             View calendar
           </Link>
         </div>
-        <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
+        <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface">
           {TODAY_SCHEDULE.map((apt, i) => (
             <div
               key={apt.id}
@@ -69,7 +70,7 @@ export function AnalyticsPage() {
             View locations
           </Link>
         </div>
-        <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
+        <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface">
           <div className="grid grid-cols-[2fr_1fr_1fr_1fr] bg-tn-table-head px-[18px] py-3 font-sans text-xs font-semibold text-tn-muted-5">
             <span>Location</span>
             <span>Bookings</span>

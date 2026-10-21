@@ -119,7 +119,9 @@ export function Modal({ open, onClose, children, width = 440, variant = "center"
         // corners reads as a card that has drifted off-screen rather than
         // a panel attached to the side. The centred variant still rounds:
         // it's a card, floating clear of every edge.
-        className={`flex flex-col overflow-y-auto bg-tn-surface ${
+        // The form itself is pure white; its fields keep the cream
+        // surface (bg-tn-surface), so each one still reads as a field.
+        className={`flex flex-col overflow-y-auto bg-white ${
           isSheet ? "h-full max-w-full" : "max-h-full rounded-2xl"
         }`}
       >

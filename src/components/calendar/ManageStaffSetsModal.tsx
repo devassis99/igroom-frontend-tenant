@@ -74,7 +74,7 @@ export function ManageStaffSetsModal({
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        className="flex w-[420px] flex-col gap-3 rounded-2xl border border-tn-input-border bg-tn-surface p-4 shadow-[0_22px_48px_-22px_rgba(40,30,10,0.42)]"
+        className="flex w-[420px] flex-col gap-3 rounded-2xl border border-tn-input-border bg-white p-4 shadow-[0_22px_48px_-22px_rgba(40,30,10,0.42)]"
       >
         <div className="flex items-center justify-between">
           <span className="font-sans text-[14px] font-semibold text-tn-ink">Saved sets</span>

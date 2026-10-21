@@ -14,7 +14,7 @@ interface PaginationProps {
 }
 
 const ARROW_CLASS =
-  "flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-lg border border-tn-input-border text-tn-muted-4 hover:bg-tn-page disabled:cursor-not-allowed disabled:opacity-40";
+  "flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-lg border border-tn-input-border bg-tn-surface text-tn-muted-4 hover:bg-tn-page/60 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-tn-surface";
 
 /**
  * Rows per page, ‹ 1 … 4 5 6 … 12 › — the footer under a paged table
@@ -58,7 +58,7 @@ export function Pagination({
         className={`flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-lg font-sans text-xs font-semibold ${
           n === page
             ? "bg-tn-dark-gradient text-tn-on-dark"
-            : "border border-tn-input-border text-tn-muted-4 hover:bg-tn-page"
+            : "border border-tn-input-border bg-tn-surface text-tn-muted-4 hover:bg-tn-page/60"
         }`}
       >
         {n}

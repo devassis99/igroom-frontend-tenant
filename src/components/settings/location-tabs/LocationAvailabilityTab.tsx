@@ -178,7 +178,7 @@ export function LocationAvailabilityTab({ location }: { location: AccountLocatio
       </div>
 
       {schedulable.length === 0 ? (
-        <p className="m-0 rounded-2xl border border-dashed border-tn-border px-4 py-6 text-center font-sans text-sm text-tn-muted-5">
+        <p className="m-0 rounded-2xl border border-dashed border-tn-border bg-tn-surface px-4 py-6 text-center font-sans text-sm text-tn-muted-5">
           {invited.length > 0 ? (
             <>
               {invited.length === 1
@@ -198,7 +198,7 @@ export function LocationAvailabilityTab({ location }: { location: AccountLocatio
           )}
         </p>
       ) : viewableStaff.length === 0 ? (
-        <p className="m-0 rounded-2xl border border-dashed border-tn-border px-4 py-6 text-center font-sans text-sm text-tn-muted-5">
+        <p className="m-0 rounded-2xl border border-dashed border-tn-border bg-tn-surface px-4 py-6 text-center font-sans text-sm text-tn-muted-5">
           Only a manager can see other people&rsquo;s schedules. Yours is in{" "}
           <Link to="/settings/hours" className="font-semibold text-tn-ink">
             Settings › Availability

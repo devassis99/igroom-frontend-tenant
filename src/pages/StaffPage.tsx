@@ -127,7 +127,8 @@ export function StaffPage() {
   }
 
   return (
-    <div className="flex flex-col gap-7">
+    // White components on the cream page — see .tn-white-components (index.css).
+    <div className="tn-white-components flex flex-col gap-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Staff</h1>
         {canManageStaff && (
@@ -157,7 +158,7 @@ export function StaffPage() {
       )}
 
       {staff.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-tn-border px-5 py-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-tn-border bg-tn-surface px-5 py-3.5">
           <div className="flex flex-wrap items-center gap-5">
             {staff.map((s) => (
               <div key={s.id} className="flex items-center gap-2.5">
@@ -199,7 +200,7 @@ export function StaffPage() {
           <div
             data-tour="staff-table"
             aria-busy={isChangingPage}
-            className={`flex flex-col overflow-hidden rounded-2xl border border-tn-border transition-opacity ${
+            className={`flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface transition-opacity ${
               isChangingPage ? "opacity-60" : ""
             }`}
           >

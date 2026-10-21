@@ -176,7 +176,8 @@ export function CustomersPage() {
   const isNarrowed = appliedSearch !== "" || filter !== "All";
 
   return (
-    <div className="flex flex-col gap-6">
+    // White components on the cream page — see .tn-white-components (index.css).
+    <div className="tn-white-components flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Customers</h1>
         {canManageCustomers && (
@@ -243,7 +244,7 @@ export function CustomersPage() {
           <PageRange page={page} pageSize={pageSize} totalCount={totalCount} noun="customers" />
           <div
             aria-busy={isChangingPage}
-            className={`flex flex-col overflow-hidden rounded-2xl border border-tn-border transition-opacity ${
+            className={`flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface transition-opacity ${
               isChangingPage ? "opacity-60" : ""
             }`}
           >

@@ -196,7 +196,7 @@ export function VerifyEmailGate() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="verify-email-title"
-        className="relative flex w-full max-w-[420px] flex-col gap-5 rounded-2xl border border-tn-border bg-tn-surface p-7 shadow-2xl"
+        className="relative flex w-full max-w-[420px] flex-col gap-5 rounded-2xl border border-tn-border bg-white p-7 shadow-2xl"
       >
         <div className="flex flex-col items-center gap-3 text-center">
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-tn-gold-bg text-tn-gold">
