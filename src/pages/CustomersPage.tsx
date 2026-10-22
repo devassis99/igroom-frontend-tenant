@@ -7,6 +7,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { AddCustomerModal } from "@/components/customers/AddCustomerModal";
 import { CustomerJourneyModal } from "@/components/customers/CustomerJourneyModal";
+import { CustomersEmptyState } from "@/components/customers/CustomersEmptyState";
 import { useAuthStore } from "@/auth/auth-store";
 import { usePermissions } from "@/auth/use-permissions";
 import {
@@ -231,13 +232,16 @@ export function CustomersPage() {
         <StatCard label="Avg lifetime spend" value={dollars(stats.avgLifetimeSpendCents)} />
       </div>
 
-      {customersQuery.isSuccess && totalCount === 0 && !isChangingPage && (
-        <p className="m-0 font-sans text-sm text-tn-muted-5">
-          {isNarrowed || stats.totalCustomers > 0
-            ? "No customers match your search/filter."
-            : "No customers yet — they'll show up here automatically the first time you book one, or add one directly."}
-        </p>
-      )}
+      {customersQuery.isSuccess &&
+        totalCount === 0 &&
+        !isChangingPage &&
+        (isNarrowed || stats.totalCustomers > 0 ? (
+          <p className="m-0 font-sans text-sm text-tn-muted-5">
+            No customers match your search/filter.
+          </p>
+        ) : (
+          <CustomersEmptyState canManage={canManageCustomers} onAdd={() => setAddOpen(true)} />
+        ))}
 
       {customers.length > 0 && (
         <div className="flex flex-col gap-3">
