@@ -319,6 +319,19 @@ body {
 }
 
 /*
+ * A form laid out as a white card on the page — the Locations Details
+ * tab. The panel is pure white, and inside it `--color-tn-surface` goes
+ * back to the cream it is everywhere else (the value in @theme above), so
+ * the inputs, pickers and the phone field still read as fields rather
+ * than white on white. The same split a Modal makes; needed here because
+ * the page around it has .tn-white-components switched on.
+ */
+.tn-form-panel {
+  background-color: #ffffff;
+  --color-tn-surface: oklch(99% 0.005 80);
+}
+
+/*
  * The Locations detail pane's two content swaps: changing tab, and
  * changing which shop you're looking at. Both replace a screenful in
  * place with nothing tying the old state to the new one, which reads as a

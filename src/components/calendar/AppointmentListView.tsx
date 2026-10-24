@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { StatusPill } from "@/components/ui/StatusPill";
+import { TabButton } from "@/components/ui/TabButton";
 import { PageRange, Pagination } from "@/components/ui/Pagination";
 import { ArrivedDot } from "@/components/calendar/ArrivedDot";
 import {
@@ -130,29 +131,22 @@ export function AppointmentListView({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between border-b border-tn-border-soft">
-        <div className="flex items-center gap-6">
+      <div className="flex items-end justify-between border-b border-tn-border-soft">
+        <div className="flex items-end gap-1">
           {(
             [
               ["upcoming", "Upcoming", upcomingCount],
               ["past", "Past", pastCount],
             ] as [Tab, string, number][]
           ).map(([value, label, count]) => (
-            <button
+            <TabButton
               key={value}
-              type="button"
+              active={tab === value}
+              label={label}
+              count={count}
+              size="lg"
               onClick={() => handleTabChange(value)}
-              className={`flex cursor-pointer items-baseline gap-1.5 border-none border-b-2 bg-transparent pb-3 font-sans ${
-                tab === value ? "border-tn-ink" : "border-transparent"
-              }`}
-            >
-              <span
-                className={`text-[16px] ${tab === value ? "font-semibold text-tn-ink" : "font-medium text-tn-muted-5"}`}
-              >
-                {label}
-              </span>
-              <span className="text-[14px] text-tn-muted-5">{count}</span>
-            </button>
+            />
           ))}
         </div>
         <PageRange

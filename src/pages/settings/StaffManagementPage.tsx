@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { StatusPill } from "@/components/ui/StatusPill";
+import { TabButton } from "@/components/ui/TabButton";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { Modal } from "@/components/ui/Modal";
 import { Field, formInputClass } from "@/components/ui/FormField";
@@ -231,55 +232,6 @@ function RoleFormModal({ open, onClose, role, permissionsCatalog }: RoleFormModa
         </div>
       </form>
     </Modal>
-  );
-}
-
-/**
- * Members / Roles, in the app's selection colour: the open tab is the
- * logo's clay — deep clay text (the plain clay is too light to read at
- * this size) over a clay underline that draws itself in — the same
- * choice as the selected item in the main menu and the Settings menu.
- * Each count is a small badge that takes the clay tint when its tab is
- * open.
- */
-function StaffTabButton({
-  active,
-  label,
-  count,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  count: number;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-current={active ? "page" : undefined}
-      className={`relative flex cursor-pointer items-center gap-2 border-none bg-transparent px-3 py-3 font-sans text-[14px] transition-colors duration-150 ${
-        active
-          ? "font-semibold text-brand-clay-deep"
-          : "font-medium text-tn-muted-5 hover:text-tn-ink-soft"
-      }`}
-    >
-      {label}
-      <span
-        className={`min-w-[22px] rounded-full px-1.5 py-px text-center text-[12px] font-semibold transition-colors duration-150 ${
-          active ? "bg-brand-clay/12 text-brand-clay-deep" : "bg-tn-neutral-bg text-tn-muted-5"
-        }`}
-      >
-        {count}
-      </span>
-      {active && (
-        <span
-          key={label}
-          aria-hidden
-          className="tn-underline-in absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-brand-clay"
-        />
-      )}
-    </button>
   );
 }
 
@@ -520,14 +472,14 @@ export function StaffManagementPage() {
       </div>
 
       <div className="flex gap-1 border-b border-tn-border-soft" data-tour="staff-mgmt-tabs">
-        <StaffTabButton
+        <TabButton
           active={activeTab === "members"}
           label="Members"
           count={activeStaffCount}
           onClick={() => setActiveTab("members")}
         />
         {canViewRoles && (
-          <StaffTabButton
+          <TabButton
             active={activeTab === "roles"}
             label="Roles"
             count={roleCount}

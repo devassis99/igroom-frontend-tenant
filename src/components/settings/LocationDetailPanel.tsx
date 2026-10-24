@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
+import { TabButton } from "@/components/ui/TabButton";
 import { Field, formControlHeightClass, formInputClass } from "@/components/ui/FormField";
 import { PhoneInput, isPhoneValid } from "@/components/ui/PhoneInput";
 import { TimezonePicker } from "@/components/ui/TimezonePicker";
@@ -104,34 +105,14 @@ export function LocationDetailPanel({
       </div>
 
       <div className="flex flex-wrap gap-1 border-b border-tn-border-soft">
-        {TABS.map((option) => {
-          const isActive = tab === option.key;
-          return (
-            <button
-              key={option.key}
-              type="button"
-              onClick={() => setTab(option.key)}
-              aria-current={isActive ? "page" : undefined}
-              className={`relative cursor-pointer border-none bg-transparent px-3 py-3 font-sans text-[14px] transition-colors duration-150 ${
-                isActive
-                  ? "font-semibold text-tn-ink"
-                  : "font-medium text-tn-muted-5 hover:text-tn-ink-soft"
-              }`}
-            >
-              {option.label}
-              {/* Own element rather than a border on the button, so it can
-                  animate its width in from the left — a border-bottom can
-                  only fade. Keyed by tab so it replays on every switch. */}
-              {isActive && (
-                <span
-                  key={tab}
-                  aria-hidden
-                  className="tn-underline-in absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-tn-ink"
-                />
-              )}
-            </button>
-          );
-        })}
+        {TABS.map((option) => (
+          <TabButton
+            key={option.key}
+            active={tab === option.key}
+            label={option.label}
+            onClick={() => setTab(option.key)}
+          />
+        ))}
       </div>
 
       {/* Keyed by tab so each switch remounts this subtree and replays the
@@ -352,8 +333,11 @@ function DetailsTab({
         </div>
       )}
 
-      <div className="flex flex-wrap gap-5">
-        <div className="flex min-w-[320px] flex-1 flex-col gap-4">
+      <div className="flex flex-wrap items-start gap-5">
+        {/* The location's own fields as one white card, bordered like the
+            two cards beside it — see .tn-form-panel for why its fields
+            stay cream. */}
+        <div className="tn-form-panel flex min-w-[320px] flex-1 flex-col gap-4 rounded-2xl border border-tn-border p-6">
           <div className="flex flex-wrap gap-4">
             <div className="min-w-[180px] flex-1">
               <Field label="NAME">
@@ -644,6 +628,34 @@ function OnlineDepositCard({
 }
 
 /**
+ * A link that, when it has to wrap, wraps after a slash — "…:5175/" then
+ * "test/valencia" — instead of mid-word wherever the box runs out.
+ */
+function WrappingUrl({ url }: { url: string }) {
+  const parts = displayUrl(url).split("/");
+  // Each piece keyed by the path up to it — unique, and stable for a given link.
+  const segments = parts.map((part, i) => ({
+    part,
+    key: parts.slice(0, i + 1).join("/"),
+    last: i === parts.length - 1,
+  }));
+  return (
+    <>
+      {segments.map(({ part, key, last }) => (
+        <Fragment key={key}>
+          {part}
+          {!last && (
+            <>
+              /<wbr />
+            </>
+          )}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
+/**
  * Read-only since the branch's status became the one switch: this card
  * shows the link, the QR and what they currently open, and the thing
  * that changes any of it is the status control on the form beside it.
@@ -765,21 +777,24 @@ function BookingLinkCard({
           {/* The link itself, big enough to read back off the screen —
               somebody dictating it over the phone is a real thing that
               happens, and it is why the URL is words rather than a uuid. */}
-          <div className="flex items-center justify-between gap-2 rounded-xl border border-tn-input-border bg-tn-page px-3 py-2.5">
+          {/* Field-cream box (brand paper) on the white card, the link
+              on its own line in the app's font, and Copy as the card's
+              one primary action — copying is what this card is for. */}
+          <div className="flex flex-col gap-2.5 rounded-xl border border-tn-input-border bg-brand-paper p-3">
             <span
-              className={`min-w-0 flex-1 font-mono text-[12px] break-all ${
+              className={`font-sans text-[14px] leading-snug font-semibold ${
                 locked ? "text-tn-faint" : "text-tn-ink"
               }`}
+              title={displayUrl(url)}
             >
-              {displayUrl(url)}
+              <WrappingUrl url={url} />
             </span>
             <Button
-              variant="secondary"
               size="sm"
               onClick={copy}
               disabled={locked}
               title={locked ? "Finish setup to share this link" : undefined}
-              className="flex-none"
+              className="w-full"
             >
               {copied ? "Copied" : "Copy link"}
             </Button>
@@ -794,7 +809,9 @@ function BookingLinkCard({
           {!locked && hasOwnBranchLink(location) && shopUrl ? (
             <p className="m-0 font-sans text-[12px] leading-relaxed text-tn-muted-5">
               This link opens {location.name} directly.{" "}
-              <span className="font-mono text-[12px] text-tn-ink-soft">{displayUrl(shopUrl)}</span>{" "}
+              <span className="font-semibold text-tn-ink-soft">
+                <WrappingUrl url={shopUrl} />
+              </span>{" "}
               {shopLinkOpensBranch(location)
                 ? "is the short version of it — the one to put on a poster."
                 : "opens your main branch."}
@@ -813,7 +830,9 @@ function BookingLinkCard({
                 liveBranchCount === 0 ? "text-tn-gold" : "text-tn-muted-5"
               }`}
             >
-              <span className="font-mono text-[12px] text-tn-ink-soft">{displayUrl(shopUrl)}</span>{" "}
+              <span className="font-semibold text-tn-ink-soft">
+                <WrappingUrl url={shopUrl} />
+              </span>{" "}
               {liveBranchCount === 0
                 ? "opens nothing at the moment — no branch is taking bookings from its link."
                 : liveBranchCount === 1
@@ -822,22 +841,32 @@ function BookingLinkCard({
             </p>
           ) : null}
 
+          {/* The code on a framed tile, centred — the way it will look
+              printed on a card at the till. */}
           {locked && (
-            <div className="flex h-[132px] w-[132px] items-center justify-center rounded-lg border border-dashed border-tn-border px-3 text-center font-sans text-[11px] leading-snug text-tn-faint">
+            <div className="flex h-[156px] w-[156px] items-center justify-center self-center rounded-xl border border-dashed border-tn-border px-4 text-center font-sans text-[11px] leading-snug text-tn-faint">
               Your QR code appears here once setup is done
             </div>
           )}
           {svg && !locked && (
-            <div
-              className="h-[132px] w-[132px] [&>svg]:h-full [&>svg]:w-full"
-              aria-label={`Booking QR code for ${location.name}`}
-              // The library returns a complete, self-contained <svg> string.
-              dangerouslySetInnerHTML={{ __html: svg }}
-            />
+            <div className="self-center rounded-xl border border-tn-border-soft bg-white p-3">
+              <div
+                className="h-[132px] w-[132px] [&>svg]:h-full [&>svg]:w-full"
+                aria-label={`Booking QR code for ${location.name}`}
+                // The library returns a complete, self-contained <svg> string.
+                dangerouslySetInnerHTML={{ __html: svg }}
+              />
+            </div>
           )}
           <div className="flex gap-2">
             {locked ? (
-              <Button variant="secondary" size="sm" disabled title="Finish setup to open this page">
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled
+                title="Finish setup to open this page"
+                className="flex-1"
+              >
                 Open page
               </Button>
             ) : (
@@ -845,7 +874,7 @@ function BookingLinkCard({
                 href={url}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-lg border border-tn-input-border bg-tn-surface px-3.5 py-2 font-sans text-xs font-semibold text-tn-ink no-underline hover:bg-tn-page"
+                className="flex-1 rounded-lg border border-tn-input-border bg-tn-surface px-3.5 py-2 text-center font-sans text-xs font-semibold text-tn-ink-soft no-underline hover:bg-tn-page"
               >
                 Open page
               </a>
@@ -856,6 +885,7 @@ function BookingLinkCard({
               onClick={download}
               disabled={locked || !svg}
               title={locked ? "Finish setup to download the QR code" : undefined}
+              className="flex-1"
             >
               Download QR
             </Button>
