@@ -32,6 +32,19 @@ import {
 
 type StaffTab = "members" | "roles";
 
+/**
+ * The two tables' columns. minmax(0, …) so a long email or a list of
+ * shops truncates instead of pushing the row wider than the card. The
+ * actions column is a fixed width, not `auto`: every row is its own grid,
+ * so an auto column sized itself to that row's buttons and a row with
+ * none (yours, the Owner role) shifted every other column out of line.
+ * Wide enough for Edit + Reactivate, and for Edit + Delete.
+ */
+const MEMBER_GRID =
+  "grid grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1fr)_11rem] gap-x-4";
+const ROLE_GRID =
+  "grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.8fr)_minmax(0,0.7fr)_minmax(0,1.1fr)_8.5rem] gap-x-4";
+
 const AVATAR_COLORS = [
   "var(--color-tn-avatar-peach)",
   "var(--color-tn-avatar-tan)",
@@ -221,13 +234,47 @@ function RoleFormModal({ open, onClose, role, permissionsCatalog }: RoleFormModa
   );
 }
 
-function tabButtonClass(active: boolean) {
-  return `flex cursor-pointer items-center gap-1.5 border-none bg-transparent border-b-2 px-0.5 pb-3 font-sans text-[14px] font-semibold ${
-    active
-      ? "border-tn-gold text-tn-ink"
-      : "border-transparent text-tn-muted-3 hover:text-tn-ink-soft"
-  }`;
+/**
+ * Members / Roles — the same tab bar as the Locations detail pane: ink
+ * for the open tab, with an underline that draws itself in, and the count
+ * beside each label in the muted colour.
+ */
+function StaffTabButton({
+  active,
+  label,
+  count,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  count: number;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={active ? "page" : undefined}
+      className={`relative flex cursor-pointer items-baseline gap-1.5 border-none bg-transparent px-3 py-3 font-sans text-[14px] transition-colors duration-150 ${
+        active ? "font-semibold text-tn-ink" : "font-medium text-tn-muted-5 hover:text-tn-ink-soft"
+      }`}
+    >
+      {label}
+      <span className="text-[13px] font-medium text-tn-muted-5">{count}</span>
+      {active && (
+        <span
+          key={label}
+          aria-hidden
+          className="tn-underline-in absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-tn-ink"
+        />
+      )}
+    </button>
+  );
 }
+
+/** The small outlined row action — the same "Edit" button as the Locations list. */
+const ROW_ACTION_CLASS =
+  "cursor-pointer rounded-lg border border-tn-input-border bg-tn-surface px-2.5 py-1.5 font-sans text-[12px] font-semibold text-tn-ink-soft hover:bg-tn-page/60 disabled:cursor-not-allowed disabled:opacity-40";
 
 /**
  * Wraps whichever tab's content is currently showing so switching between
@@ -444,7 +491,8 @@ export function StaffManagementPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    // White components on the cream page — see .tn-white-components (index.css).
+    <div className="tn-white-components flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="m-0 font-sans text-2xl font-semibold text-tn-ink">Staff Management</h1>
         {activeTab === "members"
@@ -460,25 +508,20 @@ export function StaffManagementPage() {
             )}
       </div>
 
-      <div
-        className="flex items-center gap-6 border-b border-tn-border-soft"
-        data-tour="staff-mgmt-tabs"
-      >
-        <button
-          type="button"
+      <div className="flex gap-1 border-b border-tn-border-soft" data-tour="staff-mgmt-tabs">
+        <StaffTabButton
+          active={activeTab === "members"}
+          label="Members"
+          count={activeStaffCount}
           onClick={() => setActiveTab("members")}
-          className={tabButtonClass(activeTab === "members")}
-        >
-          Members <span>{activeStaffCount}</span>
-        </button>
+        />
         {canViewRoles && (
-          <button
-            type="button"
+          <StaffTabButton
+            active={activeTab === "roles"}
+            label="Roles"
+            count={roleCount}
             onClick={() => setActiveTab("roles")}
-            className={tabButtonClass(activeTab === "roles")}
-          >
-            Roles <span>({roleCount})</span>
-          </button>
+          />
         )}
       </div>
 
@@ -493,13 +536,15 @@ export function StaffManagementPage() {
               </p>
             )}
 
-            <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
-              <div className="grid grid-cols-[1.8fr_1fr_1.2fr_0.8fr_0.8fr] bg-tn-table-head px-[18px] py-3 font-sans text-xs font-semibold text-tn-muted-5">
+            <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface">
+              <div
+                className={`${MEMBER_GRID} bg-tn-table-head px-[18px] py-3 font-sans text-xs font-semibold text-tn-muted-5`}
+              >
                 <span>Name</span>
                 <span>Role</span>
                 <span>Locations</span>
                 <span>Status</span>
-                <span>Shortcuts</span>
+                <span className="sr-only">Actions</span>
               </div>
 
               {staffQuery.isPending && (
@@ -527,21 +572,21 @@ export function StaffManagementPage() {
                 return (
                   <div
                     key={member.id}
-                    className={`grid grid-cols-[1.8fr_1fr_1.2fr_0.8fr_0.8fr] items-center px-[18px] py-3.5 ${
+                    className={`${MEMBER_GRID} items-center px-[18px] py-3.5 ${
                       i < staff.length - 1 ? "border-b border-tn-border-soft" : ""
                     }`}
                   >
-                    <span className="flex items-center gap-2.5">
+                    <span className="flex min-w-0 items-center gap-2.5">
                       <Avatar
                         initials={initialsFor(member.name)}
                         color={avatarColorFor(member.id)}
-                        size={28}
+                        size={32}
                       />
-                      <span>
+                      <span className="min-w-0">
                         <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">
                           {member.name}
                         </p>
-                        <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
+                        <p className="m-0 mt-0.5 truncate font-sans text-xs text-tn-muted-5">
                           {member.email}
                         </p>
                       </span>
@@ -558,89 +603,86 @@ export function StaffManagementPage() {
                         ? member.locations.map((loc) => loc.name).join(", ")
                         : "—"}
                     </span>
-                    <StatusPill tone={statusTone}>{statusLabel}</StatusPill>
-                    <span className="flex gap-2 font-sans text-tn-muted-5">
+                    {/* An invite nobody has opened yet: its two fixes sit under
+                        the Invited pill they're about, rather than crowding
+                        the actions column. */}
+                    <span className="flex flex-col items-start gap-1.5">
+                      <StatusPill tone={statusTone}>{statusLabel}</StatusPill>
+                      {!member.claimed && member.isActive && (
+                        <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 font-sans text-[12px] font-semibold whitespace-nowrap">
+                          <button
+                            type="button"
+                            title={
+                              canManageStaff
+                                ? "Email them a fresh setup link"
+                                : "You don't have permission to do this"
+                            }
+                            aria-label={`Resend the invite to ${member.name}`}
+                            onClick={() => resendInviteMutation.mutate(member.id)}
+                            disabled={!canManageStaff || resendInviteMutation.isPending}
+                            className="cursor-pointer border-none bg-transparent p-0 text-tn-gold hover:underline disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            {resentFor === member.id ? "Sent" : "Resend"}
+                          </button>
+                          <span aria-hidden className="text-tn-muted-6">
+                            ·
+                          </span>
+                          <button
+                            type="button"
+                            title={
+                              canManageStaff
+                                ? "Copy a setup link to send them yourself — replaces the emailed one"
+                                : "You don't have permission to do this"
+                            }
+                            aria-label={`Copy a setup link for ${member.name}`}
+                            onClick={() => copyLinkMutation.mutate(member.id)}
+                            disabled={!canManageStaff || copyLinkMutation.isPending}
+                            className="cursor-pointer border-none bg-transparent p-0 text-tn-muted-5 hover:text-tn-ink disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            {copiedFor === member.id ? "Copied" : "Copy link"}
+                          </button>
+                        </span>
+                      )}
+                    </span>
+                    {/* Labelled buttons rather than ✎ / ⊘ / ↺ glyphs that needed
+                        a legend under the table to explain them. Deactivate,
+                        not delete: staff are never hard-deleted (see
+                        staff-users.ts, and bookings.staffUserId's RESTRICT),
+                        so the button says what it really does, and turns
+                        into Reactivate for someone already off the roster.
+                        Your own row has no Deactivate at all — the server
+                        refuses it, so a button would only ever say no. */}
+                    <span className="flex justify-end gap-2">
                       <button
                         type="button"
                         title={
-                          canManageStaff
-                            ? "Edit profile"
-                            : "You don't have permission to edit staff"
+                          canManageStaff ? undefined : "You don't have permission to edit staff"
                         }
                         aria-label={`Edit ${member.name}`}
                         onClick={() => setEditingMember(member)}
                         disabled={!canManageStaff}
-                        className="cursor-pointer border-none bg-transparent p-0 font-sans text-tn-muted-5 disabled:cursor-not-allowed disabled:opacity-40"
+                        className={ROW_ACTION_CLASS}
                       >
-                        ✎
+                        Edit
                       </button>
-                      {!member.claimed && member.isActive && (
+                      {!isSelf && (
                         <button
                           type="button"
                           title={
-                            canManageStaff
-                              ? "Email them a fresh setup link"
-                              : "You don't have permission to do this"
+                            canManageStaff ? undefined : "You don't have permission to do this"
                           }
-                          aria-label={`Resend the invite to ${member.name}`}
-                          onClick={() => resendInviteMutation.mutate(member.id)}
-                          disabled={!canManageStaff || resendInviteMutation.isPending}
-                          className="cursor-pointer border-none bg-transparent p-0 font-sans text-[12px] font-semibold text-tn-gold disabled:cursor-not-allowed disabled:opacity-40"
+                          aria-label={
+                            member.isActive
+                              ? `Deactivate ${member.name}`
+                              : `Reactivate ${member.name}`
+                          }
+                          onClick={() => setTogglingMember(member)}
+                          disabled={!canManageStaff}
+                          className={ROW_ACTION_CLASS}
                         >
-                          {resentFor === member.id ? "Sent" : "Resend"}
+                          {member.isActive ? "Deactivate" : "Reactivate"}
                         </button>
                       )}
-                      {!member.claimed && member.isActive && (
-                        <button
-                          type="button"
-                          title={
-                            canManageStaff
-                              ? "Copy a setup link to send them yourself — replaces the emailed one"
-                              : "You don't have permission to do this"
-                          }
-                          aria-label={`Copy a setup link for ${member.name}`}
-                          onClick={() => copyLinkMutation.mutate(member.id)}
-                          disabled={!canManageStaff || copyLinkMutation.isPending}
-                          className="cursor-pointer border-none bg-transparent p-0 font-sans text-[12px] font-semibold text-tn-muted-5 hover:text-tn-ink disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          {copiedFor === member.id ? "Copied" : "Copy link"}
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        title={
-                          isSelf
-                            ? "You can't deactivate your own account"
-                            : canManageStaff
-                              ? "Activate/deactivate"
-                              : "You don't have permission to do this"
-                        }
-                        aria-label={
-                          member.isActive ? `Deactivate ${member.name}` : `Activate ${member.name}`
-                        }
-                        onClick={() => setTogglingMember(member)}
-                        disabled={isSelf || !canManageStaff}
-                        className="cursor-pointer border-none bg-transparent p-0 font-sans text-tn-muted-5 disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        {/*
-                          Deliberately NOT the ⌫ the Roles table below
-                          uses: that one really does delete, this only
-                          flips staff_users.isActive. Staff are never
-                          hard-deleted (see staff-users.ts, and
-                          bookings.staffUserId's RESTRICT) so a trash icon
-                          here would promise something no endpoint can do.
-                          ⊘ removes them from the roster, ↺ puts them
-                          back — the icon changes with the direction the
-                          click will go, so it never reads as a one-way
-                          destructive action.
-
-                          Both are plain text glyphs (U+2298 / U+21BA)
-                          with no emoji presentation, so they inherit
-                          text-tn-muted-5 like ✎ does instead of rendering
-                          as a full-colour emoji next to it.
-                        */}
-                        {member.isActive ? "⊘" : "↺"}
-                      </button>
                     </span>
                   </div>
                 );
@@ -648,9 +690,8 @@ export function StaffManagementPage() {
             </div>
 
             <p className="m-0 font-sans text-xs text-tn-muted-6">
-              ✎ opens the profile edit. ⊘ removes a member from the active roster; ↺ brings a
-              deactivated one back. Staff are deactivated rather than deleted so their past bookings
-              keep the right name on them.
+              Staff are deactivated rather than deleted, so their past bookings keep the right name
+              on them. Reactivate puts them back on the roster.
             </p>
           </>
         ) : (
@@ -668,13 +709,15 @@ export function StaffManagementPage() {
               </p>
             )}
 
-            <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border">
-              <div className="grid grid-cols-[1.4fr_1.8fr_0.8fr_1.2fr_0.8fr] bg-tn-table-head px-[18px] py-3 font-sans text-xs font-semibold text-tn-muted-5">
+            <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface">
+              <div
+                className={`${ROLE_GRID} bg-tn-table-head px-[18px] py-3 font-sans text-xs font-semibold text-tn-muted-5`}
+              >
                 <span>Role</span>
                 <span>Description</span>
                 <span>Members</span>
                 <span>Permissions</span>
-                <span>Shortcuts</span>
+                <span className="sr-only">Actions</span>
               </div>
 
               {rolesQuery.isPending && (
@@ -689,7 +732,7 @@ export function StaffManagementPage() {
               {roles.map((role, i) => (
                 <div
                   key={role.id}
-                  className={`grid grid-cols-[1.4fr_1.8fr_0.8fr_1.2fr_0.8fr] items-center px-[18px] py-3.5 ${
+                  className={`${ROLE_GRID} items-center px-[18px] py-3.5 ${
                     i < roles.length - 1 ? "border-b border-tn-border-soft" : ""
                   }`}
                 >
@@ -710,45 +753,35 @@ export function StaffManagementPage() {
                       ? "All permissions"
                       : `${role.permissions.length} permission${role.permissions.length === 1 ? "" : "s"}`}
                   </span>
-                  <span className="flex gap-2 font-sans text-tn-muted-5">
+                  <span className="flex justify-end gap-2">
                     {/* The Owner role can't be edited or deleted (isSystem —
                       see staff-roles.service.ts's updateRole/deleteRole
                       guards, which reject this server-side too), so this
-                      row gets no shortcuts at all rather than a pair of
-                      permanently-disabled icons. */}
+                      row gets no actions at all rather than a pair of
+                      permanently-disabled buttons. */}
                     {canManageRoles && !role.isSystem && (
                       <>
                         <button
                           type="button"
-                          title="Edit role"
                           aria-label={`Edit ${role.name}`}
                           onClick={() => openEditRole(role)}
-                          className="cursor-pointer border-none bg-transparent p-0 font-sans text-tn-muted-5"
+                          className={ROW_ACTION_CLASS}
                         >
-                          ✎
+                          Edit
                         </button>
                         <button
                           type="button"
                           title={
                             role.memberCount > 0
                               ? "Reassign every member with this role before deleting it"
-                              : "Delete role"
+                              : undefined
                           }
                           aria-label={`Delete ${role.name}`}
                           onClick={() => setDeletingRole(role)}
                           disabled={role.memberCount > 0}
-                          className="cursor-pointer border-none bg-transparent p-0 font-sans text-tn-muted-5 disabled:cursor-not-allowed disabled:opacity-40"
+                          className={`${ROW_ACTION_CLASS} hover:border-tn-danger hover:text-tn-danger disabled:hover:border-tn-input-border disabled:hover:text-tn-ink-soft`}
                         >
-                          {/*
-                            ⌫ (U+232B) rather than 🗑: this file's other
-                            glyphs (✎, ×, ✓) are all plain text that
-                            inherit text-tn-muted-5, and the trash can has
-                            no monochrome codepoint — it always renders as
-                            a full-colour emoji. × isn't free either; it's
-                            this app's modal-close glyph, so reusing it
-                            for a destructive action would blur the two.
-                          */}
-                          ⌫
+                          Delete
                         </button>
                       </>
                     )}
@@ -759,7 +792,7 @@ export function StaffManagementPage() {
 
             {canManageRoles && (
               <p className="m-0 font-sans text-xs text-tn-muted-6">
-                ✎ edits this role. ⌫ deletes it (once nobody&rsquo;s assigned to it).
+                A role can be deleted once nobody&rsquo;s assigned to it.
               </p>
             )}
           </>
