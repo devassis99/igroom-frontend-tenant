@@ -235,9 +235,12 @@ function RoleFormModal({ open, onClose, role, permissionsCatalog }: RoleFormModa
 }
 
 /**
- * Members / Roles — the same tab bar as the Locations detail pane: ink
- * for the open tab, with an underline that draws itself in, and the count
- * beside each label in the muted colour.
+ * Members / Roles, in the app's selection colour: the open tab is the
+ * logo's clay — deep clay text (the plain clay is too light to read at
+ * this size) over a clay underline that draws itself in — the same
+ * choice as the selected item in the main menu and the Settings menu.
+ * Each count is a small badge that takes the clay tint when its tab is
+ * open.
  */
 function StaffTabButton({
   active,
@@ -255,17 +258,25 @@ function StaffTabButton({
       type="button"
       onClick={onClick}
       aria-current={active ? "page" : undefined}
-      className={`relative flex cursor-pointer items-baseline gap-1.5 border-none bg-transparent px-3 py-3 font-sans text-[14px] transition-colors duration-150 ${
-        active ? "font-semibold text-tn-ink" : "font-medium text-tn-muted-5 hover:text-tn-ink-soft"
+      className={`relative flex cursor-pointer items-center gap-2 border-none bg-transparent px-3 py-3 font-sans text-[14px] transition-colors duration-150 ${
+        active
+          ? "font-semibold text-brand-clay-deep"
+          : "font-medium text-tn-muted-5 hover:text-tn-ink-soft"
       }`}
     >
       {label}
-      <span className="text-[13px] font-medium text-tn-muted-5">{count}</span>
+      <span
+        className={`min-w-[22px] rounded-full px-1.5 py-px text-center text-[12px] font-semibold transition-colors duration-150 ${
+          active ? "bg-brand-clay/12 text-brand-clay-deep" : "bg-tn-neutral-bg text-tn-muted-5"
+        }`}
+      >
+        {count}
+      </span>
       {active && (
         <span
           key={label}
           aria-hidden
-          className="tn-underline-in absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-tn-ink"
+          className="tn-underline-in absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-brand-clay"
         />
       )}
     </button>
