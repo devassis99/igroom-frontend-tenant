@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { StaffSet } from "@/lib/bookings-api";
+import { t } from "@/i18n";
 
 interface ManageStaffSetsModalProps {
   open: boolean;
@@ -77,21 +78,21 @@ export function ManageStaffSetsModal({
         className="flex w-[420px] flex-col gap-3 rounded-2xl border border-tn-input-border bg-white p-4 shadow-[0_22px_48px_-22px_rgba(40,30,10,0.42)]"
       >
         <div className="flex items-center justify-between">
-          <span className="font-sans text-[14px] font-semibold text-tn-ink">Saved sets</span>
+          <span className="font-sans text-[14px] font-semibold text-tn-ink">{t("Saved sets")}</span>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("Close")}
             className="cursor-pointer border-none bg-transparent font-sans text-[14px] font-medium text-tn-muted-1"
           >
-            Done
+            {t("Done")}
           </button>
         </div>
 
         <div className="flex max-h-[360px] flex-col gap-1.5 overflow-y-auto">
           {staffSets.length === 0 && (
             <span className="p-2 font-sans text-xs text-tn-muted-6">
-              No saved sets yet — use "+ Save current" above the calendar to create one.
+              {t('No saved sets yet — use "+ Save current" above the calendar to create one.')}
             </span>
           )}
           {staffSets.map((set, index) => (
@@ -104,7 +105,7 @@ export function ManageStaffSetsModal({
                   type="button"
                   disabled={index === 0}
                   onClick={() => move(index, -1)}
-                  aria-label="Move up"
+                  aria-label={t("Move up")}
                   className="cursor-pointer border-none bg-transparent p-0 text-[11px] leading-none text-tn-muted-5 disabled:opacity-30"
                 >
                   ▲
@@ -113,7 +114,7 @@ export function ManageStaffSetsModal({
                   type="button"
                   disabled={index === staffSets.length - 1}
                   onClick={() => move(index, 1)}
-                  aria-label="Move down"
+                  aria-label={t("Move down")}
                   className="cursor-pointer border-none bg-transparent p-0 text-[11px] leading-none text-tn-muted-5 disabled:opacity-30"
                 >
                   ▼
@@ -149,13 +150,16 @@ export function ManageStaffSetsModal({
                     </span>
                     {set.isDefault && (
                       <span className="shrink-0 rounded-full bg-tn-success-bg px-1.5 py-0.5 font-sans text-[11px] font-bold tracking-wide text-tn-success">
-                        DEFAULT
+                        {t("DEFAULT")}
                       </span>
                     )}
                   </span>
                 )}
                 <span className="font-sans text-[12px] text-tn-muted-5">
-                  {set.staffUserIds.length} people &middot; {set.isShared ? "shared" : "private"}
+                  {t("{{length}} people · {{value}}", {
+                    length: set.staffUserIds.length,
+                    value: set.isShared ? t("shared") : t("private"),
+                  })}
                 </span>
               </div>
 
@@ -168,28 +172,28 @@ export function ManageStaffSetsModal({
                   }}
                   className="cursor-pointer border-none bg-transparent p-0"
                 >
-                  Rename
+                  {t("Rename")}
                 </button>
                 <button
                   type="button"
                   onClick={() => onSetDefault(set.id, !set.isDefault)}
                   className="cursor-pointer border-none bg-transparent p-0"
                 >
-                  {set.isDefault ? "Unset default" : "Set default"}
+                  {set.isDefault ? t("Unset default") : t("Set default")}
                 </button>
                 <button
                   type="button"
                   onClick={() => onToggleShared(set.id, !set.isShared)}
                   className="cursor-pointer border-none bg-transparent p-0"
                 >
-                  {set.isShared ? "Make private" : "Share"}
+                  {set.isShared ? t("Make private") : t("Share")}
                 </button>
                 <button
                   type="button"
                   onClick={() => onDelete(set.id)}
                   className="cursor-pointer border-none bg-transparent p-0 text-tn-danger-strong"
                 >
-                  Delete
+                  {t("Delete")}
                 </button>
               </div>
             </div>

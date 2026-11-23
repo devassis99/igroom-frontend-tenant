@@ -12,6 +12,7 @@ import {
   type Service,
   type ServiceCategory,
 } from "@/lib/services-api";
+import { t } from "@/i18n";
 
 interface ServiceModalProps {
   open: boolean;
@@ -76,7 +77,7 @@ export function ServiceModal({
 
   const categoryOptions = useMemo<SelectOption<string>[]>(
     () => [
-      { value: "", label: "No category" },
+      { value: "", label: t("No category") },
       ...categories.map((c) => ({ value: c.id, label: c.name })),
     ],
     [categories],
@@ -85,12 +86,16 @@ export function ServiceModal({
     () =>
       withCurrent(HOURS_OPTIONS, hours).map((h) => ({
         value: h,
-        label: `${h} ${h === 1 ? "hour" : "hours"}`,
+        label: `${h} ${h === 1 ? t("hour") : t("hours")}`,
       })),
     [hours],
   );
   const minuteOptions = useMemo<SelectOption<number>[]>(
-    () => withCurrent(MINUTES_OPTIONS, minutes).map((m) => ({ value: m, label: `${m} min` })),
+    () =>
+      withCurrent(MINUTES_OPTIONS, minutes).map((m) => ({
+        value: m,
+        label: t("{{m}} min", { m }),
+      })),
     [minutes],
   );
 
@@ -139,7 +144,9 @@ export function ServiceModal({
       onClose();
     },
     onError: (err) => {
-      setFormError(err instanceof Error ? err.message : "Couldn't save the service — try again.");
+      setFormError(
+        err instanceof Error ? err.message : t("Couldn't save the service — try again."),
+      );
     },
   });
 
@@ -147,11 +154,11 @@ export function ServiceModal({
     e.preventDefault();
     setFormError(null);
     if (!name.trim()) {
-      setFormError("Give the service a name.");
+      setFormError(t("Give the service a name."));
       return;
     }
     if (hours === 0 && minutes === 0) {
-      setFormError("Duration must be at least a few minutes.");
+      setFormError(t("Duration must be at least a few minutes."));
       return;
     }
     mutation.mutate();
@@ -168,12 +175,12 @@ export function ServiceModal({
       <form onSubmit={handleSubmit}>
         <div className="flex items-center justify-between px-6 pt-6">
           <h2 className="m-0 font-sans text-xl font-semibold text-tn-ink">
-            {isEdit ? "Edit Service" : "Add Service"}
+            {isEdit ? t("Edit Service") : t("Add Service")}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("Close")}
             className="cursor-pointer border-none bg-transparent font-sans text-xl text-tn-muted-6"
           >
             &times;
@@ -181,29 +188,29 @@ export function ServiceModal({
         </div>
 
         <div className="flex flex-col gap-4 px-6 pb-6 pt-4">
-          <Field label="SERVICE NAME">
+          <Field label={t("SERVICE NAME")}>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Beard Color"
+              placeholder={t("Beard Color")}
               className={formInputClass}
             />
           </Field>
 
-          <Field label="DESCRIPTION (MAX 300 CHARACTERS)">
+          <Field label={t("DESCRIPTION (MAX 300 CHARACTERS)")}>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value.slice(0, 300))}
               rows={2}
-              placeholder="Cover gray and even out beard tone with a semi-permanent color."
+              placeholder={t("Cover gray and even out beard tone with a semi-permanent color.")}
               className={`${formInputClass} resize-none`}
             />
           </Field>
 
-          <Field label="CATEGORY">
+          <Field label={t("CATEGORY")}>
             <Select
-              label="Category"
+              label={t("Category")}
               value={categoryId}
               options={categoryOptions}
               onChange={setCategoryId}
@@ -212,7 +219,7 @@ export function ServiceModal({
 
           <div className="flex flex-col gap-1.5">
             <span className="font-sans text-xs font-medium text-tn-muted-1">
-              SELECT TYPE OF TAX
+              {t("SELECT TYPE OF TAX")}
             </span>
             <label className="flex items-center gap-2.5 rounded-xl border border-tn-input-border px-3.5 py-3 font-sans text-sm text-tn-ink">
               <input
@@ -230,18 +237,18 @@ export function ServiceModal({
           <div className="flex gap-4">
             <div className="flex min-w-0 flex-[5] flex-col gap-1.5">
               <span className="font-sans text-xs font-medium text-tn-muted-1">
-                SERVICE DURATION
+                {t("SERVICE DURATION")}
               </span>
               <div className="flex gap-2">
                 <Select
-                  label="Hours"
+                  label={t("Hours")}
                   value={hours}
                   options={hourOptions}
                   onChange={setHours}
                   className="flex-1"
                 />
                 <Select
-                  label="Minutes"
+                  label={t("Minutes")}
                   value={minutes}
                   options={minuteOptions}
                   onChange={setMinutes}
@@ -251,7 +258,7 @@ export function ServiceModal({
             </div>
 
             <div className="min-w-0 flex-[4]">
-              <Field label="PRICING">
+              <Field label={t("PRICING")}>
                 <div className="flex items-center gap-1.5 rounded-xl border border-tn-input-border px-3.5 py-3 focus-within:border-2 focus-within:border-tn-gold">
                   <span className="font-sans text-sm text-tn-muted-4">$</span>
                   <input
@@ -268,16 +275,20 @@ export function ServiceModal({
           </div>
 
           <div className="flex flex-col gap-1 border-t border-tn-border-soft pt-3">
-            <Toggle checked={onlineVisible} onChange={setOnlineVisible} label="Online visibility" />
+            <Toggle
+              checked={onlineVisible}
+              onChange={setOnlineVisible}
+              label={t("Online visibility")}
+            />
             <Toggle
               checked={requiresDeposit}
               onChange={setRequiresDeposit}
-              label="Requires prepaid deposit"
+              label={t("Requires prepaid deposit")}
             />
             <Toggle
               checked={kioskBookable}
               onChange={setKioskBookable}
-              label="Bookable at kiosk (walk-in)"
+              label={t("Bookable at kiosk (walk-in)")}
             />
           </div>
 
@@ -291,10 +302,10 @@ export function ServiceModal({
               onClick={onClose}
               disabled={mutation.isPending}
             >
-              Cancel
+              {t("Cancel")}
             </Button>
             <Button type="submit" className="flex-1" disabled={mutation.isPending}>
-              {mutation.isPending ? "Saving…" : "Save Service"}
+              {mutation.isPending ? t("Saving…") : t("Save Service")}
             </Button>
           </div>
         </div>

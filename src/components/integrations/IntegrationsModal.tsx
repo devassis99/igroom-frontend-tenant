@@ -3,6 +3,7 @@ import { Modal } from "@/components/ui/Modal";
 import { CategoryIcon, CategoryNav, CATEGORIES } from "./CategoryNav";
 import { IntegrationCardGrid } from "./IntegrationCardGrid";
 import { useIntegrationsFilter } from "./useIntegrationsFilter";
+import { t } from "@/i18n";
 
 interface IntegrationsModalProps {
   open: boolean;
@@ -36,8 +37,10 @@ export function IntegrationsModal({ open, onClose }: IntegrationsModalProps) {
   return (
     <Modal open={open} onClose={onClose} width={1000}>
       <div className="flex max-h-[85vh] min-h-[560px]">
-        <div className="flex w-[230px] shrink-0 flex-col gap-6 rounded-l-2xl bg-tn-page px-5 py-6">
-          <h2 className="m-0 px-1 font-sans text-lg font-semibold text-tn-ink">Integrations</h2>
+        <div className="flex w-[230px] shrink-0 flex-col gap-6 rounded-s-2xl bg-tn-page px-5 py-6">
+          <h2 className="m-0 px-1 font-sans text-lg font-semibold text-tn-ink">
+            {t("Integrations")}
+          </h2>
           <CategoryNav value={category} onChange={setCategory} />
         </div>
 
@@ -45,12 +48,12 @@ export function IntegrationsModal({ open, onClose }: IntegrationsModalProps) {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <h1 className="m-0 flex items-center gap-2.5 font-sans text-[20px] font-semibold text-tn-ink">
               <CategoryIcon shape={activeShape} active />
-              {category}
+              {t(category)}
             </h1>
             <div className="flex items-center gap-3">
               <input
                 type="text"
-                placeholder="Search integrations"
+                placeholder={t("Search integrations")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-[220px] rounded-xl border border-tn-input-border px-4 py-2.5 font-sans text-[14px] text-tn-ink outline-none focus:border-2 focus:border-tn-gold"
@@ -58,7 +61,7 @@ export function IntegrationsModal({ open, onClose }: IntegrationsModalProps) {
               <button
                 type="button"
                 onClick={onClose}
-                aria-label="Close"
+                aria-label={t("Close")}
                 className="cursor-pointer border-none bg-transparent font-sans text-xl text-tn-muted-6"
               >
                 &times;
@@ -69,13 +72,13 @@ export function IntegrationsModal({ open, onClose }: IntegrationsModalProps) {
           <div className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-tn-success" />
             <span className="font-sans text-sm font-semibold text-tn-ink">
-              Connected integrations: {connectedCount}
+              {t("Connected integrations: {{connectedCount}}", { connectedCount })}
             </span>
           </div>
 
           {status === "error" && (
             <p className="m-0 font-mono text-[12px] leading-relaxed break-words text-tn-danger">
-              {error?.message ?? "Couldn’t load your integrations"}
+              {error?.message ?? t("Couldn’t load your integrations")}
             </p>
           )}
           <IntegrationCardGrid integrations={filtered} search={search} status={status} />

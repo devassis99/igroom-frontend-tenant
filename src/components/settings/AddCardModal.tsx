@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/auth/auth-store";
 import { env } from "@/lib/env";
 import { createSetupIntent, recordSetupIntent } from "@/lib/payment-methods-api";
+import { t } from "@/i18n";
 
 /**
  * Module scope on purpose — loadStripe injects Stripe.js into the page
@@ -54,7 +55,7 @@ function CardForm({ onDone }: { onDone: () => void }) {
       // Stripe's own messages are already customer-facing ("Your card was
       // declined.", "Your card's expiration year is in the past.") — a
       // generic fallback is only needed for the rare error with none.
-      setError(result.error.message ?? "Couldn't save that card — check the details and retry.");
+      setError(result.error.message ?? t("Couldn't save that card — check the details and retry."));
       setSubmitting(false);
       return;
     }
@@ -77,9 +78,10 @@ function CardForm({ onDone }: { onDone: () => void }) {
     } catch (err) {
       await queryClient.invalidateQueries({ queryKey: ["payment-methods"] });
       setError(
-        `Your card was saved with Stripe, but igroom couldn't record it: ${
-          err instanceof Error ? err.message : "unknown error"
-        }. Reload this page — it reconciles automatically.`,
+        t(
+          "Your card was saved with Stripe, but igroom couldn't record it: {{value}}. Reload this page — it reconciles automatically.",
+          { value: err instanceof Error ? err.message : t("unknown error") },
+        ),
       );
       setSubmitting(false);
       return;
@@ -100,10 +102,10 @@ function CardForm({ onDone }: { onDone: () => void }) {
           onClick={onDone}
           disabled={submitting}
         >
-          Cancel
+          {t("Cancel")}
         </Button>
         <Button type="submit" className="flex-1" disabled={!stripe || submitting}>
-          {submitting ? "Saving…" : "Save card"}
+          {submitting ? t("Saving…") : t("Save card")}
         </Button>
       </div>
     </form>
@@ -141,10 +143,12 @@ export function AddCardModal({ open, onClose }: AddCardModalProps) {
   return (
     <Modal open={open} onClose={onClose} width={460}>
       <div className="flex flex-col gap-4 p-6">
-        <h2 className="m-0 font-sans text-lg font-semibold text-tn-ink">Add card</h2>
+        <h2 className="m-0 font-sans text-lg font-semibold text-tn-ink">{t("Add card")}</h2>
 
         {setupMutation.isPending && (
-          <p className="m-0 font-sans text-sm text-tn-muted-5">Preparing secure card form…</p>
+          <p className="m-0 font-sans text-sm text-tn-muted-5">
+            {t("Preparing secure card form…")}
+          </p>
         )}
 
         {setupMutation.isError && (
@@ -152,10 +156,10 @@ export function AddCardModal({ open, onClose }: AddCardModalProps) {
             <p className="m-0 font-sans text-sm text-tn-danger">
               {setupMutation.error instanceof Error
                 ? setupMutation.error.message
-                : "Couldn't start the card form — try again."}
+                : t("Couldn't start the card form — try again.")}
             </p>
             <Button variant="secondary" onClick={onClose}>
-              Close
+              {t("Close")}
             </Button>
           </>
         )}
@@ -163,7 +167,7 @@ export function AddCardModal({ open, onClose }: AddCardModalProps) {
         {clientSecret && (
           <>
             <p className="m-0 font-sans text-xs text-tn-muted-5">
-              Card details go straight to Stripe — they never touch igroom&rsquo;s servers.
+              {t("Card details go straight to Stripe — they never touch igroom’s servers.")}
             </p>
             {/*
               Keyed by the secret so a fresh intent remounts Elements

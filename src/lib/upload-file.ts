@@ -1,5 +1,6 @@
 import { request } from "./http";
 
+import { t } from "@/i18n";
 /**
  * Puts a file in object storage and reports how far it got.
  *
@@ -54,7 +55,7 @@ export const ACCEPTED_IMAGE_TYPES = ACCEPTED.join(",");
 /** Why this file can't be uploaded, in words for the person who chose it — or null if it can. */
 export function rejectionFor(file: File): string | null {
   if (!ACCEPTED.includes(file.type.toLowerCase())) {
-    return "That file isn’t an image we can use — choose a JPEG, PNG, WEBP or HEIC.";
+    return t("That file isn’t an image we can use — choose a JPEG, PNG, WEBP or HEIC.");
   }
   if (file.size > MAX_UPLOAD_BYTES) {
     const megabytes = (file.size / (1024 * 1024)).toFixed(1);
@@ -114,10 +115,12 @@ function putWithProgress(
       );
     };
     xhr.onerror = () =>
-      reject(new UploadError("The upload didn’t go through. Check your connection and try again."));
+      reject(
+        new UploadError(t("The upload didn’t go through. Check your connection and try again.")),
+      );
     xhr.ontimeout = () =>
-      reject(new UploadError("The upload timed out — try again on a better connection."));
-    xhr.onabort = () => reject(new UploadError("Upload cancelled"));
+      reject(new UploadError(t("The upload timed out — try again on a better connection.")));
+    xhr.onabort = () => reject(new UploadError(t("Upload cancelled")));
 
     if (signal) {
       /**
@@ -131,7 +134,7 @@ function putWithProgress(
        * reporting.
        */
       if (signal.aborted) {
-        reject(new UploadError("Upload cancelled"));
+        reject(new UploadError(t("Upload cancelled")));
         return;
       }
       signal.addEventListener("abort", () => xhr.abort(), { once: true });

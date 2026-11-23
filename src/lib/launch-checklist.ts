@@ -1,4 +1,5 @@
 import { INTEGRATIONS, LOCATIONS, SERVICES, STAFF, TODAY_SCHEDULE } from "./sample-data";
+import { t } from "@/i18n";
 
 export interface LaunchChecklistStep {
   id: string;
@@ -25,54 +26,60 @@ export function getLaunchChecklistSteps(): LaunchChecklistStep[] {
   return [
     {
       id: "services",
-      title: "Add your services",
-      description:
+      title: t("Add your services"),
+      description: t(
         "List what you offer so clients can book online — haircuts, beard trims, combos, whatever your chairs handle.",
+      ),
       done: SERVICES.some((s) => s.status === "Enabled"),
-      ctaLabel: "Go to Services",
+      ctaLabel: t("Go to Services"),
       ctaTo: "/services",
     },
     {
       id: "staff",
-      title: "Add your team",
-      description:
+      title: t("Add your team"),
+      description: t(
         "Invite the barbers and staff who take bookings, so clients can pick who they want when they book.",
+      ),
       done: STAFF.length > 1,
-      ctaLabel: "Go to Staff",
+      ctaLabel: t("Go to Staff"),
       ctaTo: "/staff",
     },
     {
       id: "locations",
-      title: "Set your hours & locations",
-      description:
+      title: t("Set your hours & locations"),
+      description: t(
         "Confirm your shop's hours and locations so the booking calendar only ever offers real openings.",
+      ),
       done: LOCATIONS.some((l) => l.status === "Active"),
-      ctaLabel: "Go to Locations",
+      ctaLabel: t("Go to Locations"),
       ctaTo: "/locations",
     },
     {
       id: "payments",
-      title: "Turn on payments",
-      description: "Connect Stripe so clients can pay — or leave a deposit — right when they book.",
+      title: t("Turn on payments"),
+      description: t(
+        "Connect Stripe so clients can pay — or leave a deposit — right when they book.",
+      ),
       done: INTEGRATIONS.find((i) => i.id === "stripe")?.connected ?? false,
-      ctaLabel: "Go to Integrations",
+      ctaLabel: t("Go to Integrations"),
       ctaTo: "/integrations",
     },
     {
       id: "reminders",
-      title: "Connect reminders",
-      description:
+      title: t("Connect reminders"),
+      description: t(
         "Turn on SMS or WhatsApp so clients get automatic confirmations and no-show reminders.",
+      ),
       done: INTEGRATIONS.some((i) => (i.id === "sms" || i.id === "whatsapp") && i.connected),
-      ctaLabel: "Go to Integrations",
+      ctaLabel: t("Go to Integrations"),
       ctaTo: "/integrations",
     },
     {
       id: "booking",
-      title: "Take your first booking",
-      description: "Once a booking lands on your calendar, your shop is officially live.",
+      title: t("Take your first booking"),
+      description: t("Once a booking lands on your calendar, your shop is officially live."),
       done: TODAY_SCHEDULE.length > 0,
-      ctaLabel: "Go to Calendar",
+      ctaLabel: t("Go to Calendar"),
       ctaTo: "/calendar",
     },
   ];

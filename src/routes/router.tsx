@@ -199,6 +199,13 @@ export const router = createBrowserRouter([
                   })),
               },
               {
+                path: "language",
+                lazy: () =>
+                  import("@/pages/settings/LanguageSettingsPage").then((m) => ({
+                    Component: m.default,
+                  })),
+              },
+              {
                 path: "staff",
                 lazy: () =>
                   import("@/pages/settings/StaffManagementPage").then((m) => ({

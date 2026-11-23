@@ -10,6 +10,7 @@ import { EditMemberModal } from "@/components/settings/EditMemberModal";
 import { useAuthStore } from "@/auth/auth-store";
 import { usePermissions } from "@/auth/use-permissions";
 import { getStaffPerformance, type StaffPerformanceMember } from "@/lib/staff-api";
+import { t } from "@/i18n";
 
 // Stable empty-array fallback — see CalendarPage.tsx's identical comment on why a fresh `[]` literal per render would defeat memoization downstream.
 const EMPTY_STAFF: StaffPerformanceMember[] = [];
@@ -130,30 +131,31 @@ export function StaffPage() {
     // White components on the cream page — see .tn-white-components (index.css).
     <div className="tn-white-components flex flex-col gap-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Staff</h1>
+        <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">{t("Staff")}</h1>
         {canManageStaff && (
           <Button data-tour="staff-add" onClick={handleNewMember}>
-            + Add Staff
+            {t("+ Add Staff")}
           </Button>
         )}
       </div>
 
       {performanceQuery.isError && (
         <p className="m-0 font-sans text-sm text-tn-danger">
-          Couldn&rsquo;t load your team right now (
-          {performanceQuery.error instanceof Error
-            ? performanceQuery.error.message
-            : "unknown error"}
-          ) — refresh to try again.
+          {t("Couldn’t load your team right now ({{value}}) — refresh to try again.", {
+            value:
+              performanceQuery.error instanceof Error
+                ? performanceQuery.error.message
+                : t("unknown error"),
+          })}
         </p>
       )}
       {performanceQuery.isPending && (
-        <p className="m-0 font-sans text-sm text-tn-muted-5">Loading your team…</p>
+        <p className="m-0 font-sans text-sm text-tn-muted-5">{t("Loading your team…")}</p>
       )}
 
       {performanceQuery.isSuccess && totalCount === 0 && (
         <p className="m-0 font-sans text-sm text-tn-muted-5">
-          No active staff yet — add your first one.
+          {t("No active staff yet — add your first one.")}
         </p>
       )}
 
@@ -173,24 +175,24 @@ export function StaffPage() {
             ))}
           </div>
           <span className="font-sans text-xs text-tn-muted-5">
-            {totalCount} of {TOTAL_SEATS} seats used{" "}
-            <span className="text-tn-faint-2">· Business Plan · $12/seat/mo</span>
+            {t("{{totalCount}} of {{TOTAL_SEATS}} seats used", { totalCount, TOTAL_SEATS })}{" "}
+            <span className="text-tn-faint-2">{t("· Business Plan · $12/seat/mo")}</span>
           </span>
         </div>
       )}
 
       {team && (
         <div data-tour="staff-stats" className="grid grid-cols-2 gap-5 sm:grid-cols-4">
-          <StatCard label="Team sales (this month)" value={dollars(team.teamSalesCents)} />
+          <StatCard label={t("Team sales (this month)")} value={dollars(team.teamSalesCents)} />
           <StatCard
-            label="Avg ticket"
+            label={t("Avg ticket")}
             value={team.avgTicketCents === null ? "—" : dollars(team.avgTicketCents)}
           />
           <StatCard
-            label="Avg utilization"
+            label={t("Avg utilization")}
             value={team.avgUtilizationPct === null ? "—" : `${team.avgUtilizationPct}%`}
           />
-          <StatCard label="Commission payout" value={dollars(team.commissionPayoutCents)} />
+          <StatCard label={t("Commission payout")} value={dollars(team.commissionPayoutCents)} />
         </div>
       )}
 
@@ -205,14 +207,14 @@ export function StaffPage() {
             }`}
           >
             <div className="grid grid-cols-[1.6fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_0.8fr_auto] bg-tn-table-head px-[18px] py-3 font-sans text-xs font-semibold text-tn-muted-5">
-              <span>STAFF</span>
-              <span>BOOKINGS</span>
-              <span>HOURS</span>
-              <span>UTILIZATION</span>
-              <span>SALES</span>
-              <span>AVG TICKET</span>
-              <span>COMMISSION</span>
-              <span>RATING</span>
+              <span>{t("STAFF")}</span>
+              <span>{t("BOOKINGS")}</span>
+              <span>{t("HOURS")}</span>
+              <span>{t("UTILIZATION")}</span>
+              <span>{t("SALES")}</span>
+              <span>{t("AVG TICKET")}</span>
+              <span>{t("COMMISSION")}</span>
+              <span>{t("RATING")}</span>
               <span />
             </div>
             {staff.map((s, i) => (
@@ -253,9 +255,11 @@ export function StaffPage() {
                 <button
                   type="button"
                   title={
-                    canManageStaff ? "Edit profile" : "You don't have permission to edit staff"
+                    canManageStaff
+                      ? t("Edit profile")
+                      : t("You don't have permission to edit staff")
                   }
-                  aria-label={`Edit ${s.name}`}
+                  aria-label={t("Edit {{name}}", { name: s.name })}
                   onClick={() => setEditingMember(s)}
                   disabled={!canManageStaff}
                   className="cursor-pointer border-none bg-transparent p-0 font-sans text-tn-muted-5 disabled:cursor-not-allowed disabled:opacity-40"

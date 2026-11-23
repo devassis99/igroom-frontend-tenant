@@ -13,6 +13,7 @@ import {
   type PosTicket,
   type PosTipRole,
 } from "@/lib/pos-api";
+import { t } from "@/i18n";
 
 /**
  * One tip, several hands.
@@ -35,13 +36,13 @@ const PRESETS = [18, 20, 25];
 function errorMessage(error: unknown): string | null {
   if (!error) return null;
   if (error instanceof ApiError) return error.message;
-  return "Something went wrong. Try again.";
+  return t("Something went wrong. Try again.");
 }
 
 const ROLE_LABEL: Record<PosTipRole, string> = {
-  chair: "Cut the hair",
-  assist: "Wash & finish",
-  desk: "Shared nightly",
+  chair: t("Cut the hair"),
+  assist: t("Wash & finish"),
+  desk: t("Shared nightly"),
 };
 
 interface TipSplitProps {
@@ -111,7 +112,7 @@ export function TipSplit({ ticket, locationId, onApplied, onBack, onContinue }: 
           disabled={apply.isPending}
           className="cursor-pointer rounded-[9px] border border-tn-input-border bg-transparent px-3.5 py-2.5 font-sans text-[13px] font-semibold text-tn-muted-3 hover:bg-tn-page"
         >
-          No tip
+          {t("No tip")}
         </button>
       </div>
 
@@ -119,9 +120,9 @@ export function TipSplit({ ticket, locationId, onApplied, onBack, onContinue }: 
         <input
           value={custom}
           onChange={(event) => setCustom(event.target.value)}
-          placeholder="Custom amount"
+          placeholder={t("Custom amount")}
           inputMode="decimal"
-          aria-label="Custom tip amount"
+          aria-label={t("Custom tip amount")}
           className="flex-1 rounded-lg border border-tn-input-border bg-transparent px-3 py-2 font-sans text-[13px] text-tn-ink outline-none placeholder:text-tn-placeholder"
         />
         <Button
@@ -133,7 +134,7 @@ export function TipSplit({ ticket, locationId, onApplied, onBack, onContinue }: 
           }}
           disabled={apply.isPending || parseCents(custom) <= 0}
         >
-          Apply
+          {t("Apply")}
         </Button>
       </div>
 
@@ -146,7 +147,7 @@ export function TipSplit({ ticket, locationId, onApplied, onBack, onContinue }: 
       <div className="flex flex-col gap-3 rounded-xl border border-tn-border px-4 py-3.5">
         <div className="flex items-baseline justify-between gap-2">
           <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">
-            {rule ? rule.name : "Loading the shop rule…"}
+            {rule ? rule.name : t("Loading the shop rule…")}
           </p>
           {rule?.isInherited && (
             <span className="font-sans text-[11px] text-tn-muted-5">shop-wide rule</span>
@@ -155,7 +156,7 @@ export function TipSplit({ ticket, locationId, onApplied, onBack, onContinue }: 
 
         {ticket.tipShares.length === 0 ? (
           <p className="m-0 font-sans text-[13px] text-tn-muted-3">
-            {ticket.tipCents === 0 ? "No tip on this ticket." : "Working out the split…"}
+            {ticket.tipCents === 0 ? t("No tip on this ticket.") : t("Working out the split…")}
           </p>
         ) : (
           <div className="flex flex-col gap-3">
@@ -176,7 +177,7 @@ export function TipSplit({ ticket, locationId, onApplied, onBack, onContinue }: 
                   />
                   <div className="w-[110px] shrink-0">
                     <p className="m-0 font-sans text-[13px] font-semibold text-tn-ink">
-                      {share.staffName ?? "Front desk pool"}
+                      {share.staffName ?? t("Front desk pool")}
                     </p>
                     <p className="m-0 font-sans text-[11px] text-tn-muted-3">
                       {ROLE_LABEL[share.role]}
@@ -191,7 +192,7 @@ export function TipSplit({ ticket, locationId, onApplied, onBack, onContinue }: 
                       style={{ width: `${percent}%` }}
                     />
                   </span>
-                  <span className="w-[62px] shrink-0 text-right font-sans text-[13px] font-semibold text-tn-ink">
+                  <span className="w-[62px] shrink-0 text-end font-sans text-[13px] font-semibold text-tn-ink">
                     {formatCents(share.amountCents)}
                   </span>
                 </div>
@@ -202,16 +203,17 @@ export function TipSplit({ ticket, locationId, onApplied, onBack, onContinue }: 
       </div>
 
       <p className="m-0 rounded-lg bg-tn-gold-bg-soft px-3 py-2.5 font-sans text-[12px] leading-relaxed text-tn-muted-3">
-        Each person sees their own share the moment the sale closes, and it is frozen there — a
-        later change to the shop's split does not rewrite what they were told tonight.
+        {t(
+          "Each person sees their own share the moment the sale closes, and it is frozen there — a later change to the shop's split does not rewrite what they were told tonight.",
+        )}
       </p>
 
       <div className="flex gap-2">
         <Button variant="secondary" className="flex-1" onClick={onBack}>
-          Back
+          {t("Back")}
         </Button>
         <Button className="flex-1" onClick={onContinue}>
-          Take payment →
+          {t("Take payment →")}
         </Button>
       </div>
     </div>

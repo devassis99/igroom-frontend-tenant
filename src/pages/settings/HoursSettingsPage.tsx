@@ -9,6 +9,7 @@ import { StaffFilterPopover } from "@/components/ui/StaffFilterPopover";
 import { listStaff } from "@/lib/staff-api";
 import { listLocations } from "@/lib/locations-api";
 import { TravelBufferField } from "@/components/availability/TravelBufferField";
+import { t } from "@/i18n";
 
 /**
  * Settings > Availability — replaces the old static Hours & Availability
@@ -124,8 +125,8 @@ export function HoursSettingsPage() {
   if (permissionsLoading || !selectedStaffUserId) {
     return (
       <div className="flex flex-col gap-8">
-        <h1 className="m-0 font-sans text-2xl font-semibold text-tn-ink">Availability</h1>
-        <p className="m-0 font-sans text-sm text-tn-muted-5">Loading…</p>
+        <h1 className="m-0 font-sans text-2xl font-semibold text-tn-ink">{t("Availability")}</h1>
+        <p className="m-0 font-sans text-sm text-tn-muted-5">{t("Loading…")}</p>
       </div>
     );
   }
@@ -136,7 +137,7 @@ export function HoursSettingsPage() {
     // White components on the cream page — see .tn-white-components (index.css).
     <div className="tn-white-components flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="m-0 font-sans text-2xl font-semibold text-tn-ink">Availability</h1>
+        <h1 className="m-0 font-sans text-2xl font-semibold text-tn-ink">{t("Availability")}</h1>
 
         {canManage && (
           <div className="flex flex-wrap items-center gap-2.5" data-tour="hours-controls">
@@ -157,7 +158,7 @@ export function HoursSettingsPage() {
                 locations={filterLocations}
                 value={selectedLocationId}
                 onChange={setSelectedLocationId}
-                label="Filter by location"
+                label={t("Filter by location")}
               />
             )}
             <StaffFilterPopover
@@ -165,8 +166,10 @@ export function HoursSettingsPage() {
               value={selectedStaffUserId ?? ""}
               onChange={setSelectedStaffUserId}
               selfId={staffUser?.id}
-              label="Filter by member"
-              emptyLabel="Nobody here has signed in yet — a member can be scheduled once they've claimed their invite."
+              label={t("Filter by member")}
+              emptyLabel={t(
+                "Nobody here has signed in yet — a member can be scheduled once they've claimed their invite.",
+              )}
             />
           </div>
         )}
@@ -181,8 +184,10 @@ export function HoursSettingsPage() {
         initialLocationId={requestedLocationId ?? undefined}
         heading={
           viewingSelf
-            ? "Set your availability"
-            : `Set ${selectedStaffMember?.name ?? "this member"}'s availability`
+            ? t("Set your availability")
+            : t("Set {{value}}'s availability", {
+                value: selectedStaffMember?.name ?? t("this member"),
+              })
         }
       />
     </div>

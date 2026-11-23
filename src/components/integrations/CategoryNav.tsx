@@ -1,4 +1,5 @@
 import type { Integration } from "@/lib/sample-data";
+import { t } from "@/i18n";
 
 export type Category = "All Integrations" | Integration["category"];
 
@@ -41,17 +42,17 @@ export function CategoryNav({ value, onChange }: CategoryNavProps) {
         const active = value === c.label;
         return (
           <button
-            key={c.label}
+            key={t(c.label)}
             type="button"
             onClick={() => onChange(c.label)}
-            className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-left font-sans text-[14px] ${
+            className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-start font-sans text-[14px] ${
               active
                 ? "bg-tn-dark-gradient font-semibold text-tn-on-dark"
                 : "font-medium text-tn-nav-inactive"
             }`}
           >
             <CategoryIcon shape={c.shape} active={active} />
-            {c.label}
+            {t(c.label)}
           </button>
         );
       })}

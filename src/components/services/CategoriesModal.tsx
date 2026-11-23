@@ -11,6 +11,7 @@ import {
   renameCategory,
   type ServiceCategory,
 } from "@/lib/services-api";
+import { t } from "@/i18n";
 
 interface CategoriesModalProps {
   open: boolean;
@@ -57,7 +58,7 @@ export function CategoriesModal({ open, onClose, accessToken }: CategoriesModalP
       invalidate();
     },
     onError: (err) => {
-      setFormError(err instanceof Error ? err.message : "Couldn't add that category.");
+      setFormError(err instanceof Error ? err.message : t("Couldn't add that category."));
     },
   });
 
@@ -68,7 +69,7 @@ export function CategoriesModal({ open, onClose, accessToken }: CategoriesModalP
       invalidate();
     },
     onError: (err) => {
-      setFormError(err instanceof Error ? err.message : "Couldn't rename that category.");
+      setFormError(err instanceof Error ? err.message : t("Couldn't rename that category."));
     },
   });
 
@@ -79,7 +80,7 @@ export function CategoriesModal({ open, onClose, accessToken }: CategoriesModalP
       invalidate();
     },
     onError: (err) => {
-      setFormError(err instanceof Error ? err.message : "Couldn't delete that category.");
+      setFormError(err instanceof Error ? err.message : t("Couldn't delete that category."));
     },
   });
 
@@ -104,11 +105,11 @@ export function CategoriesModal({ open, onClose, accessToken }: CategoriesModalP
     <>
       <Modal open={open} onClose={onClose} width={440}>
         <div className="flex items-center justify-between px-6 pt-6">
-          <h2 className="m-0 font-sans text-xl font-semibold text-tn-ink">Categories</h2>
+          <h2 className="m-0 font-sans text-xl font-semibold text-tn-ink">{t("Categories")}</h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("Close")}
             className="cursor-pointer border-none bg-transparent font-sans text-xl text-tn-muted-6"
           >
             &times;
@@ -117,11 +118,11 @@ export function CategoriesModal({ open, onClose, accessToken }: CategoriesModalP
 
         <div className="flex flex-col gap-4 px-6 pb-6 pt-4">
           {categoriesQuery.isPending && (
-            <p className="m-0 font-sans text-sm text-tn-muted-5">Loading categories…</p>
+            <p className="m-0 font-sans text-sm text-tn-muted-5">{t("Loading categories…")}</p>
           )}
           {!categoriesQuery.isPending && categories.length === 0 && (
             <p className="m-0 font-sans text-sm text-tn-muted-5">
-              No categories yet — add one below.
+              {t("No categories yet — add one below.")}
             </p>
           )}
 
@@ -142,7 +143,7 @@ export function CategoriesModal({ open, onClose, accessToken }: CategoriesModalP
                       className={`${formInputClass} flex-1 py-2`}
                     />
                     <Button type="submit" size="sm" disabled={renameMutation.isPending}>
-                      Save
+                      {t("Save")}
                     </Button>
                     <Button
                       type="button"
@@ -150,7 +151,7 @@ export function CategoriesModal({ open, onClose, accessToken }: CategoriesModalP
                       size="sm"
                       onClick={() => setRenamingId(null)}
                     >
-                      Cancel
+                      {t("Cancel")}
                     </Button>
                   </form>
                 ) : (
@@ -162,15 +163,15 @@ export function CategoriesModal({ open, onClose, accessToken }: CategoriesModalP
                         onClick={() => startRename(category)}
                         className="cursor-pointer rounded-lg border-none bg-transparent px-2 py-1 font-sans text-xs font-semibold text-tn-gold"
                       >
-                        Rename
+                        {t("Rename")}
                       </button>
                       <button
                         type="button"
                         onClick={() => setPendingDelete(category)}
-                        aria-label={`Delete ${category.name}`}
+                        aria-label={t("Delete {{name}}", { name: category.name })}
                         className="cursor-pointer rounded-lg border-none bg-transparent px-2 py-1 font-sans text-xs font-semibold text-tn-danger"
                       >
-                        Delete
+                        {t("Delete")}
                       </button>
                     </div>
                   </>
@@ -187,11 +188,11 @@ export function CategoriesModal({ open, onClose, accessToken }: CategoriesModalP
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="New category name"
+              placeholder={t("New category name")}
               className={`${formInputClass} flex-1`}
             />
             <Button type="submit" disabled={createMutation.isPending || !newName.trim()}>
-              Add
+              {t("Add")}
             </Button>
           </form>
 
@@ -203,9 +204,11 @@ export function CategoriesModal({ open, onClose, accessToken }: CategoriesModalP
         open={pendingDelete !== null}
         onClose={() => setPendingDelete(null)}
         onConfirm={() => pendingDelete && deleteMutation.mutate(pendingDelete.id)}
-        title={`Delete “${pendingDelete?.name}”?`}
-        body="Services in this category won't be deleted — they'll just show no category until you re-assign them."
-        confirmLabel="Delete category"
+        title={t("Delete “{{name}}”?", { name: pendingDelete?.name })}
+        body={t(
+          "Services in this category won't be deleted — they'll just show no category until you re-assign them.",
+        )}
+        confirmLabel={t("Delete category")}
         confirming={deleteMutation.isPending}
       />
     </>

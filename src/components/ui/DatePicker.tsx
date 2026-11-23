@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAnchoredPanel } from "@/components/ui/use-anchored-panel";
+import { t, intlLocale } from "@/i18n";
 
 interface DatePickerProps {
   /** "YYYY-MM-DD", or "" for no date picked yet. */
@@ -18,7 +19,7 @@ interface DatePickerProps {
   min?: string;
 }
 
-const WEEKDAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+const WEEKDAY_LABELS = [t("Su"), t("Mo"), t("Tu"), t("We"), t("Th"), t("Fr"), t("Sa")];
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
@@ -146,7 +147,7 @@ function ChevronRightIcon() {
 export function DatePicker({
   value,
   onChange,
-  label = "Date",
+  label = t("Date"),
   className = "",
   min,
 }: DatePickerProps) {
@@ -206,10 +207,10 @@ export function DatePicker({
   const today = new Date();
   const minDate = min ? parseValue(min) : null;
   const cells = buildGrid(viewDate);
-  const monthLabel = viewDate.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const monthLabel = viewDate.toLocaleDateString(intlLocale(), { month: "long", year: "numeric" });
   const displayValue = selected
-    ? selected.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
-    : "Select a date";
+    ? selected.toLocaleDateString(intlLocale(), { month: "short", day: "numeric", year: "numeric" })
+    : t("Select a date");
 
   return (
     <>
@@ -220,7 +221,7 @@ export function DatePicker({
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className={`flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl border bg-tn-surface px-3.5 py-3 text-left font-sans text-sm text-tn-ink outline-none ${
+        className={`flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl border bg-tn-surface px-3.5 py-3 text-start font-sans text-sm text-tn-ink outline-none ${
           open ? "border-2 border-tn-gold" : "border border-tn-input-border"
         } ${className}`}
       >
@@ -251,7 +252,7 @@ export function DatePicker({
               <button
                 type="button"
                 onClick={() => goMonth(-1)}
-                aria-label="Previous month"
+                aria-label={t("Previous month")}
                 className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border-none bg-transparent text-tn-muted-5 hover:bg-tn-page hover:text-tn-ink"
               >
                 <ChevronLeftIcon />
@@ -260,7 +261,7 @@ export function DatePicker({
               <button
                 type="button"
                 onClick={() => goMonth(1)}
-                aria-label="Next month"
+                aria-label={t("Next month")}
                 className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border-none bg-transparent text-tn-muted-5 hover:bg-tn-page hover:text-tn-ink"
               >
                 <ChevronRightIcon />

@@ -1,4 +1,5 @@
 import { ApiError } from "@/lib/http";
+import { t } from "@/i18n";
 
 /**
  * The nav hides a screen the caller has no permission for, but the URL
@@ -18,10 +19,12 @@ export function PermissionNotice({ title, what }: { title: string; what: string 
       <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">{title}</h1>
       <div className="max-w-[62ch] rounded-2xl border border-tn-border bg-tn-surface px-5 py-6">
         <p className="m-0 font-sans text-sm font-semibold text-tn-ink">
-          You don&rsquo;t have access to this screen
+          {t("You don’t have access to this screen")}
         </p>
         <p className="m-0 mt-1.5 font-sans text-[14px] leading-relaxed text-tn-muted-3">
-          {what} An owner or manager can grant it under Settings &rsaquo; Roles &amp; permissions.
+          {t("{{what}} An owner or manager can grant it under Settings › Roles & permissions.", {
+            what,
+          })}
         </p>
       </div>
     </div>

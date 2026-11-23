@@ -1,6 +1,7 @@
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { StatusPill } from "@/components/ui/StatusPill";
+import { t, intlLocale } from "@/i18n";
 
 /**
  * A client list a few months in — invented people, one of each tag, so the
@@ -17,7 +18,7 @@ const EXAMPLE_ROWS = [
     color: "oklch(50% 0.1 20)",
     daysAgo: 0,
     spend: "$620",
-    tag: { label: "VIP", tone: "gold" },
+    tag: { label: t("VIP"), tone: "gold" },
   },
   {
     name: "Sam Kerr",
@@ -35,7 +36,7 @@ const EXAMPLE_ROWS = [
     color: "oklch(52% 0.09 150)",
     daysAgo: 2,
     spend: "$40",
-    tag: { label: "New", tone: "success" },
+    tag: { label: t("New"), tone: "success" },
   },
   {
     name: "Leo Martin",
@@ -44,7 +45,7 @@ const EXAMPLE_ROWS = [
     color: "var(--color-tn-avatar-brown)",
     daysAgo: 124,
     spend: "$105",
-    tag: { label: "Inactive", tone: "neutral" },
+    tag: { label: t("Inactive"), tone: "neutral" },
   },
 ] as const;
 
@@ -58,9 +59,9 @@ const GRID =
 
 /** The same "Today" / "Oct 3" the real table's Last visit column shows. */
 function lastVisitLabel(daysAgo: number): string {
-  if (daysAgo === 0) return "Today";
+  if (daysAgo === 0) return t("Today");
   const date = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
-  return date.toLocaleDateString("en-US", {
+  return date.toLocaleDateString(intlLocale(), {
     month: "short",
     day: "numeric",
     year: date.getFullYear() === new Date().getFullYear() ? undefined : "numeric",
@@ -90,23 +91,26 @@ export function CustomersEmptyState({
   return (
     <section className="flex flex-col gap-8 rounded-2xl border border-tn-border bg-tn-surface p-8 xl:flex-row xl:items-center xl:gap-10">
       <div className="flex min-w-0 flex-1 flex-col gap-3 max-w-[640px] xl:max-w-[400px]">
-        <h2 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Know your regulars</h2>
+        <h2 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">
+          {t("Know your regulars")}
+        </h2>
         <p className="m-0 font-sans text-[14px] leading-relaxed text-tn-muted-5">
-          Everyone you book lands here on their own — from the calendar, your booking link, the app
-          or the waitlist. They&rsquo;re matched by phone or email, so a regular stays one person
-          however they book, with their visits, what they&rsquo;ve spent and who they usually see.
+          {t(
+            "Everyone you book lands here on their own — from the calendar, your booking link, the app or the waitlist. They’re matched by phone or email, so a regular stays one person however they book, with their visits, what they’ve spent and who they usually see.",
+          )}
         </p>
         <p className="m-0 font-sans text-[13px] leading-relaxed text-tn-muted-5">
-          Tags sort them for you: VIP for the clients you flag, New for anyone added this month, and
-          Inactive once someone hasn&rsquo;t been in for 90 days — the ones worth a message.
+          {t(
+            "Tags sort them for you: VIP for the clients you flag, New for anyone added this month, and Inactive once someone hasn’t been in for 90 days — the ones worth a message.",
+          )}
         </p>
         {canManage ? (
           <Button className="mt-2 self-start" onClick={onAdd}>
-            + Add a customer
+            {t("+ Add a customer")}
           </Button>
         ) : (
           <p className="m-0 mt-2 font-sans text-[13px] text-tn-muted-5">
-            An owner or manager can add someone directly.
+            {t("An owner or manager can add someone directly.")}
           </p>
         )}
       </div>
@@ -119,10 +123,10 @@ export function CustomersEmptyState({
           <div
             className={`${GRID} border-b border-tn-border-soft bg-tn-table-head px-4 py-3 font-sans text-[12px] font-semibold text-tn-muted-5`}
           >
-            <span>CUSTOMER</span>
-            <span>LAST VISIT</span>
-            <span>SPEND</span>
-            <span>TAG</span>
+            <span>{t("CUSTOMER")}</span>
+            <span>{t("LAST VISIT")}</span>
+            <span>{t("SPEND")}</span>
+            <span>{t("TAG")}</span>
           </div>
           {EXAMPLE_ROWS.map((row, i) => (
             <div

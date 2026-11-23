@@ -2,6 +2,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/auth/auth-store";
 import { SERVICES, STAFF } from "@/lib/sample-data";
+import { t } from "@/i18n";
 
 interface PreviewAsCustomerModalProps {
   open: boolean;
@@ -16,12 +17,12 @@ export function PreviewAsCustomerModal({ open, onClose }: PreviewAsCustomerModal
     <Modal open={open} onClose={onClose} width={420}>
       <div className="flex items-center justify-between px-5 pt-4">
         <span className="font-sans text-xs font-semibold text-tn-muted-5">
-          Previewing as a customer
+          {t("Previewing as a customer")}
         </span>
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t("Close")}
           className="cursor-pointer border-none bg-transparent font-sans text-lg text-tn-muted-6"
         >
           &times;
@@ -47,24 +48,24 @@ export function PreviewAsCustomerModal({ open, onClose }: PreviewAsCustomerModal
         <div className="flex flex-col gap-4 px-5 py-4">
           <div>
             <p className="m-0 font-sans text-xl font-semibold text-tn-ink">
-              {owner?.businessName ?? "The Gentry Barbershop"}
+              {owner?.businessName ?? t("The Gentry Barbershop")}
             </p>
             <p className="m-0 mt-1 font-sans text-xs text-tn-muted-4">
-              ★ 4.9 <span className="text-tn-faint">(312 reviews)</span> ·{" "}
-              {owner?.category ?? "Barbershop"}
+              ★ 4.9 <span className="text-tn-faint">{t("(312 reviews)")}</span> ·{" "}
+              {owner?.category ?? t("Barbershop")}
             </p>
             <p className="m-0 mt-1 font-sans text-xs font-medium text-tn-success">
-              Open now · closes 8:00 PM
+              {t("Open now · closes 8:00 PM")}
             </p>
           </div>
 
           <div className="flex gap-4 border-b border-tn-border-soft font-sans text-[14px] font-medium text-tn-muted-5">
             <span className="border-b-2 border-tn-ink pb-2 font-semibold text-tn-ink">
-              Services
+              {t("Services")}
             </span>
-            <span className="pb-2">Offers</span>
-            <span className="pb-2">Reviews</span>
-            <span className="pb-2">About</span>
+            <span className="pb-2">{t("Offers")}</span>
+            <span className="pb-2">{t("Reviews")}</span>
+            <span className="pb-2">{t("About")}</span>
           </div>
 
           <div className="flex flex-col gap-3">
@@ -85,7 +86,7 @@ export function PreviewAsCustomerModal({ open, onClose }: PreviewAsCustomerModal
 
           <div>
             <p className="m-0 mb-2 font-sans text-[14px] font-semibold text-tn-ink">
-              Meet the team
+              {t("Meet the team")}
             </p>
             <div className="flex gap-3">
               {STAFF.filter((s) => s.role.includes("Barber")).map((b) => (
@@ -99,7 +100,7 @@ export function PreviewAsCustomerModal({ open, onClose }: PreviewAsCustomerModal
             </div>
           </div>
 
-          <Button>Book Appointment</Button>
+          <Button>{t("Book Appointment")}</Button>
         </div>
       </div>
     </Modal>

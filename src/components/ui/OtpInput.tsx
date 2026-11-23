@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ClipboardEvent, type KeyboardEvent } from "react";
+import { t } from "@/i18n";
 
 const LENGTH = 6;
 
@@ -73,7 +74,7 @@ export function OtpInput({ value, onChange, onComplete, disabled }: OtpInputProp
           inputMode="numeric"
           autoComplete={index === 0 ? "one-time-code" : "off"}
           maxLength={1}
-          aria-label={`Digit ${index + 1} of ${LENGTH}`}
+          aria-label={t("Digit {{value}} of {{LENGTH}}", { value: index + 1, LENGTH })}
           className="h-[52px] w-11 rounded-[10px] border border-tn-input-border bg-tn-surface text-center font-sans text-[20px] font-semibold text-tn-ink outline-none focus:border-2 focus:border-tn-gold disabled:opacity-50"
         />
       ))}

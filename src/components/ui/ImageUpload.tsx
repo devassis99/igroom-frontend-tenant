@@ -5,6 +5,7 @@ import {
   uploadFile,
   type UploadPurpose,
 } from "@/lib/upload-file";
+import { t } from "@/i18n";
 
 /**
  * Choose an image, watch it upload, hand back the key.
@@ -122,7 +123,7 @@ export function ImageUpload({
       setError(
         err instanceof UploadError || err instanceof Error
           ? err.message
-          : "That didn’t upload — try again.",
+          : t("That didn’t upload — try again."),
       );
     } finally {
       setFraction(null);
@@ -142,7 +143,7 @@ export function ImageUpload({
             onClick={() => abortRef.current?.abort()}
             className="cursor-pointer border-none bg-transparent p-0 font-sans text-[12px] font-semibold text-tn-muted-5 underline"
           >
-            Cancel
+            {t("Cancel")}
           </button>
         )}
       </div>
@@ -170,7 +171,7 @@ export function ImageUpload({
             className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-1 border-none bg-transparent font-sans text-[13px] text-tn-muted-5 hover:bg-tn-surface disabled:cursor-default"
           >
             {isTile && <span className="text-lg leading-none">+</span>}
-            {isTile ? label : "Choose an image"}
+            {isTile ? label : t("Choose an image")}
           </button>
         )}
 
@@ -195,7 +196,7 @@ export function ImageUpload({
               className="sr-only"
               max={100}
               value={Math.round((fraction ?? 0) * 100)}
-              aria-label={`Uploading ${label}`}
+              aria-label={t("Uploading {{label}}", { label })}
             />
           </>
         )}
@@ -209,10 +210,10 @@ export function ImageUpload({
           className="cursor-pointer rounded-lg border border-tn-input-border bg-tn-surface px-3 py-1.5 font-sans text-[12px] font-semibold text-tn-ink hover:bg-tn-page disabled:opacity-50"
         >
           {uploading
-            ? `Uploading ${Math.round((fraction ?? 0) * 100)}%`
+            ? t("Uploading {{round}}%", { round: Math.round((fraction ?? 0) * 100) })
             : shown
-              ? "Replace"
-              : "Upload"}
+              ? t("Replace")
+              : t("Upload")}
         </button>
         {shown && onRemove && !uploading && (
           <button
@@ -221,7 +222,7 @@ export function ImageUpload({
             onClick={() => void onRemove()}
             className="cursor-pointer border-none bg-transparent p-0 font-sans text-[12px] font-semibold text-tn-danger disabled:opacity-50"
           >
-            Remove
+            {t("Remove")}
           </button>
         )}
       </div>

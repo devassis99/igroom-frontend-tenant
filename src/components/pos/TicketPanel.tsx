@@ -17,6 +17,7 @@ import {
   type PosTender,
   type PosTicket,
 } from "@/lib/pos-api";
+import { t } from "@/i18n";
 
 /**
  * The right-hand column of the register: one ticket, from pre-filled to
@@ -34,15 +35,15 @@ type Step = "ticket" | "tip" | "pay";
 function errorMessage(error: unknown): string | null {
   if (!error) return null;
   if (error instanceof ApiError) return error.message;
-  return "Something went wrong. Try again.";
+  return t("Something went wrong. Try again.");
 }
 
 const TENDER_LABEL: Record<PosTender["method"], string> = {
-  cash: "Cash",
-  card: "Card",
-  payment_link: "Payment link",
-  deposit: "Paid online",
-  other: "Other",
+  cash: t("Cash"),
+  card: t("Card"),
+  payment_link: t("Payment link"),
+  deposit: t("Paid online"),
+  other: t("Other"),
 };
 
 interface TicketPanelProps {
@@ -114,10 +115,11 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
         data-tour="register-ticket"
         className="rounded-2xl border border-dashed border-tn-border bg-tn-surface px-6 py-12 text-center lg:sticky lg:top-6"
       >
-        <p className="m-0 font-sans text-sm font-semibold text-tn-ink">No ticket open</p>
+        <p className="m-0 font-sans text-sm font-semibold text-tn-ink">{t("No ticket open")}</p>
         <p className="m-0 mt-1.5 font-sans text-[14px] leading-relaxed text-tn-muted-3">
-          Pick an appointment and the ticket arrives with the client, the barber, the service and
-          anything already paid online already on it.
+          {t(
+            "Pick an appointment and the ticket arrives with the client, the barber, the service and anything already paid online already on it.",
+          )}
         </p>
       </aside>
     );
@@ -129,7 +131,7 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
         data-tour="register-ticket"
         className="rounded-2xl border border-tn-border bg-tn-surface px-6 py-12 text-center lg:sticky lg:top-6"
       >
-        <p className="m-0 font-sans text-[14px] text-tn-muted-3">Opening ticket…</p>
+        <p className="m-0 font-sans text-[14px] text-tn-muted-3">{t("Opening ticket…")}</p>
       </aside>
     );
   }
@@ -157,11 +159,13 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">
-            {ticket.customerName ?? "Counter sale"}
+            {ticket.customerName ?? t("Counter sale")}
           </p>
           <p className="m-0 font-sans text-[12px] text-tn-muted-3">
-            Ticket #{ticket.ticketNumber}
-            {ticket.bookingId ? " · from the booking" : ""}
+            {t("Ticket #{{ticketNumber}}{{value}}", {
+              ticketNumber: ticket.ticketNumber,
+              value: ticket.bookingId ? t(" · from the booking") : "",
+            })}
           </p>
         </div>
         <button
@@ -169,7 +173,7 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
           onClick={onDismiss}
           className="cursor-pointer border-none bg-transparent font-sans text-[12px] text-tn-muted-5 hover:underline"
         >
-          Close panel
+          {t("Close panel")}
         </button>
       </div>
 
@@ -186,8 +190,10 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
             <div>
               <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">{item.name}</p>
               <p className="m-0 font-sans text-[12px] text-tn-muted-3">
-                {item.staffName ? `with ${item.staffName}` : "unassigned"}
-                {ticket.bookingId ? " · auto-added" : ""}
+                {item.staffName
+                  ? t("with {{staffName}}", { staffName: item.staffName })
+                  : t("unassigned")}
+                {ticket.bookingId ? t(" · auto-added") : ""}
               </p>
             </div>
             <span className="font-sans text-[14px] font-semibold text-tn-ink">
@@ -199,8 +205,10 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
         {ticket.depositAppliedCents > 0 && (
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">Paid online</p>
-              <p className="m-0 font-sans text-[12px] text-tn-muted-3">Taken at booking</p>
+              <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">
+                {t("Paid online")}
+              </p>
+              <p className="m-0 font-sans text-[12px] text-tn-muted-3">{t("Taken at booking")}</p>
             </div>
             <span className="font-sans text-[14px] font-semibold text-tn-success">
               −{formatCents(ticket.depositAppliedCents)}
@@ -213,12 +221,12 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
 
       <div className="flex flex-col gap-1.5">
         <Row
-          label="Balance due"
+          label={t("Balance due")}
           value={formatCents(ticket.subtotalCents - ticket.depositAppliedCents)}
         />
-        {ticket.taxCents > 0 && <Row label="Tax" value={formatCents(ticket.taxCents)} />}
+        {ticket.taxCents > 0 && <Row label={t("Tax")} value={formatCents(ticket.taxCents)} />}
         <Row
-          label={ticket.tipCents > 0 ? "Tip" : "Tip — not added yet"}
+          label={ticket.tipCents > 0 ? t("Tip") : t("Tip — not added yet")}
           value={formatCents(ticket.tipCents)}
         />
       </div>
@@ -226,7 +234,7 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
       <div className="h-px bg-tn-border-soft" />
 
       <div className="flex items-baseline justify-between">
-        <span className="font-sans text-sm font-semibold text-tn-ink">Total</span>
+        <span className="font-sans text-sm font-semibold text-tn-ink">{t("Total")}</span>
         <span className="font-sans text-[24px] font-semibold text-tn-ink">
           {formatCents(ticket.totalCents)}
         </span>
@@ -235,17 +243,17 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
       {ticket.status === "paid" ? (
         <div className="flex flex-col gap-3">
           <p className="m-0 rounded-lg bg-tn-success-bg px-3 py-2.5 font-sans text-[13px] font-semibold text-tn-success">
-            Paid · ticket #{ticket.ticketNumber} closed
+            {t("Paid · ticket #{{ticketNumber}} closed", { ticketNumber: ticket.ticketNumber })}
           </p>
           {ticket.tipShares.length > 0 && (
             <div className="flex flex-col gap-1.5">
               <p className="m-0 font-sans text-[12px] font-semibold tracking-[0.1em] text-tn-muted-5">
-                TIP WENT TO
+                {t("TIP WENT TO")}
               </p>
               {ticket.tipShares.map((share) => (
                 <div key={share.id} className="flex justify-between">
                   <span className="font-sans text-[13px] text-tn-muted-3">
-                    {share.staffName ?? "Front desk pool"}
+                    {share.staffName ?? t("Front desk pool")}
                   </span>
                   <span className="font-sans text-[13px] font-semibold text-tn-ink">
                     {formatCents(share.amountCents)}
@@ -255,14 +263,14 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
             </div>
           )}
           <Button variant="secondary" onClick={onDismiss}>
-            Next customer
+            {t("Next customer")}
           </Button>
         </div>
       ) : step === "ticket" ? (
         <div className="flex flex-col gap-2">
-          <Button onClick={() => setStep("tip")}>Add tip →</Button>
+          <Button onClick={() => setStep("tip")}>{t("Add tip →")}</Button>
           <Button variant="ghost" onClick={() => setStep("pay")}>
-            Skip the tip and take payment
+            {t("Skip the tip and take payment")}
           </Button>
           <button
             type="button"
@@ -270,7 +278,7 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
             disabled={discard.isPending}
             className="cursor-pointer border-none bg-transparent font-sans text-[12px] text-tn-muted-5 hover:underline"
           >
-            Void this ticket
+            {t("Void this ticket")}
           </button>
         </div>
       ) : step === "tip" ? (
@@ -284,7 +292,7 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
       ) : (
         <div className="flex flex-col gap-3">
           <div className="flex items-baseline justify-between">
-            <span className="font-sans text-[13px] text-tn-muted-3">Left to collect</span>
+            <span className="font-sans text-[13px] text-tn-muted-3">{t("Left to collect")}</span>
             <span className="font-sans text-[16px] font-semibold text-tn-ink">
               {formatCents(leftCents)}
             </span>
@@ -292,25 +300,27 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
 
           {ticket.tenders.length > 0 && (
             <div className="flex flex-col gap-1.5">
-              {ticket.tenders.map((t) => (
-                <div key={t.id} className="flex items-center justify-between gap-2">
+              {ticket.tenders.map((tender) => (
+                <div key={tender.id} className="flex items-center justify-between gap-2">
                   <span className="font-sans text-[13px] text-tn-muted-3">
-                    {TENDER_LABEL[t.method]}
-                    {t.cardLast4 ? ` ····${t.cardLast4}` : ""}
-                    {t.status === "pending" ? " · awaiting payment" : ""}
+                    {TENDER_LABEL[tender.method]}
+                    {tender.cardLast4 ? ` ····${tender.cardLast4}` : ""}
+                    {tender.status === "pending" ? t(" · awaiting payment") : ""}
                   </span>
                   <span className="flex items-center gap-2">
                     <span className="font-sans text-[13px] font-semibold text-tn-ink">
-                      {formatCents(t.amountCents)}
+                      {formatCents(tender.amountCents)}
                     </span>
-                    {t.method !== "deposit" && (
+                    {tender.method !== "deposit" && (
                       <button
                         type="button"
-                        onClick={() => dropTender.mutate(t.id)}
-                        aria-label={`Remove ${TENDER_LABEL[t.method]} tender`}
+                        onClick={() => dropTender.mutate(tender.id)}
+                        aria-label={t("Remove {{value}} tender", {
+                          value: TENDER_LABEL[tender.method],
+                        })}
                         className="cursor-pointer border-none bg-transparent font-sans text-[12px] text-tn-muted-5 hover:underline"
                       >
-                        remove
+                        {t("remove")}
                       </button>
                     )}
                   </span>
@@ -325,7 +335,7 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
               onClick={() => settle.mutate(pendingLink.id)}
               disabled={settle.isPending}
             >
-              Mark the payment link as paid
+              {t("Mark the payment link as paid")}
             </Button>
           )}
 
@@ -335,7 +345,7 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
                 onClick={() => tender.mutate({ method: "cash", amountCents: leftCents })}
                 disabled={tender.isPending}
               >
-                Cash · {formatCents(leftCents)}
+                {t("Cash · {{leftCents}}", { leftCents: formatCents(leftCents) })}
               </Button>
 
               <div className="flex items-center gap-2">
@@ -344,9 +354,9 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
                   onChange={(event) =>
                     setCardLast4(event.target.value.replace(/\D/g, "").slice(0, 4))
                   }
-                  placeholder="last 4"
+                  placeholder={t("last 4")}
                   inputMode="numeric"
-                  aria-label="Card last four digits"
+                  aria-label={t("Card last four digits")}
                   className="w-[74px] rounded-lg border border-tn-input-border bg-transparent px-2.5 py-2 font-sans text-[13px] text-tn-ink outline-none placeholder:text-tn-placeholder"
                 />
                 <Button
@@ -361,7 +371,7 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
                   }
                   disabled={tender.isPending}
                 >
-                  Card taken on the machine
+                  {t("Card taken on the machine")}
                 </Button>
               </div>
 
@@ -370,16 +380,16 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
                 onClick={() => tender.mutate({ method: "payment_link", amountCents: leftCents })}
                 disabled={tender.isPending}
               >
-                Send a payment link
+                {t("Send a payment link")}
               </Button>
 
               <div className="flex items-center gap-2">
                 <input
                   value={cashInput}
                   onChange={(event) => setCashInput(event.target.value)}
-                  placeholder="Part payment"
+                  placeholder={t("Part payment")}
                   inputMode="decimal"
-                  aria-label="Part payment amount"
+                  aria-label={t("Part payment amount")}
                   className="flex-1 rounded-lg border border-tn-input-border bg-transparent px-3 py-2 font-sans text-[13px] text-tn-ink outline-none placeholder:text-tn-placeholder"
                 />
                 <Button
@@ -392,17 +402,19 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
                   }}
                   disabled={tender.isPending || parseCents(cashInput) <= 0}
                 >
-                  Add cash
+                  {t("Add cash")}
                 </Button>
               </div>
             </>
           )}
 
           <Button onClick={() => close.mutate()} disabled={close.isPending || leftCents > 0}>
-            {leftCents > 0 ? `${formatCents(leftCents)} still to collect` : "Close the sale"}
+            {leftCents > 0
+              ? t("{{leftCents}} still to collect", { leftCents: formatCents(leftCents) })
+              : t("Close the sale")}
           </Button>
           <Button variant="ghost" onClick={() => setStep("tip")}>
-            ← Back to the tip
+            {t("← Back to the tip")}
           </Button>
 
           {/*
@@ -412,8 +424,9 @@ export function TicketPanel({ ticketId, locationId, onClosed, onDismiss }: Ticke
             is the moment a shop stops believing the rest of the screen.
           */}
           <p className="m-0 font-sans text-[12px] leading-relaxed text-tn-muted-5">
-            Card taps happen on your own machine or the client's phone — this records what was
-            taken. A reader integration is a separate piece of work.
+            {t(
+              "Card taps happen on your own machine or the client's phone — this records what was taken. A reader integration is a separate piece of work.",
+            )}
           </p>
         </div>
       )}

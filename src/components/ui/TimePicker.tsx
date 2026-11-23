@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAnchoredPanel } from "@/components/ui/use-anchored-panel";
+import { t } from "@/i18n";
 
 interface TimePickerProps {
   /** "HH:mm" (24-hour), or "" for no time picked yet. */
@@ -81,7 +82,12 @@ function ClockIcon() {
  * stays a plain "HH:mm" 24-hour string, same as the input it replaces —
  * no caller-visible change beyond the picker UI itself.
  */
-export function TimePicker({ value, onChange, label = "Time", className = "" }: TimePickerProps) {
+export function TimePicker({
+  value,
+  onChange,
+  label = t("Time"),
+  className = "",
+}: TimePickerProps) {
   const [open, setOpen] = useState(false);
   // Separate from `open` so the panel can stay in the DOM — and keep
   // animating — for the brief window after `open` flips false. Without
@@ -192,7 +198,7 @@ export function TimePicker({ value, onChange, label = "Time", className = "" }: 
     setOpen(false);
   }
 
-  const displayValue = parsed ? formatDisplay(parsed.hour, parsed.minute) : "Select a time";
+  const displayValue = parsed ? formatDisplay(parsed.hour, parsed.minute) : t("Select a time");
 
   return (
     <>
@@ -203,7 +209,7 @@ export function TimePicker({ value, onChange, label = "Time", className = "" }: 
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className={`flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl border bg-tn-surface px-3.5 py-3 text-left font-sans text-sm text-tn-ink outline-none ${
+        className={`flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl border bg-tn-surface px-3.5 py-3 text-start font-sans text-sm text-tn-ink outline-none ${
           open ? "border-2 border-tn-gold" : "border border-tn-input-border"
         } ${className}`}
       >

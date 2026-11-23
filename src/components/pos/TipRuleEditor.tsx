@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/auth/auth-store";
 import { ApiError } from "@/lib/http";
 import { getTipRule, posKeys, saveTipRule, type PosTipRole } from "@/lib/pos-api";
+import { t } from "@/i18n";
 
 /**
  * How the shop splits a tip. Set once, applied to every ticket.
@@ -19,15 +20,15 @@ import { getTipRule, posKeys, saveTipRule, type PosTipRole } from "@/lib/pos-api
  */
 
 const ROLES: { role: PosTipRole; label: string; hint: string }[] = [
-  { role: "chair", label: "Chair", hint: "Whoever performed the service" },
-  { role: "assist", label: "Assist", hint: "Credited on the ticket when someone assisted" },
-  { role: "desk", label: "Front desk", hint: "Pooled and shared nightly" },
+  { role: "chair", label: t("Chair"), hint: t("Whoever performed the service") },
+  { role: "assist", label: t("Assist"), hint: t("Credited on the ticket when someone assisted") },
+  { role: "desk", label: t("Front desk"), hint: t("Pooled and shared nightly") },
 ];
 
 function errorMessage(error: unknown): string | null {
   if (!error) return null;
   if (error instanceof ApiError) return error.message;
-  return "Something went wrong. Try again.";
+  return t("Something went wrong. Try again.");
 }
 
 interface TipRuleEditorProps {
@@ -103,10 +104,11 @@ export function TipRuleEditor({ open, onClose, locationId }: TipRuleEditorProps)
     <Modal open={open} onClose={dismiss} width={460}>
       <div className="flex flex-col gap-4">
         <div>
-          <h2 className="m-0 font-sans text-xl font-semibold text-tn-ink">Tip split rule</h2>
+          <h2 className="m-0 font-sans text-xl font-semibold text-tn-ink">{t("Tip split rule")}</h2>
           <p className="m-0 mt-1 font-sans text-[13px] leading-relaxed text-tn-muted-3">
-            Applied to every ticket at this branch. Tickets already closed keep the split they were
-            given.
+            {t(
+              "Applied to every ticket at this branch. Tickets already closed keep the split they were given.",
+            )}
           </p>
         </div>
 
@@ -129,8 +131,8 @@ export function TipRuleEditor({ open, onClose, locationId }: TipRuleEditorProps)
                   }));
                 }}
                 inputMode="numeric"
-                aria-label={`${label} percentage`}
-                className="w-[68px] rounded-lg border border-tn-input-border bg-transparent px-3 py-2 text-right font-sans text-[14px] font-semibold text-tn-ink outline-none"
+                aria-label={t("{{label}} percentage", { label })}
+                className="w-[68px] rounded-lg border border-tn-input-border bg-transparent px-3 py-2 text-end font-sans text-[14px] font-semibold text-tn-ink outline-none"
               />
               <span className="w-3 font-sans text-[14px] text-tn-muted-3">%</span>
             </label>
@@ -145,7 +147,7 @@ export function TipRuleEditor({ open, onClose, locationId }: TipRuleEditorProps)
           <span
             className={`font-sans text-[13px] font-medium ${balanced ? "text-tn-success" : "text-tn-danger"}`}
           >
-            {balanced ? "Adds up" : `Must add up to 100% — currently ${total}%`}
+            {balanced ? t("Adds up") : t("Must add up to 100% — currently {{total}}%", { total })}
           </span>
           <span
             className={`font-sans text-[14px] font-semibold ${balanced ? "text-tn-success" : "text-tn-danger"}`}
@@ -162,10 +164,10 @@ export function TipRuleEditor({ open, onClose, locationId }: TipRuleEditorProps)
 
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={dismiss}>
-            Cancel
+            {t("Cancel")}
           </Button>
           <Button onClick={() => save.mutate()} disabled={!balanced || save.isPending}>
-            Save rule
+            {t("Save rule")}
           </Button>
         </div>
       </div>

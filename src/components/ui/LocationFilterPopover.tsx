@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAnchoredPanel } from "@/components/ui/use-anchored-panel";
+import { t } from "@/i18n";
 
 export const ALL_LOCATIONS_VALUE = "all";
 
@@ -121,7 +122,7 @@ export function LocationFilterPopover({
   locations,
   value,
   onChange,
-  label = "Filter by location",
+  label = t("Filter by location"),
   includeAllOption = true,
 }: LocationFilterPopoverProps) {
   const [open, setOpen] = useState(false);
@@ -174,9 +175,9 @@ export function LocationFilterPopover({
 
   const selectedName =
     includeAllOption && value === ALL_LOCATIONS_VALUE
-      ? "All locations"
+      ? t("All locations")
       : (locations.find((loc) => loc.id === value)?.name ??
-        (includeAllOption ? "All locations" : "Select location"));
+        (includeAllOption ? t("All locations") : t("Select location")));
 
   function select(next: string) {
     onChange(next);
@@ -239,7 +240,7 @@ export function LocationFilterPopover({
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search"
+                  placeholder={t("Search")}
                   className="w-full border-none bg-transparent font-sans text-[14px] text-tn-ink outline-none placeholder:text-tn-muted-5"
                 />
               </div>
@@ -250,9 +251,9 @@ export function LocationFilterPopover({
                 <button
                   type="button"
                   onClick={() => select(ALL_LOCATIONS_VALUE)}
-                  className="flex w-full cursor-pointer items-center justify-between gap-3 border-none bg-transparent px-4 py-2.5 text-left font-sans text-[14px] font-medium text-tn-ink-soft hover:bg-tn-page"
+                  className="flex w-full cursor-pointer items-center justify-between gap-3 border-none bg-transparent px-4 py-2.5 text-start font-sans text-[14px] font-medium text-tn-ink-soft hover:bg-tn-page"
                 >
-                  All locations
+                  {t("All locations")}
                   {value === ALL_LOCATIONS_VALUE && (
                     <span className="text-tn-gold">
                       <CheckIcon />
@@ -266,7 +267,7 @@ export function LocationFilterPopover({
                   key={loc.id}
                   type="button"
                   onClick={() => select(loc.id)}
-                  className="flex w-full cursor-pointer items-center justify-between gap-3 border-none bg-transparent px-4 py-2.5 text-left font-sans text-[14px] font-medium text-tn-ink-soft hover:bg-tn-page"
+                  className="flex w-full cursor-pointer items-center justify-between gap-3 border-none bg-transparent px-4 py-2.5 text-start font-sans text-[14px] font-medium text-tn-ink-soft hover:bg-tn-page"
                 >
                   <span className="truncate">{loc.name}</span>
                   {value === loc.id && (
@@ -279,7 +280,7 @@ export function LocationFilterPopover({
 
               {!showAllOption && filteredLocations.length === 0 && (
                 <p className="m-0 px-4 py-3 font-sans text-[14px] text-tn-muted-5">
-                  No locations match "{query}"
+                  {t('No locations match "{{query}}"', { query })}
                 </p>
               )}
             </div>

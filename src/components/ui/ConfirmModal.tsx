@@ -1,5 +1,6 @@
 import { Modal } from "./Modal";
 import { Button } from "./Button";
+import { t } from "@/i18n";
 
 interface ConfirmModalProps {
   open: boolean;
@@ -21,7 +22,7 @@ export function ConfirmModal({
   onConfirm,
   title,
   body,
-  confirmLabel = "Confirm",
+  confirmLabel = t("Confirm"),
   confirming = false,
   danger = true,
 }: ConfirmModalProps) {
@@ -32,7 +33,7 @@ export function ConfirmModal({
         {body && <p className="m-0 font-sans text-sm leading-relaxed text-tn-muted-4">{body}</p>}
         <div className="flex gap-2.5 pt-1">
           <Button variant="secondary" className="flex-1" onClick={onClose} disabled={confirming}>
-            Cancel
+            {t("Cancel")}
           </Button>
           <Button
             variant={danger ? "danger" : "primary"}
@@ -40,7 +41,7 @@ export function ConfirmModal({
             onClick={onConfirm}
             disabled={confirming}
           >
-            {confirming ? "Working…" : confirmLabel}
+            {confirming ? t("Working…") : confirmLabel}
           </Button>
         </div>
       </div>

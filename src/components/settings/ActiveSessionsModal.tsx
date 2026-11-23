@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/auth/auth-store";
 import { ApiError } from "@/lib/http";
 import { listSessions, revokeSession, revokeOtherSessions, type Session } from "@/lib/accounts-api";
+import { t } from "@/i18n";
 
 interface ActiveSessionsModalProps {
   open: boolean;
@@ -14,41 +15,41 @@ interface ActiveSessionsModalProps {
 
 /** A rough, dependency-free "Chrome on Mac" label from a raw User-Agent string — good enough to tell sessions apart, not meant to be exhaustive. */
 function describeUserAgent(ua: string | null): string {
-  if (!ua) return "Unknown device";
+  if (!ua) return t("Unknown device");
   const browser = /Edg\//.test(ua)
-    ? "Edge"
+    ? t("Edge")
     : /OPR\//.test(ua)
-      ? "Opera"
+      ? t("Opera")
       : /Chrome\//.test(ua)
-        ? "Chrome"
+        ? t("Chrome")
         : /Firefox\//.test(ua)
-          ? "Firefox"
+          ? t("Firefox")
           : /Safari\//.test(ua)
-            ? "Safari"
-            : "Browser";
+            ? t("Safari")
+            : t("Browser");
   const os = /Mac OS X/.test(ua)
-    ? "Mac"
+    ? t("Mac")
     : /Windows/.test(ua)
-      ? "Windows"
+      ? t("Windows")
       : /Android/.test(ua)
-        ? "Android"
+        ? t("Android")
         : /iPhone|iPad|iPod/.test(ua)
           ? "iOS"
           : /Linux/.test(ua)
-            ? "Linux"
+            ? t("Linux")
             : "";
-  return os ? `${browser} on ${os}` : browser;
+  return os ? t("{{browser}} on {{os}}", { browser, os }) : browser;
 }
 
 /** session.createdAt is when this session's *current* token was minted, not when it first logged in (see accounts-api.ts's Session type) — worded as "Active", not "Signed in", to stay honest about that. */
 function describeRelativeTime(iso: string): string {
   const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
-  if (minutes < 1) return "Active just now";
-  if (minutes < 60) return `Active ${minutes}m ago`;
+  if (minutes < 1) return t("Active just now");
+  if (minutes < 60) return t("Active {{minutes}}m ago", { minutes });
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `Active ${hours}h ago`;
+  if (hours < 24) return t("Active {{hours}}h ago", { hours });
   const days = Math.round(hours / 24);
-  return `Active ${days}d ago`;
+  return t("Active {{days}}d ago", { days });
 }
 
 /**
@@ -78,7 +79,7 @@ export function ActiveSessionsModal({ open, onClose, accessToken }: ActiveSessio
       .then((result) => setSessions(result.sessions))
       .catch((err) => {
         setError(
-          err instanceof ApiError ? err.message : "Couldn't load your sessions — try again.",
+          err instanceof ApiError ? err.message : t("Couldn't load your sessions — try again."),
         );
       })
       .finally(() => setLoading(false));
@@ -106,7 +107,7 @@ export function ActiveSessionsModal({ open, onClose, accessToken }: ActiveSessio
       })
       .catch((err) => {
         setError(
-          err instanceof ApiError ? err.message : "Couldn't log out that session — try again.",
+          err instanceof ApiError ? err.message : t("Couldn't log out that session — try again."),
         );
       })
       .finally(() => setRevokingId(null));
@@ -123,7 +124,7 @@ export function ActiveSessionsModal({ open, onClose, accessToken }: ActiveSessio
       })
       .catch((err) => {
         setError(
-          err instanceof ApiError ? err.message : "Couldn't log out other sessions — try again.",
+          err instanceof ApiError ? err.message : t("Couldn't log out other sessions — try again."),
         );
       })
       .finally(() => setRevokingOthers(false));
@@ -136,19 +137,19 @@ export function ActiveSessionsModal({ open, onClose, accessToken }: ActiveSessio
     <Modal open={open} onClose={onClose} width={460}>
       <div className="flex flex-col gap-4 p-6">
         <div className="flex items-center justify-between">
-          <p className="m-0 font-sans text-lg font-semibold text-tn-ink">Active sessions</p>
+          <p className="m-0 font-sans text-lg font-semibold text-tn-ink">{t("Active sessions")}</p>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("Close")}
             className="cursor-pointer border-none bg-transparent font-sans text-[14px] font-medium text-tn-muted-1"
           >
-            Done
+            {t("Done")}
           </button>
         </div>
 
         {loading && !sessions && (
-          <p className="m-0 font-sans text-xs text-tn-muted-5">Loading your sessions…</p>
+          <p className="m-0 font-sans text-xs text-tn-muted-5">{t("Loading your sessions…")}</p>
         )}
 
         {error && (
@@ -171,7 +172,7 @@ export function ActiveSessionsModal({ open, onClose, accessToken }: ActiveSessio
                     </span>
                     {session.isCurrent && (
                       <span className="shrink-0 rounded-full bg-tn-success-bg px-1.5 py-0.5 font-sans text-[11px] font-bold tracking-wide text-tn-success">
-                        THIS DEVICE
+                        {t("THIS DEVICE")}
                       </span>
                     )}
                   </span>
@@ -185,7 +186,7 @@ export function ActiveSessionsModal({ open, onClose, accessToken }: ActiveSessio
                   disabled={anyActionInFlight}
                   className="shrink-0 cursor-pointer border-none bg-transparent p-0 font-sans text-[12px] font-medium text-tn-danger-strong disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {revokingId === session.id ? "Logging out…" : "Log out"}
+                  {revokingId === session.id ? t("Logging out…") : t("Log out")}
                 </button>
               </div>
             ))}
@@ -198,7 +199,7 @@ export function ActiveSessionsModal({ open, onClose, accessToken }: ActiveSessio
             onClick={handleRevokeOthers}
             disabled={anyActionInFlight || !refreshToken}
           >
-            {revokingOthers ? "Logging out other sessions…" : "Log out of all other sessions"}
+            {revokingOthers ? t("Logging out other sessions…") : t("Log out of all other sessions")}
           </Button>
         )}
       </div>

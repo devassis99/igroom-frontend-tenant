@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { formInputClass } from "@/components/ui/FormField";
 import { useAuthStore } from "@/auth/auth-store";
 import { retrievePlace, searchPlaces, type GeocodeResult } from "@/lib/locations-api";
+import { t } from "@/i18n";
 
 interface MapSearchFieldProps {
   /** The only output: a resolved place, used for its coordinates. */
@@ -111,7 +112,7 @@ export function MapSearchField({
       setQuery("");
       setSession(newSessionToken());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't resolve that place.");
+      setError(err instanceof Error ? err.message : t("Couldn't resolve that place."));
     } finally {
       setResolving(false);
     }
@@ -135,26 +136,26 @@ export function MapSearchField({
         onKeyDown={(e) => {
           if (e.key === "Escape") setOpen(false);
         }}
-        placeholder={placeholder ?? "Search a place, area or address to move the pin"}
+        placeholder={placeholder ?? t("Search a place, area or address to move the pin")}
         autoComplete="off"
         className={`${formInputClass} w-full`}
       />
 
       {showList && (
-        <div className="absolute top-full right-0 left-0 z-10 mt-1 overflow-hidden rounded-xl border border-tn-input-border bg-tn-surface shadow-lg">
+        <div className="absolute top-full end-0 start-0 z-10 mt-1 overflow-hidden rounded-xl border border-tn-input-border bg-tn-surface shadow-lg">
           {(suggestionsQuery.isPending || resolving) && (
             <p className="m-0 px-3.5 py-3 font-sans text-sm text-tn-muted-5">
-              {resolving ? "Locating…" : "Searching…"}
+              {resolving ? t("Locating…") : t("Searching…")}
             </p>
           )}
           {(suggestionsQuery.isError || error) && (
             <p className="m-0 px-3.5 py-3 font-sans text-sm text-tn-danger">
-              {error ?? "Search failed — drop the pin on the map by hand."}
+              {error ?? t("Search failed — drop the pin on the map by hand.")}
             </p>
           )}
           {suggestionsQuery.isSuccess && !resolving && suggestions.length === 0 && (
             <p className="m-0 px-3.5 py-3 font-sans text-sm text-tn-muted-5">
-              No matches. Keep typing, or drop the pin on the map.
+              {t("No matches. Keep typing, or drop the pin on the map.")}
             </p>
           )}
           {!resolving &&
@@ -163,7 +164,7 @@ export function MapSearchField({
                 key={suggestion.id}
                 type="button"
                 onClick={() => void choose(suggestion.id)}
-                className="block w-full cursor-pointer border-none bg-transparent px-3.5 py-2.5 text-left font-sans text-sm text-tn-ink hover:bg-tn-page"
+                className="block w-full cursor-pointer border-none bg-transparent px-3.5 py-2.5 text-start font-sans text-sm text-tn-ink hover:bg-tn-page"
               >
                 {suggestion.displayName}
               </button>

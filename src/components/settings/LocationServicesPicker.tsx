@@ -2,6 +2,7 @@ import { useQueries } from "@tanstack/react-query";
 import { useAuthStore } from "@/auth/auth-store";
 import { listServices, type Service } from "@/lib/services-api";
 import type { ServiceIdsByLocation } from "@/lib/staff-api";
+import { t } from "@/i18n";
 
 /**
  * The Services step, once both sides went many-to-many.
@@ -52,7 +53,7 @@ export function LocationServicesPicker({
   if (locations.length === 0) {
     return (
       <p className="m-0 font-sans text-sm text-tn-muted-5">
-        Pick at least one location first — services are assigned per shop.
+        {t("Pick at least one location first — services are assigned per shop.")}
       </p>
     );
   }
@@ -68,31 +69,36 @@ export function LocationServicesPicker({
             <div className="flex items-baseline justify-between gap-3">
               <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">{loc.name}</p>
               <span className="font-sans text-[12px] text-tn-muted-5">
-                {assigned.length} of {services.length} assigned
+                {t("{{length}} of {{length2}} assigned", {
+                  length: assigned.length,
+                  length2: services.length,
+                })}
               </span>
             </div>
 
             {result?.isPending && (
-              <p className="m-0 font-sans text-sm text-tn-muted-5">Loading services…</p>
+              <p className="m-0 font-sans text-sm text-tn-muted-5">{t("Loading services…")}</p>
             )}
             {result?.isError && (
               <p className="m-0 font-sans text-sm text-tn-danger">
-                Couldn&rsquo;t load this location&rsquo;s services.
+                {t("Couldn’t load this location’s services.")}
               </p>
             )}
             {result?.isSuccess && services.length === 0 && (
               <p className="m-0 rounded-xl border border-dashed border-tn-border px-3.5 py-3 font-sans text-[14px] text-tn-muted-5">
-                No services are offered here yet. You can assign some once this shop has a menu.
+                {t(
+                  "No services are offered here yet. You can assign some once this shop has a menu.",
+                )}
               </p>
             )}
 
             {services.length > 0 && (
               <div className="flex max-h-64 flex-col overflow-y-auto rounded-xl border border-tn-border">
                 <div className="grid grid-cols-[2fr_1fr_1fr_0.8fr] bg-tn-table-head px-4 py-2.5 font-sans text-xs font-semibold text-tn-muted-5">
-                  <span>SERVICE</span>
-                  <span>COST</span>
-                  <span>DURATION</span>
-                  <span>ASSIGNED</span>
+                  <span>{t("SERVICE")}</span>
+                  <span>{t("COST")}</span>
+                  <span>{t("DURATION")}</span>
+                  <span>{t("ASSIGNED")}</span>
                 </div>
                 {services.map((service, i) => (
                   <label
@@ -106,7 +112,7 @@ export function LocationServicesPicker({
                       ${(service.priceCents / 100).toFixed(2)}
                     </span>
                     <span className="font-sans text-[14px] text-tn-muted-3">
-                      {service.durationMinutes} min
+                      {t("{{durationMinutes}} min", { durationMinutes: service.durationMinutes })}
                     </span>
                     <input
                       type="checkbox"

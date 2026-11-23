@@ -32,17 +32,18 @@ import {
   hasOwnBranchLink,
   publicBookingUrl,
 } from "@/lib/public-link";
+import { t } from "@/i18n";
 
 const TABS = [
-  { key: "details", label: "Details" },
-  { key: "availability", label: "Availability" },
-  { key: "staff", label: "Staff" },
-  { key: "services", label: "Services & pricing" },
-  { key: "payouts", label: "Payouts" },
+  { key: "details", label: t("Details") },
+  { key: "availability", label: t("Availability") },
+  { key: "staff", label: t("Staff") },
+  { key: "services", label: t("Services & pricing") },
+  { key: "payouts", label: t("Payouts") },
   // Last, after the takings: the gallery is the only tab that changes
   // what a stranger sees rather than how the shop runs, and it is the one
   // an owner visits once and then rarely again.
-  { key: "gallery", label: "Gallery" },
+  { key: "gallery", label: t("Gallery") },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -92,11 +93,11 @@ export function LocationDetailPanel({
                   : "bg-tn-neutral-bg text-tn-muted-5"
               }`}
             >
-              {location.status === "active" ? "ACTIVE" : "INACTIVE"}
+              {location.status === "active" ? t("ACTIVE") : t("INACTIVE")}
             </span>
             {location.isPrimary && (
               <span className="rounded-full bg-tn-gold-bg px-2.5 py-0.5 font-sans text-[11px] font-semibold tracking-[0.04em] text-tn-gold">
-                PRIMARY
+                {t("PRIMARY")}
               </span>
             )}
           </div>
@@ -222,7 +223,7 @@ function DetailsTab({
       onSaved();
     },
     onError: (err: unknown) =>
-      setError(err instanceof Error ? err.message : "Couldn't save this location"),
+      setError(err instanceof Error ? err.message : t("Couldn't save this location")),
   });
 
   /**
@@ -273,11 +274,11 @@ function DetailsTab({
    */
   function useMyLocation() {
     if (!("geolocation" in navigator)) {
-      setError("This browser can't share a location — drop the pin by hand instead.");
+      setError(t("This browser can't share a location — drop the pin by hand instead."));
       return;
     }
     if (!window.isSecureContext) {
-      setError("Location sharing needs a secure (https) connection — drop the pin by hand.");
+      setError(t("Location sharing needs a secure (https) connection — drop the pin by hand."));
       return;
     }
     setGeolocating(true);
@@ -291,12 +292,14 @@ function DetailsTab({
         setGeolocating(false);
         if (geoError.code === geoError.PERMISSION_DENIED) {
           setError(
-            "Location access was blocked. Allow it in your browser's site settings, or drop the pin by hand.",
+            t(
+              "Location access was blocked. Allow it in your browser's site settings, or drop the pin by hand.",
+            ),
           );
         } else if (geoError.code === geoError.TIMEOUT) {
-          setError("Locating took too long — try again, or drop the pin by hand.");
+          setError(t("Locating took too long — try again, or drop the pin by hand."));
         } else {
-          setError("Couldn't determine your location — drop the pin by hand.");
+          setError(t("Couldn't determine your location — drop the pin by hand."));
         }
       },
       { enableHighAccuracy: true, timeout: 10_000, maximumAge: 0 },
@@ -315,9 +318,12 @@ function DetailsTab({
   const saveHint = !canManage
     ? null
     : missingForSave.length > 0
-      ? `To save, add ${missingForSave.join(" and ")}${isPhoneValid(phone) ? "" : " and fix the phone number"}.`
+      ? t("To save, add {{join}}{{value}}.", {
+          join: missingForSave.join(" and "),
+          value: isPhoneValid(phone) ? "" : t(" and fix the phone number"),
+        })
       : !isPhoneValid(phone)
-        ? "To save, fix the phone number — it doesn't look right for the selected country."
+        ? t("To save, fix the phone number — it doesn't look right for the selected country.")
         : null;
   const bookingUrl = branchBookingUrl(accountSlug, location);
   const shopUrl = publicBookingUrl(accountSlug);
@@ -328,7 +334,7 @@ function DetailsTab({
         <div className="flex items-center justify-end gap-3">
           {saveHint && <span className="font-sans text-xs text-tn-gold">{saveHint}</span>}
           <Button onClick={() => save.mutate()} disabled={!canSave || save.isPending}>
-            {save.isPending ? "Saving…" : "Save changes"}
+            {save.isPending ? t("Saving…") : t("Save changes")}
           </Button>
         </div>
       )}
@@ -340,7 +346,7 @@ function DetailsTab({
         <div className="tn-form-panel flex min-w-[320px] flex-1 flex-col gap-4 rounded-2xl border border-tn-border p-6">
           <div className="flex flex-wrap gap-4">
             <div className="min-w-[180px] flex-1">
-              <Field label="NAME">
+              <Field label={t("NAME")}>
                 <input
                   type="text"
                   value={name}
@@ -351,7 +357,7 @@ function DetailsTab({
               </Field>
             </div>
             <div className="min-w-[180px] flex-1">
-              <Field label="PHONE">
+              <Field label={t("PHONE")}>
                 <PhoneInput value={phone} onChange={setPhone} />
               </Field>
             </div>
@@ -362,25 +368,26 @@ function DetailsTab({
             customer reads; the search box below only moves the pin.
           */}
           <div className="flex flex-col gap-1">
-            <Field label="ADDRESS">
+            <Field label={t("ADDRESS")}>
               <input
                 type="text"
                 value={address}
                 disabled={!canManage}
-                placeholder="Street address customers will come to"
+                placeholder={t("Street address customers will come to")}
                 onChange={(e) => setAddress(e.target.value)}
                 className={formInputClass}
               />
             </Field>
             {!address.trim() && (
               <p className="m-0 font-sans text-[12px] text-tn-gold">
-                Needed to save — it&rsquo;s shown on your booking page. Type it, or search the map
-                or move the pin below and it fills in.
+                {t(
+                  "Needed to save — it’s shown on your booking page. Type it, or search the map or move the pin below and it fills in.",
+                )}
               </p>
             )}
           </div>
 
-          <Field label="FIND ON MAP">
+          <Field label={t("FIND ON MAP")}>
             <MapSearchField
               onSelect={onSearchSelected}
               disabled={!canManage}
@@ -395,7 +402,7 @@ function DetailsTab({
           {pinAddress && pinAddress !== address && (
             <div className="flex items-center gap-2 rounded-lg bg-tn-page px-3 py-2">
               <span className="flex-1 font-sans text-xs text-tn-muted-4">
-                Nearest address here: {pinAddress}
+                {t("Nearest address here: {{pinAddress}}", { pinAddress })}
               </span>
               <Button
                 variant="secondary"
@@ -407,14 +414,16 @@ function DetailsTab({
                   setPinAddress(null);
                 }}
               >
-                Use it
+                {t("Use it")}
               </Button>
             </div>
           )}
 
           <div className="flex items-center justify-between gap-3">
             <span className="font-sans text-xs text-tn-muted-5">
-              Click the map or drag the pin to move it. The address above stays as you wrote it.
+              {t(
+                "Click the map or drag the pin to move it. The address above stays as you wrote it.",
+              )}
             </span>
             <Button
               variant="secondary"
@@ -423,7 +432,7 @@ function DetailsTab({
               onClick={useMyLocation}
               disabled={!canManage || geolocating}
             >
-              {geolocating ? "Locating…" : "◎ Use my location"}
+              {geolocating ? t("Locating…") : t("◎ Use my location")}
             </Button>
           </div>
 
@@ -434,11 +443,11 @@ function DetailsTab({
                 flashTimezone ? "ring-2 ring-tn-gold ring-offset-4 ring-offset-tn-surface" : ""
               }`}
             >
-              <Field label="TIMEZONE">
+              <Field label={t("TIMEZONE")}>
                 <TimezonePicker
                   value={timezone}
                   onChange={setTimezone}
-                  placeholder="Not set — bookings read in UTC"
+                  placeholder={t("Not set — bookings read in UTC")}
                   // Sized to sit level with BRANCH STATUS beside it and
                   // the NAME/ADDRESS inputs above — the default trigger is
                   // the compact chip from the availability header.
@@ -457,18 +466,18 @@ function DetailsTab({
                * branch being open rather than one channel of it, with
                * the reach spelled out underneath.
                */}
-              <Field label="BRANCH STATUS">
+              <Field label={t("BRANCH STATUS")}>
                 <div
                   className={`flex items-center justify-between gap-3 rounded-xl border border-tn-input-border bg-tn-surface px-3.5 py-2.5 ${formControlHeightClass}`}
                 >
                   <span className="font-sans text-sm text-tn-ink">
-                    {active ? "Open" : "Closed"}
+                    {active ? t("Open") : t("Closed")}
                   </span>
                   <button
                     type="button"
                     role="switch"
                     aria-checked={active}
-                    aria-label="Branch open"
+                    aria-label={t("Branch open")}
                     disabled={!canManage || location.isPrimary}
                     onClick={() => setActive((v) => !v)}
                     className={`relative h-[22px] w-9 flex-none cursor-pointer rounded-full border-none transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
@@ -476,7 +485,7 @@ function DetailsTab({
                     }`}
                   >
                     <span
-                      className={`absolute top-0.5 left-0.5 h-[18px] w-[18px] rounded-full bg-tn-surface transition-transform ${
+                      className={`absolute top-0.5 start-0.5 h-[18px] w-[18px] rounded-full bg-tn-surface transition-transform ${
                         active ? "translate-x-[14px]" : "translate-x-0"
                       }`}
                     />
@@ -485,10 +494,12 @@ function DetailsTab({
               </Field>
               <p className="m-0 pt-1 font-sans text-[12px] leading-relaxed text-tn-muted-5">
                 {location.isPrimary
-                  ? "Your primary location is always open — it's the one every booking falls back to."
+                  ? t(
+                      "Your primary location is always open — it's the one every booking falls back to.",
+                    )
                   : active
-                    ? "Open: this branch takes bookings from its link and appears in search."
-                    : "Closed: its booking link won't open and it's hidden from search."}
+                    ? t("Open: this branch takes bookings from its link and appears in search.")
+                    : t("Closed: its booking link won't open and it's hidden from search.")}
               </p>
             </div>
           </div>
@@ -499,29 +510,29 @@ function DetailsTab({
         <div className="flex w-full max-w-[280px] flex-col gap-3">
           <div className="flex flex-col gap-3 rounded-2xl border border-tn-border bg-tn-surface px-4 py-3.5">
             <p className="m-0 font-sans text-xs font-semibold text-tn-ink">
-              Today at {location.name}
+              {t("Today at {{name}}", { name: location.name })}
             </p>
             <div className="flex gap-4">
               {/* An em dash where a figure would be: this branch isn't one
                   the caller runs, so its takings were never sent. */}
               <Figure
                 value={location.bookingsToday === null ? "—" : String(location.bookingsToday)}
-                label="Bookings"
+                label={t("Bookings")}
               />
               <Figure
                 value={
                   location.revenueTodayCents === null ? "—" : money(location.revenueTodayCents)
                 }
-                label="Revenue"
+                label={t("Revenue")}
               />
-              <Figure value={String(location.staffCount)} label="Staff" />
+              <Figure value={String(location.staffCount)} label={t("Staff")} />
             </div>
             <p className="m-0 font-sans text-[12px] text-tn-faint">
               {location.slotsCapacity === null || location.slotsBooked === null
-                ? "Today's figures are only shown for locations you manage"
+                ? t("Today's figures are only shown for locations you manage")
                 : location.slotsCapacity > 0
                   ? `${location.slotsBooked} of ${location.slotsCapacity} half-hour slots booked`
-                  : "No working hours set — nothing is bookable here yet"}
+                  : t("No working hours set — nothing is bookable here yet")}
             </p>
           </div>
 
@@ -602,12 +613,12 @@ function OnlineDepositCard({
       onSaved();
     },
     onError: (err: unknown) =>
-      setError(err instanceof Error ? err.message : "Couldn’t save that — try again."),
+      setError(err instanceof Error ? err.message : t("Couldn’t save that — try again.")),
   });
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-tn-border bg-tn-surface px-4 py-3.5">
-      <p className="m-0 font-sans text-xs font-semibold text-tn-ink">Online bookings</p>
+      <p className="m-0 font-sans text-xs font-semibold text-tn-ink">{t("Online bookings")}</p>
       {/* Toggle brings its own label row, so the consequence goes
           underneath rather than inside it — and it is written as what
           actually happens, not as the setting's name repeated. */}
@@ -615,12 +626,12 @@ function OnlineDepositCard({
         checked={location.requireDepositOnline}
         disabled={!canManage || save.isPending}
         onChange={(next) => save.mutate(next)}
-        label="Ask for a deposit"
+        label={t("Ask for a deposit")}
       />
       <p className="m-0 font-sans text-[12px] leading-relaxed text-tn-muted-5">
         {location.requireDepositOnline
-          ? "A card is taken before the slot is held. Fewer no-shows — and fewer bookings."
-          : "Customers book with a name and a number, and pay at the shop."}
+          ? t("A card is taken before the slot is held. Fewer no-shows — and fewer bookings.")
+          : t("Customers book with a name and a number, and pay at the shop.")}
       </p>
       {error && <p className="m-0 font-sans text-[12px] text-tn-danger">{error}</p>}
     </div>
@@ -731,13 +742,14 @@ function BookingLinkCard({
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-tn-border bg-tn-surface px-4 py-3.5">
       <div className="flex flex-col gap-1">
-        <p className="m-0 font-sans text-xs font-semibold text-tn-ink">Booking link &amp; QR</p>
+        <p className="m-0 font-sans text-xs font-semibold text-tn-ink">{t("Booking link & QR")}</p>
         {/* Said plainly, because this is the one thing on the page an
             owner is meant to take somewhere else — into an Instagram
             bio, a Google listing, a WhatsApp reply. */}
         <p className="m-0 font-sans text-[12px] leading-relaxed text-tn-muted-5">
-          Paste this anywhere customers find you. It opens your shop&rsquo;s booking page — no app
-          and no account needed.
+          {t(
+            "Paste this anywhere customers find you. It opens your shop’s booking page — no app and no account needed.",
+          )}
         </p>
       </div>
 
@@ -757,20 +769,29 @@ function BookingLinkCard({
       {!open && (
         <div className="flex flex-col gap-1.5 rounded-xl border border-tn-border-soft bg-tn-page px-3 py-2.5">
           <p className="m-0 font-sans text-xs font-semibold text-tn-ink">
-            This link won&rsquo;t open
+            {t("This link won’t open")}
           </p>
           <p className="m-0 font-sans text-[12px] leading-relaxed text-tn-muted-5">
-            {location.name} is closed, so its page answers nothing and it stays out of search.
-            {canManage
-              ? " Set BRANCH STATUS to Open on the left when its services and hours are ready."
-              : " An owner or manager can reopen it."}
+            {t(
+              "{{name}} is closed, so its page answers nothing and it stays out of search.{{value}}",
+              {
+                name: location.name,
+                value: canManage
+                  ? t(
+                      " Set BRANCH STATUS to Open on the left when its services and hours are ready.",
+                    )
+                  : t(" An owner or manager can reopen it."),
+              },
+            )}
           </p>
         </div>
       )}
       {url === null ? (
         <p className="m-0 font-sans text-[12px] leading-relaxed text-tn-muted-5">
-          No public booking site is configured yet, so there&rsquo;s nothing for a link or a code to
-          point at. Set <code className="font-mono text-[11px]">VITE_BOOKING_BASE_URL</code>.
+          {t(
+            "No public booking site is configured yet, so there’s nothing for a link or a code to point at. Set",
+          )}{" "}
+          <code className="font-mono text-[11px]">VITE_BOOKING_BASE_URL</code>.
         </p>
       ) : (
         <>
@@ -793,10 +814,10 @@ function BookingLinkCard({
               size="sm"
               onClick={copy}
               disabled={locked}
-              title={locked ? "Finish setup to share this link" : undefined}
+              title={locked ? t("Finish setup to share this link") : undefined}
               className="w-full"
             >
-              {copied ? "Copied" : "Copy link"}
+              {copied ? t("Copied") : t("Copy link")}
             </Button>
           </div>
 
@@ -808,13 +829,13 @@ function BookingLinkCard({
               the link above is the one that says which door it opens. */}
           {!locked && hasOwnBranchLink(location) && shopUrl ? (
             <p className="m-0 font-sans text-[12px] leading-relaxed text-tn-muted-5">
-              This link opens {location.name} directly.{" "}
+              {t("This link opens {{name}} directly.", { name: location.name })}{" "}
               <span className="font-semibold text-tn-ink-soft">
                 <WrappingUrl url={shopUrl} />
               </span>{" "}
               {shopLinkOpensBranch(location)
-                ? "is the short version of it — the one to put on a poster."
-                : "opens your main branch."}
+                ? t("is the short version of it — the one to put on a poster.")
+                : t("opens your main branch.")}
             </p>
           ) : null}
 
@@ -834,10 +855,15 @@ function BookingLinkCard({
                 <WrappingUrl url={shopUrl} />
               </span>{" "}
               {liveBranchCount === 0
-                ? "opens nothing at the moment — no branch is taking bookings from its link."
+                ? t("opens nothing at the moment — no branch is taking bookings from its link.")
                 : liveBranchCount === 1
-                  ? "goes straight to the one branch that’s live. Switch on a second and it becomes a “choose a shop” page."
-                  : `shows a “choose a shop” page — ${liveBranchCount} branches are live on it.`}
+                  ? t(
+                      "goes straight to the one branch that’s live. Switch on a second and it becomes a “choose a shop” page.",
+                    )
+                  : t(
+                      "shows a “choose a shop” page — {{liveBranchCount}} branches are live on it.",
+                      { liveBranchCount },
+                    )}
             </p>
           ) : null}
 
@@ -845,14 +871,14 @@ function BookingLinkCard({
               printed on a card at the till. */}
           {locked && (
             <div className="flex h-[156px] w-[156px] items-center justify-center self-center rounded-xl border border-dashed border-tn-border px-4 text-center font-sans text-[11px] leading-snug text-tn-faint">
-              Your QR code appears here once setup is done
+              {t("Your QR code appears here once setup is done")}
             </div>
           )}
           {svg && !locked && (
             <div className="self-center rounded-xl border border-tn-border-soft bg-white p-3">
               <div
                 className="h-[132px] w-[132px] [&>svg]:h-full [&>svg]:w-full"
-                aria-label={`Booking QR code for ${location.name}`}
+                aria-label={t("Booking QR code for {{name}}", { name: location.name })}
                 // The library returns a complete, self-contained <svg> string.
                 dangerouslySetInnerHTML={{ __html: svg }}
               />
@@ -864,10 +890,10 @@ function BookingLinkCard({
                 variant="secondary"
                 size="sm"
                 disabled
-                title="Finish setup to open this page"
+                title={t("Finish setup to open this page")}
                 className="flex-1"
               >
-                Open page
+                {t("Open page")}
               </Button>
             ) : (
               <a
@@ -876,7 +902,7 @@ function BookingLinkCard({
                 rel="noreferrer"
                 className="flex-1 rounded-lg border border-tn-input-border bg-tn-surface px-3.5 py-2 text-center font-sans text-xs font-semibold text-tn-ink-soft no-underline hover:bg-tn-page"
               >
-                Open page
+                {t("Open page")}
               </a>
             )}
             <Button
@@ -884,10 +910,10 @@ function BookingLinkCard({
               size="sm"
               onClick={download}
               disabled={locked || !svg}
-              title={locked ? "Finish setup to download the QR code" : undefined}
+              title={locked ? t("Finish setup to download the QR code") : undefined}
               className="flex-1"
             >
-              Download QR
+              {t("Download QR")}
             </Button>
           </div>
         </>

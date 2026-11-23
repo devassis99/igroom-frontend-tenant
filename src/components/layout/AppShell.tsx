@@ -8,6 +8,7 @@ import { TourProvider } from "@/tour";
 import { AccountMenu } from "./AccountMenu";
 import { WhatsNewDrawer } from "./WhatsNewDrawer";
 import { LogoMark, Wordmark } from "@/components/brand/Logo";
+import { t } from "@/i18n";
 
 type NavIconComponent = (props: { className?: string }) => ReactNode;
 
@@ -46,7 +47,7 @@ const NAV_BANDS: Array<
     // HomePage.tsx's comment on why the mockup's single T6 Owner Dashboard
     // frame is now split into this (onboarding/welcome) and Analytics
     // (reporting) below.
-    { to: "/dashboard", label: "Home", icon: HomeIcon },
+    { to: "/dashboard", label: t("Home"), icon: HomeIcon },
   ],
   [
     // The shift, in the order a visit happens: they arrive, they sit,
@@ -57,10 +58,15 @@ const NAV_BANDS: Array<
     // these two are a *sequence*: same person, same money, minutes apart.
     // Filed under reporting it reads as something you look at instead of
     // something you do before locking up.
-    { to: "/calendar", label: "Calendar", icon: CalendarIcon, permission: "bookings.view" },
-    { to: "/waitlist", label: "Waitlist", icon: WaitlistIcon, permission: "bookings.view" },
-    { to: "/register", label: "Register", icon: RegisterIcon, permission: "pos.register" },
-    { to: "/close-of-day", label: "Close of day", icon: CloseOfDayIcon, permission: "pos.close" },
+    { to: "/calendar", label: t("Calendar"), icon: CalendarIcon, permission: "bookings.view" },
+    { to: "/waitlist", label: t("Waitlist"), icon: WaitlistIcon, permission: "bookings.view" },
+    { to: "/register", label: t("Register"), icon: RegisterIcon, permission: "pos.register" },
+    {
+      to: "/close-of-day",
+      label: t("Close of day"),
+      icon: CloseOfDayIcon,
+      permission: "pos.close",
+    },
   ],
   [
     // The business. Customers outranks Analytics because a front desk
@@ -72,9 +78,9 @@ const NAV_BANDS: Array<
     // under a register, "Payments" read as "where the takings live",
     // which is Register's job. It is also the opposite direction from
     // Settings > Billing, the shop's own subscription to iGroom.
-    { to: "/customers", label: "Customers", icon: CustomersIcon, permission: "customers.view" },
-    { to: "/analytics", label: "Analytics", icon: AnalyticsIcon, permission: "bookings.view" },
-    { to: "/payouts", label: "Payouts", icon: PaymentsIcon, permission: "billing.view" },
+    { to: "/customers", label: t("Customers"), icon: CustomersIcon, permission: "customers.view" },
+    { to: "/analytics", label: t("Analytics"), icon: AnalyticsIcon, permission: "bookings.view" },
+    { to: "/payouts", label: t("Payouts"), icon: PaymentsIcon, permission: "billing.view" },
   ],
   [
     // Setup. Menus change with the season, people come and go, branches
@@ -84,9 +90,9 @@ const NAV_BANDS: Array<
     // something an owner works *in* all day (rosters, menus, takings per
     // site), not a configure-once account setting, and burying it two
     // navs deep made every "which branch?" question a detour.
-    { to: "/services", label: "Services", icon: ServicesIcon, permission: "services.view" },
-    { to: "/staff", label: "Staff", icon: StaffIcon, permission: "staff.view" },
-    { to: "/locations", label: "Locations", icon: LocationsIcon, permission: "locations.view" },
+    { to: "/services", label: t("Services"), icon: ServicesIcon, permission: "services.view" },
+    { to: "/staff", label: t("Staff"), icon: StaffIcon, permission: "staff.view" },
+    { to: "/locations", label: t("Locations"), icon: LocationsIcon, permission: "locations.view" },
   ],
 ];
 /** Till drawer for the Register — a rectangle with a handle, not a card, since the register is the whole sale and not only the card part. */
@@ -423,7 +429,7 @@ export function AppShell() {
           is a near-white cream, so without the line the two would run
           together. */}
       <aside
-        className={`relative flex ${collapsed ? "w-[76px]" : "w-[220px]"} shrink-0 flex-col overflow-y-auto overflow-x-hidden border-r border-tn-border bg-white py-6 transition-[width] duration-300 ease-in-out`}
+        className={`relative flex ${collapsed ? "w-[76px]" : "w-[220px]"} shrink-0 flex-col overflow-y-auto overflow-x-hidden border-e border-tn-border bg-white py-6 transition-[width] duration-300 ease-in-out`}
       >
         <div className="mb-3.5 flex items-center justify-between px-6">
           <CollapsibleLabel collapsed={collapsed} className="flex">
@@ -432,8 +438,8 @@ export function AppShell() {
           <button
             type="button"
             onClick={toggleCollapsed}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? t("Expand sidebar") : t("Collapse sidebar")}
+            aria-label={collapsed ? t("Expand sidebar") : t("Collapse sidebar")}
             className="group relative flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md border-none bg-transparent text-tn-muted-5 transition-colors duration-150 hover:bg-tn-page hover:text-tn-ink"
           >
             {collapsed ? (
@@ -514,8 +520,8 @@ export function AppShell() {
           ref={whatsNewTriggerRef}
           type="button"
           onClick={() => setWhatsNewOpen((v) => !v)}
-          title={collapsed ? "What's New" : undefined}
-          className="flex cursor-pointer items-center gap-2.5 border-none bg-transparent px-6 pb-4 text-left"
+          title={collapsed ? t("What's New") : undefined}
+          className="flex cursor-pointer items-center gap-2.5 border-none bg-transparent px-6 pb-4 text-start"
         >
           <span className="font-sans text-base text-tn-gold" aria-hidden>
             ✨
@@ -524,7 +530,7 @@ export function AppShell() {
             collapsed={collapsed}
             className="font-sans text-[14px] font-medium text-tn-nav-inactive"
           >
-            What&rsquo;s New
+            {t("What’s New")}
           </CollapsibleLabel>
         </button>
 
@@ -532,25 +538,25 @@ export function AppShell() {
           <button
             type="button"
             onClick={() => setIntegrationsOpen(true)}
-            title={collapsed ? "Integrations" : undefined}
+            title={collapsed ? t("Integrations") : undefined}
             className={`flex items-center justify-between px-6 py-[11px] font-sans text-[14px] ${
               integrationsOpen ? NAV_ACTIVE_CLASS : "font-medium text-tn-nav-inactive"
             }`}
           >
             <span className="flex items-center gap-3">
               <IntegrationsIcon className="h-[18px] w-[18px] shrink-0" />
-              <CollapsibleLabel collapsed={collapsed}>Integrations</CollapsibleLabel>
+              <CollapsibleLabel collapsed={collapsed}>{t("Integrations")}</CollapsibleLabel>
             </span>
             <CollapsibleLabel collapsed={collapsed}>
               <span className="rounded-full bg-tn-gold-bg px-[7px] py-0.5 font-sans text-[11px] font-semibold tracking-[0.02em] text-tn-gold">
-                BUSINESS
+                {t("BUSINESS")}
               </span>
             </CollapsibleLabel>
           </button>
 
           <NavLink
             to="/settings"
-            title={collapsed ? "Settings" : undefined}
+            title={collapsed ? t("Settings") : undefined}
             className={({ isActive }) =>
               `flex items-center gap-3 px-6 py-[11px] font-sans text-[14px] transition-colors duration-200 ${
                 isActive
@@ -560,7 +566,7 @@ export function AppShell() {
             }
           >
             <SettingsGearIcon className="h-[18px] w-[18px] shrink-0" />
-            <CollapsibleLabel collapsed={collapsed}>Settings</CollapsibleLabel>
+            <CollapsibleLabel collapsed={collapsed}>{t("Settings")}</CollapsibleLabel>
           </NavLink>
         </div>
 
@@ -569,20 +575,20 @@ export function AppShell() {
             ref={accountTriggerRef}
             type="button"
             onClick={() => setAccountMenuOpen((v) => !v)}
-            title={collapsed ? (owner?.fullName ?? "Shop owner") : undefined}
+            title={collapsed ? (owner?.fullName ?? t("Shop owner")) : undefined}
             aria-haspopup="menu"
             aria-expanded={accountMenuOpen}
-            className="flex w-full min-w-0 cursor-pointer items-center gap-2.5 border-none bg-transparent p-0 text-left"
+            className="flex w-full min-w-0 cursor-pointer items-center gap-2.5 border-none bg-transparent p-0 text-start"
           >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[oklch(90%_0.03_20)] font-sans text-xs font-semibold text-tn-ink">
               {owner?.fullName?.[0]?.toUpperCase() ?? "?"}
             </div>
             <CollapsibleLabel collapsed={collapsed} className="min-w-0">
               <p className="m-0 truncate font-sans text-xs font-semibold text-tn-ink-soft">
-                {owner?.fullName ?? "Shop owner"}
+                {owner?.fullName ?? t("Shop owner")}
               </p>
               <p className="m-0 truncate font-sans text-[12px] text-tn-muted-5">
-                {owner?.businessName ?? "Your shop"}
+                {owner?.businessName ?? t("Your shop")}
               </p>
             </CollapsibleLabel>
           </button>
@@ -623,10 +629,10 @@ export function AppShell() {
         ) : (
           <div className="flex flex-col items-start gap-2 rounded-2xl border border-tn-border bg-tn-page p-8">
             <h1 className="m-0 font-sans text-xl font-semibold text-tn-ink">
-              You don't have access to this page
+              {t("You don't have access to this page")}
             </h1>
             <p className="m-0 font-sans text-sm leading-relaxed text-tn-muted-5">
-              Your role doesn't include the{" "}
+              {t("Your role doesn't include the")}{" "}
               <code className="font-mono text-xs text-tn-muted-3">{requiredPermission}</code>{" "}
               permission. Ask whoever owns this account to grant it in Settings &gt; Staff
               Management &gt; Roles.

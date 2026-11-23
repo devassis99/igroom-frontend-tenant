@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { OtpInput } from "@/components/ui/OtpInput";
 import { ApiError } from "@/lib/http";
 import { beginMfaSetup, confirmMfaSetup, disableMfa } from "@/lib/accounts-api";
+import { t } from "@/i18n";
 
 interface TwoFactorSetupModalProps {
   open: boolean;
@@ -56,7 +57,7 @@ export function TwoFactorSetupModal({
         .then((result) => setSetup(result))
         .catch((err) => {
           setSetupError(
-            err instanceof ApiError ? err.message : "Couldn't start setup — try again.",
+            err instanceof ApiError ? err.message : t("Couldn't start setup — try again."),
           );
         })
         .finally(() => setSetupLoading(false));
@@ -89,7 +90,7 @@ export function TwoFactorSetupModal({
         return;
       })
       .catch((err) => {
-        setSubmitError(err instanceof ApiError ? err.message : "Incorrect code — try again.");
+        setSubmitError(err instanceof ApiError ? err.message : t("Incorrect code — try again."));
         setCode("");
       })
       .finally(() => setSubmitting(false));
@@ -99,13 +100,17 @@ export function TwoFactorSetupModal({
     <Modal open={open} onClose={onClose} width={420}>
       <div className="flex flex-col gap-5 p-6">
         <p className="m-0 font-sans text-lg font-semibold text-tn-ink">
-          {mfaEnabled ? "Turn off two-factor authentication" : "Set up two-factor authentication"}
+          {mfaEnabled
+            ? t("Turn off two-factor authentication")
+            : t("Set up two-factor authentication")}
         </p>
 
         {!mfaEnabled && (
           <>
             {setupLoading && (
-              <p className="m-0 font-sans text-xs text-tn-muted-5">Generating your QR code…</p>
+              <p className="m-0 font-sans text-xs text-tn-muted-5">
+                {t("Generating your QR code…")}
+              </p>
             )}
             {setupError && (
               <p className="m-0 rounded-lg bg-tn-danger-bg px-3 py-2 font-sans text-xs text-tn-danger">
@@ -115,16 +120,17 @@ export function TwoFactorSetupModal({
             {setup && (
               <div className="flex flex-col items-center gap-3">
                 <p className="m-0 font-sans text-xs text-tn-muted-5">
-                  Scan this with your authenticator app (Google Authenticator, Authy, 1Password,
-                  etc.)
+                  {t(
+                    "Scan this with your authenticator app (Google Authenticator, Authy, 1Password, etc.)",
+                  )}
                 </p>
                 <img
                   src={setup.qrCodeDataUrl}
-                  alt="Scan this QR code with your authenticator app"
+                  alt={t("Scan this QR code with your authenticator app")}
                   className="h-40 w-40 rounded-lg border border-tn-border-soft"
                 />
                 <p className="m-0 break-all text-center font-sans text-[12px] text-tn-muted-6">
-                  Can&rsquo;t scan? Enter this code manually: <strong>{setup.secret}</strong>
+                  {t("Can’t scan? Enter this code manually:")} <strong>{setup.secret}</strong>
                 </p>
               </div>
             )}
@@ -133,8 +139,9 @@ export function TwoFactorSetupModal({
 
         {mfaEnabled && (
           <p className="m-0 font-sans text-xs text-tn-muted-5">
-            Enter the code from your authenticator app to confirm it&rsquo;s really you before
-            turning this off.
+            {t(
+              "Enter the code from your authenticator app to confirm it’s really you before turning this off.",
+            )}
           </p>
         )}
 
@@ -153,7 +160,7 @@ export function TwoFactorSetupModal({
 
         <div className="flex gap-2.5">
           <Button variant="secondary" className="flex-1" onClick={onClose} disabled={submitting}>
-            Cancel
+            {t("Cancel")}
           </Button>
           <Button
             variant={mfaEnabled ? "danger" : "primary"}
@@ -161,7 +168,7 @@ export function TwoFactorSetupModal({
             onClick={() => submitCode(code)}
             disabled={!canSubmit}
           >
-            {submitting ? "Saving…" : mfaEnabled ? "Turn off" : "Enable"}
+            {submitting ? t("Saving…") : mfaEnabled ? t("Turn off") : t("Enable")}
           </Button>
         </div>
       </div>

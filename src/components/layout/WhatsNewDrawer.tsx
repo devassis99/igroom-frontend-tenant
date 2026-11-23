@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { WHATS_NEW } from "@/lib/sample-data";
+import { t } from "@/i18n";
 
 interface WhatsNewDrawerProps {
   open: boolean;
@@ -61,7 +62,7 @@ export function WhatsNewDrawer({ open, onClose, anchorRef }: WhatsNewDrawerProps
   return createPortal(
     <div
       ref={rootRef}
-      className="fixed z-50 flex max-h-[480px] flex-col rounded-tl-2xl rounded-tr-2xl rounded-br-2xl rounded-bl-sm border border-tn-border bg-tn-surface"
+      className="fixed z-50 flex max-h-[480px] flex-col rounded-ss-2xl rounded-se-2xl rounded-ee-2xl rounded-es-sm border border-tn-border bg-tn-surface"
       style={{
         left: position.left,
         bottom: position.bottom,
@@ -72,12 +73,12 @@ export function WhatsNewDrawer({ open, onClose, anchorRef }: WhatsNewDrawerProps
       <div className="flex items-center justify-between border-b border-tn-border-soft px-5 py-[18px]">
         <div className="flex items-center gap-2">
           <span aria-hidden>🚀</span>
-          <span className="font-sans text-base font-semibold text-tn-ink">What&rsquo;s New</span>
+          <span className="font-sans text-base font-semibold text-tn-ink">{t("What’s New")}</span>
         </div>
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t("Close")}
           className="cursor-pointer border-none bg-transparent font-sans text-base text-tn-muted-6"
         >
           &times;
@@ -88,7 +89,7 @@ export function WhatsNewDrawer({ open, onClose, anchorRef }: WhatsNewDrawerProps
         {latest && (
           <div className="flex flex-col gap-2.5 rounded-2xl border border-tn-border bg-tn-page p-4">
             <span className="flex w-fit items-center gap-1 rounded-full bg-tn-dark px-2.5 py-1 font-sans text-[12px] font-semibold text-tn-on-dark">
-              ★ Latest
+              {t("★ Latest")}
             </span>
             <div className="flex items-center gap-2.5 font-sans text-xs font-medium text-tn-muted-5">
               <span className="rounded-md border border-tn-input-border px-2 py-0.5">
@@ -105,7 +106,9 @@ export function WhatsNewDrawer({ open, onClose, anchorRef }: WhatsNewDrawerProps
 
         <div className="flex items-center gap-2.5">
           <div className="h-px flex-1 bg-tn-border-softer" />
-          <span className="font-sans text-xs font-medium text-tn-muted-6">Previous Releases</span>
+          <span className="font-sans text-xs font-medium text-tn-muted-6">
+            {t("Previous Releases")}
+          </span>
           <div className="h-px flex-1 bg-tn-border-softer" />
         </div>
 
@@ -126,7 +129,7 @@ export function WhatsNewDrawer({ open, onClose, anchorRef }: WhatsNewDrawerProps
 
       <div className="border-t border-tn-border-soft px-5 py-3.5">
         <span className="flex cursor-pointer items-center gap-1.5 font-sans text-[14px] font-semibold text-tn-ink-soft">
-          View All ↗
+          {t("View All ↗")}
         </span>
       </div>
     </div>,

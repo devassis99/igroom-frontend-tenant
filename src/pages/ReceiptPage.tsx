@@ -5,11 +5,12 @@ import { useAuthStore } from "@/auth/auth-store";
 import { Button } from "@/components/ui/Button";
 import { signup } from "@/lib/accounts-api";
 import { ApiError } from "@/lib/http";
+import { t, intlLocale } from "@/i18n";
 
 const AFTER_RECEIPT = new Set(["/signup/business", "/signup/availability"]);
 
 function formatMoney(cents: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat(intlLocale(), {
     style: "currency",
     currency: currency.toUpperCase() || "USD",
   }).format(cents / 100);
@@ -115,7 +116,8 @@ export function ReceiptPage() {
           owner: {
             fullName: onboarding.fullName,
             workEmail: onboarding.workEmail,
-            businessName: businessName || `${onboarding.fullName}'s shop`,
+            businessName:
+              businessName || t("{{fullName}}'s shop", { fullName: onboarding.fullName }),
             category: businessName ? onboarding.category : "",
             address: "",
             phone: businessName ? onboarding.phone : "",
@@ -144,7 +146,7 @@ export function ReceiptPage() {
         } else if (err instanceof Error) {
           setError({ message: err.message });
         } else {
-          setError({ message: "Something went wrong completing signup. Try again." });
+          setError({ message: t("Something went wrong completing signup. Try again.") });
         }
       }
       // onboarding is the whole store (state + stable action refs) —
@@ -161,7 +163,7 @@ export function ReceiptPage() {
           <p className="m-0 font-sans text-sm text-tn-danger">{error.message}</p>
           {error.status === 409 && (
             <Link to="/login" className="font-sans text-sm font-medium text-tn-gold underline">
-              Log in instead
+              {t("Log in instead")}
             </Link>
           )}
         </div>
@@ -173,7 +175,7 @@ export function ReceiptPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-tn-surface px-6 py-12">
         <p className="m-0 font-sans text-sm text-tn-muted-5">
-          Payment received — setting up your account…
+          {t("Payment received — setting up your account…")}
         </p>
       </div>
     );
@@ -183,7 +185,7 @@ export function ReceiptPage() {
   const invoiceNumber = effectiveSessionId
     ? `INV-${effectiveSessionId.slice(-8).toUpperCase()}`
     : "—";
-  const date = new Date().toLocaleDateString("en-US", {
+  const date = new Date().toLocaleDateString(intlLocale(), {
     month: "long",
     day: "numeric",
     year: "numeric",
@@ -191,9 +193,7 @@ export function ReceiptPage() {
 
   // A reload after the visitor already moved on (Back, or a reopened
   // invite link) continues from the step they got to.
-  const continueTo = AFTER_RECEIPT.has(onboarding.lastRoute)
-    ? onboarding.lastRoute
-    : nextRoute;
+  const continueTo = AFTER_RECEIPT.has(onboarding.lastRoute) ? onboarding.lastRoute : nextRoute;
 
   function continueSetup() {
     onboarding.setLastRoute(continueTo);
@@ -224,30 +224,33 @@ export function ReceiptPage() {
 
         <div>
           <h1 className="m-0 mb-1.5 font-sans text-[24px] font-semibold text-tn-ink">
-            Payment received, {firstName}!
+            {t("Payment received, {{firstName}}!", { firstName })}
           </h1>
           <p className="m-0 font-sans text-sm text-tn-muted-5">
-            Your iGroom account is ready. Next, a couple of quick details about your shop — then you
-            can start taking bookings.
+            {t(
+              "Your iGroom account is ready. Next, a couple of quick details about your shop — then you can start taking bookings.",
+            )}
           </p>
         </div>
 
-        <div className="flex w-full flex-col gap-3 rounded-xl border border-tn-border p-5 text-left">
+        <div className="flex w-full flex-col gap-3 rounded-xl border border-tn-border p-5 text-start">
           <div className="flex items-center justify-between">
-            <span className="font-sans text-xs text-tn-muted-5">Invoice #</span>
+            <span className="font-sans text-xs text-tn-muted-5">{t("Invoice #")}</span>
             <span className="font-sans text-xs font-medium text-tn-ink">{invoiceNumber}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="font-sans text-xs text-tn-muted-5">Date</span>
+            <span className="font-sans text-xs text-tn-muted-5">{t("Date")}</span>
             <span className="font-sans text-xs font-medium text-tn-ink">{date}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="font-sans text-xs text-tn-muted-5">Plan</span>
-            <span className="font-sans text-xs font-medium text-tn-ink">{plan.name} · 4 seats</span>
+            <span className="font-sans text-xs text-tn-muted-5">{t("Plan")}</span>
+            <span className="font-sans text-xs font-medium text-tn-ink">
+              {t("{{name}} · 4 seats", { name: plan.name })}
+            </span>
           </div>
           <div className="h-px bg-tn-border-softer" />
           <div className="flex items-center justify-between">
-            <span className="font-sans text-xs font-semibold text-tn-ink">Total paid</span>
+            <span className="font-sans text-xs font-semibold text-tn-ink">{t("Total paid")}</span>
             <span className="font-sans text-sm font-semibold text-tn-ink">
               {formatMoney(plan.priceCents, plan.currency)}
             </span>
@@ -255,15 +258,15 @@ export function ReceiptPage() {
           <button
             type="button"
             disabled
-            title="Coming soon"
+            title={t("Coming soon")}
             className="mt-1 cursor-not-allowed self-start font-sans text-xs font-medium text-tn-muted-6 underline decoration-dotted"
           >
-            Download PDF
+            {t("Download PDF")}
           </button>
         </div>
 
         <Button size="lg" className="w-full" onClick={continueSetup}>
-          Continue
+          {t("Continue")}
         </Button>
       </div>
     </div>

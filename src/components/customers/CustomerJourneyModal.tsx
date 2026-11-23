@@ -9,6 +9,7 @@ import {
   type CustomerJourneyEntry,
   type BookingStatus,
 } from "@/lib/customers-api";
+import { t, intlLocale } from "@/i18n";
 
 interface CustomerJourneyModalProps {
   /** null closes the modal — same "undefined/null open state doubles as the value" pattern as ServicesPage's ServiceModal. */
@@ -17,11 +18,11 @@ interface CustomerJourneyModalProps {
 }
 
 const STATUS_LABEL: Record<BookingStatus, string> = {
-  confirmed: "Booked",
-  walk_in: "Walk-in",
-  completed: "Completed",
-  cancelled: "Cancelled",
-  no_show: "No-show",
+  confirmed: t("Booked"),
+  walk_in: t("Walk-in"),
+  completed: t("Completed"),
+  cancelled: t("Cancelled"),
+  no_show: t("No-show"),
 };
 
 function dollars(cents: number): string {
@@ -31,9 +32,9 @@ function dollars(cents: number): string {
 function formatDate(iso: string): string {
   const date = new Date(iso);
   const now = new Date();
-  if (date.toDateString() === now.toDateString()) return "Today";
+  if (date.toDateString() === now.toDateString()) return t("Today");
   const sameYear = date.getFullYear() === now.getFullYear();
-  return date.toLocaleDateString("en-US", {
+  return date.toLocaleDateString(intlLocale(), {
     month: "short",
     day: "numeric",
     year: sameYear ? undefined : "numeric",
@@ -42,7 +43,11 @@ function formatDate(iso: string): string {
 
 function journeyDetail(entry: CustomerJourneyEntry): string {
   const price = entry.priceCents === null ? "—" : dollars(entry.priceCents);
-  return `With ${entry.staffName} · ${price} · ${STATUS_LABEL[entry.status]}`;
+  return t("With {{staffName}} · {{price}} · {{value}}", {
+    staffName: entry.staffName,
+    price,
+    value: STATUS_LABEL[entry.status],
+  });
 }
 
 /** Matches the mockup's T10d Customer Journey panel — the stats box and timeline are now real (see customers-api.ts's getCustomer), pulled from this customer's actual booking history instead of a hardcoded example. */
@@ -68,17 +73,19 @@ export function CustomerJourneyModal({ customer, onClose }: CustomerJourneyModal
             <div>
               <p className="m-0 font-sans text-lg font-semibold text-tn-ink">{detail.name}</p>
               <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
-                {detail.phone || detail.email || "No contact on file"} · Customer since{" "}
-                {new Date(detail.memberSince).toLocaleDateString("en-US", {
-                  month: "short",
-                  year: "numeric",
+                {t("{{value}} · Customer since {{localeDateString}}", {
+                  value: detail.phone || detail.email || t("No contact on file"),
+                  localeDateString: new Date(detail.memberSince).toLocaleDateString(intlLocale(), {
+                    month: "short",
+                    year: "numeric",
+                  }),
                 })}
               </p>
             </div>
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close"
+              aria-label={t("Close")}
               className="cursor-pointer border-none bg-transparent font-sans text-xl text-tn-muted-6"
             >
               &times;
@@ -95,38 +102,42 @@ export function CustomerJourneyModal({ customer, onClose }: CustomerJourneyModal
             <div className="grid grid-cols-4 gap-3 rounded-2xl border border-tn-border p-4 text-center">
               <div>
                 <p className="m-0 font-sans text-lg font-semibold text-tn-ink">{detail.visits}</p>
-                <span className="font-sans text-[12px] text-tn-muted-5">visits</span>
+                <span className="font-sans text-[12px] text-tn-muted-5">{t("visits")}</span>
               </div>
               <div>
                 <p className="m-0 font-sans text-lg font-semibold text-tn-ink">
                   {dollars(detail.lifetimeSpendCents)}
                 </p>
-                <span className="font-sans text-[12px] text-tn-muted-5">lifetime spend</span>
+                <span className="font-sans text-[12px] text-tn-muted-5">{t("lifetime spend")}</span>
               </div>
               <div>
                 <p className="m-0 font-sans text-lg font-semibold text-tn-ink">
                   {detail.avgTicketCents === null ? "—" : dollars(detail.avgTicketCents)}
                 </p>
-                <span className="font-sans text-[12px] text-tn-muted-5">avg ticket</span>
+                <span className="font-sans text-[12px] text-tn-muted-5">{t("avg ticket")}</span>
               </div>
               <div>
                 <p className="m-0 font-sans text-lg font-semibold text-tn-ink">
                   {detail.avgWeeksBetweenVisits === null
                     ? "—"
-                    : `${detail.avgWeeksBetweenVisits} wks`}
+                    : t("{{avgWeeksBetweenVisits}} wks", {
+                        avgWeeksBetweenVisits: detail.avgWeeksBetweenVisits,
+                      })}
                 </p>
-                <span className="font-sans text-[12px] text-tn-muted-5">avg between visits</span>
+                <span className="font-sans text-[12px] text-tn-muted-5">
+                  {t("avg between visits")}
+                </span>
               </div>
             </div>
 
             <div>
-              <p className="m-0 mb-3 font-sans text-sm font-semibold text-tn-ink">Journey</p>
+              <p className="m-0 mb-3 font-sans text-sm font-semibold text-tn-ink">{t("Journey")}</p>
               {detailQuery.isPending && (
-                <p className="m-0 font-sans text-[14px] text-tn-muted-5">Loading history…</p>
+                <p className="m-0 font-sans text-[14px] text-tn-muted-5">{t("Loading history…")}</p>
               )}
               {!detailQuery.isPending && journey.length === 0 && (
                 <p className="m-0 font-sans text-[14px] text-tn-muted-5">
-                  No bookings yet — this customer&rsquo;s first visit will show up here.
+                  {t("No bookings yet — this customer’s first visit will show up here.")}
                 </p>
               )}
               <div className="flex flex-col gap-4">
@@ -157,24 +168,26 @@ export function CustomerJourneyModal({ customer, onClose }: CustomerJourneyModal
                   href={`mailto:${detail.email}`}
                   className="flex flex-1 cursor-pointer items-center justify-center rounded-[10px] border border-tn-input-border bg-transparent px-[18px] py-[11px] font-sans text-[14px] font-semibold text-tn-ink-soft hover:bg-tn-page"
                 >
-                  Message
+                  {t("Message")}
                 </a>
               ) : (
                 <Button
                   variant="secondary"
                   className="flex-1"
                   disabled
-                  title="No email on file for this customer"
+                  title={t("No email on file for this customer")}
                 >
-                  Message
+                  {t("Message")}
                 </Button>
               )}
               <Button
                 className="flex-1"
                 disabled
-                title="Book from the Calendar page for now — quick-booking from here isn't wired up yet"
+                title={t(
+                  "Book from the Calendar page for now — quick-booking from here isn't wired up yet",
+                )}
               >
-                Book Appointment
+                {t("Book Appointment")}
               </Button>
             </div>
           </div>

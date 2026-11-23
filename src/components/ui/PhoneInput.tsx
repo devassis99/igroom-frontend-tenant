@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ChangeEvent } from "react";
 import { createPortal } from "react-dom";
 import { useAnchoredPanel } from "@/components/ui/use-anchored-panel";
+import { t, getLocale, intlLocale } from "@/i18n";
 
 interface PhoneInputProps {
   /** Combined "+<dial code> <national number as typed>" string (e.g. "+1 5555550182"), or "" for empty. Same plain-string shape every phone field already sends to the backend — no API change, just a richer way to produce that string. */
@@ -80,6 +81,20 @@ const COUNTRIES: CountryDef[] = [
   { iso2: "US", name: "United States", dialCode: "1", digits: [10, 10] },
   { iso2: "VN", name: "Vietnam", dialCode: "84", digits: [9, 10] },
 ];
+
+/*
+ * The list above is in English. In any other language, swap each name for
+ * the browser's own name for that country ("Brasil", "Allemagne",
+ * "مصر") and re-sort, so the picker reads and searches in the visitor's
+ * language. A browser without Intl.DisplayNames keeps the English.
+ */
+(function localizeCountryNames(list: CountryDef[]) {
+  if (getLocale().code === "en" || typeof Intl.DisplayNames !== "function") return;
+  const names = new Intl.DisplayNames([intlLocale()], { type: "region" });
+  for (const country of list) country.name = names.of(country.iso2) ?? country.name;
+  const collator = new Intl.Collator(intlLocale());
+  list.sort((a, b) => collator.compare(a.name, b.name));
+})(COUNTRIES);
 
 const DEFAULT_COUNTRY = COUNTRIES.find((c) => c.iso2 === "US")!;
 // Longest dial code first, so "+1..." doesn't shadow-match a
@@ -533,11 +548,11 @@ export function PhoneInput({
         <button
           ref={anchorRef}
           type="button"
-          aria-label="Country code"
+          aria-label={t("Country code")}
           aria-haspopup="listbox"
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
-          className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-l-xl border-none border-r border-r-tn-border-soft bg-transparent py-3 pl-3 pr-2 font-sans text-sm text-tn-ink-soft"
+          className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-s-xl border-none border-e border-e-tn-border-soft bg-transparent py-3 ps-3 pe-2 font-sans text-sm text-tn-ink-soft"
         >
           <span aria-hidden>{flagEmoji(country.iso2)}</span>
           <span>+{country.dialCode}</span>
@@ -552,13 +567,16 @@ export function PhoneInput({
           onChange={handleNationalChange}
           onBlur={() => setTouched(true)}
           placeholder={placeholder}
-          className="w-full min-w-0 flex-1 rounded-r-xl border-none bg-transparent px-3 py-3 font-sans text-sm text-tn-ink outline-none placeholder:text-tn-placeholder"
+          className="w-full min-w-0 flex-1 rounded-e-xl border-none bg-transparent px-3 py-3 font-sans text-sm text-tn-ink outline-none placeholder:text-tn-placeholder"
         />
       </div>
       {showError && (
         <p className="m-0 mt-1 font-sans text-xs text-tn-danger">
-          Doesn&rsquo;t look like a valid {country.name} number ({country.digits[0]}
-          {country.digits[1] !== country.digits[0] ? `–${country.digits[1]}` : ""} digits).
+          {t("Doesn’t look like a valid {{name}} number ({{value}}{{value2}} digits).", {
+            name: country.name,
+            value: country.digits[0],
+            value2: country.digits[1] !== country.digits[0] ? `–${country.digits[1]}` : "",
+          })}
         </p>
       )}
 
@@ -567,7 +585,7 @@ export function PhoneInput({
         createPortal(
           <div
             ref={panelRef}
-            aria-label="Country code"
+            aria-label={t("Country code")}
             className="fixed z-50 flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface"
             style={{
               top: position.top,
@@ -585,7 +603,7 @@ export function PhoneInput({
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search country or code"
+                  placeholder={t("Search country or code")}
                   className="w-full border-none bg-transparent font-sans text-[14px] text-tn-ink outline-none placeholder:text-tn-muted-5"
                 />
               </div>
@@ -597,7 +615,7 @@ export function PhoneInput({
                   key={c.iso2}
                   type="button"
                   onClick={() => selectCountry(c)}
-                  className="flex w-full cursor-pointer items-center gap-2.5 border-none bg-transparent px-4 py-2.5 text-left font-sans text-[14px] font-medium text-tn-ink-soft hover:bg-tn-page"
+                  className="flex w-full cursor-pointer items-center gap-2.5 border-none bg-transparent px-4 py-2.5 text-start font-sans text-[14px] font-medium text-tn-ink-soft hover:bg-tn-page"
                 >
                   <span aria-hidden>{flagEmoji(c.iso2)}</span>
                   <span className="min-w-0 flex-1 truncate">{c.name}</span>
@@ -607,7 +625,7 @@ export function PhoneInput({
 
               {filteredCountries.length === 0 && (
                 <p className="m-0 px-4 py-3 font-sans text-[14px] text-tn-muted-5">
-                  No countries match &ldquo;{query}&rdquo;
+                  {t("No countries match “{{query}}”", { query })}
                 </p>
               )}
             </div>

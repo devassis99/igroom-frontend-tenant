@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { useAuthStore } from "@/auth/auth-store";
 import { StepProgress } from "@/components/ui/StepProgress";
 import { getLaunchChecklistSteps } from "@/lib/launch-checklist";
+import { t } from "@/i18n";
 
 /**
  * Dashboard's "Getting Started" card — the Home-page onboarding checklist a
@@ -25,23 +26,31 @@ export function LaunchChecklistCard() {
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div className="flex max-w-md flex-col gap-2">
           <span className="w-fit rounded-full bg-tn-gold-bg px-3 py-1 font-sans text-[12px] font-semibold tracking-[0.02em] text-tn-gold">
-            Getting Started
+            {t("Getting Started")}
           </span>
           <h2 className="m-0 font-sans text-xl font-semibold text-tn-ink">
             {allDone
-              ? `${owner?.businessName ?? "Your shop"} is ready to take bookings`
-              : `Get ${owner?.businessName ?? "your shop"} ready to take bookings`}
+              ? t("{{value}} is ready to take bookings", {
+                  value: owner?.businessName ?? t("Your shop"),
+                })
+              : t("Get {{value}} ready to take bookings", {
+                  value: owner?.businessName ?? t("your shop"),
+                })}
           </h2>
           <p className="m-0 font-sans text-sm leading-relaxed text-tn-muted-4">
             {allDone
-              ? "Every setup step is done — clients can find your services, book with your team, and pay online."
-              : "Finish these steps to turn iGroom into your shop's full booking system — services, staff, payments, and reminders, all in one place."}
+              ? t(
+                  "Every setup step is done — clients can find your services, book with your team, and pay online.",
+                )
+              : t(
+                  "Finish these steps to turn iGroom into your shop's full booking system — services, staff, payments, and reminders, all in one place.",
+                )}
           </p>
         </div>
 
         <div className="flex w-full flex-col gap-2 sm:w-[200px]">
           <div className="flex items-center justify-between font-sans text-xs font-semibold text-tn-muted-5">
-            <span>Your progress</span>
+            <span>{t("Your progress")}</span>
             <span>
               {completedCount}/{steps.length}
             </span>
@@ -62,7 +71,7 @@ export function LaunchChecklistCard() {
                 type="button"
                 onClick={() => setOpenId(isOpen ? null : step.id)}
                 aria-expanded={isOpen}
-                className="flex w-full cursor-pointer items-center gap-3 border-none bg-transparent px-[18px] py-3.5 text-left"
+                className="flex w-full cursor-pointer items-center gap-3 border-none bg-transparent px-[18px] py-3.5 text-start"
               >
                 <span
                   aria-hidden
@@ -92,7 +101,7 @@ export function LaunchChecklistCard() {
               </button>
 
               {isOpen && (
-                <div className="flex items-center justify-between gap-4 py-0.5 pr-[18px] pb-4 pl-11">
+                <div className="flex items-center justify-between gap-4 py-0.5 pe-[18px] pb-4 ps-11">
                   <p className="m-0 font-sans text-xs leading-relaxed text-tn-muted-5">
                     {step.description}
                   </p>

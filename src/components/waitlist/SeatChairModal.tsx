@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { staffAvatarColorStrong } from "@/lib/staff-avatar-color";
 import type { WaitlistChair, WaitingEntry } from "@/lib/waitlist-api";
+import { t } from "@/i18n";
 
 interface SeatChairModalProps {
   entry: WaitingEntry | null;
@@ -48,12 +49,12 @@ export function SeatChairModal({
     <Modal open={entry !== null} onClose={onClose}>
       <div className="flex items-center justify-between px-6 pt-6">
         <h2 className="m-0 font-sans text-[18px] font-semibold text-tn-ink">
-          Seat {entry.customerName}
+          {t("Seat {{customerName}}", { customerName: entry.customerName })}
         </h2>
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t("Close")}
           className="cursor-pointer border-none bg-transparent font-sans text-xl text-tn-muted-6"
         >
           &times;
@@ -62,8 +63,13 @@ export function SeatChairModal({
 
       <div className="flex flex-col gap-4 px-6 pt-4 pb-6">
         <p className="m-0 font-sans text-[14px] text-tn-muted-5">
-          {entry.serviceName} · {entry.durationMinutes} min
-          {entry.staffUserId ? ` · asked for ${entry.staffName}` : " · no barber preference"}
+          {t("{{serviceName}} · {{durationMinutes}} min{{value}}", {
+            serviceName: entry.serviceName,
+            durationMinutes: entry.durationMinutes,
+            value: entry.staffUserId
+              ? t(" · asked for {{staffName}}", { staffName: entry.staffName })
+              : t(" · no barber preference"),
+          })}
         </p>
 
         <div className="flex flex-col gap-2">
@@ -73,7 +79,7 @@ export function SeatChairModal({
               type="button"
               disabled={!chair.isOpen || pending}
               onClick={() => onSeat(chair.staffUserId)}
-              className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-3 text-left ${
+              className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-3 text-start ${
                 chair.isOpen
                   ? "border-tn-input-border bg-tn-surface hover:border-tn-gold"
                   : "cursor-not-allowed border-tn-border-soft bg-tn-page opacity-60"
@@ -86,12 +92,16 @@ export function SeatChairModal({
                 </span>
                 <span className="block font-sans text-xs text-tn-muted-5">
                   {chair.isOpen
-                    ? "Open — ready for next"
-                    : `Busy with ${chair.current?.customerName ?? "a client"}`}
+                    ? t("Open — ready for next")
+                    : t("Busy with {{value}}", {
+                        value: chair.current?.customerName ?? t("a client"),
+                      })}
                 </span>
               </span>
               {chair.isOpen ? (
-                <span className="font-sans text-xs font-semibold text-tn-gold">Seat here</span>
+                <span className="font-sans text-xs font-semibold text-tn-gold">
+                  {t("Seat here")}
+                </span>
               ) : null}
             </button>
           ))}
@@ -99,8 +109,9 @@ export function SeatChairModal({
 
         {chairs.every((chair) => !chair.isOpen) ? (
           <p className="m-0 rounded-xl bg-tn-page p-3 font-sans text-xs text-tn-muted-3">
-            Every chair is busy. Seating anyway would double-book somebody — wait for one to free
-            up, or finish a visit first.
+            {t(
+              "Every chair is busy. Seating anyway would double-book somebody — wait for one to free up, or finish a visit first.",
+            )}
           </p>
         ) : null}
 
@@ -111,7 +122,7 @@ export function SeatChairModal({
         ) : null}
 
         <Button variant="secondary" onClick={onClose}>
-          Cancel
+          {t("Cancel")}
         </Button>
       </div>
     </Modal>

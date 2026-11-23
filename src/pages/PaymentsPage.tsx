@@ -1,5 +1,6 @@
 import { StatCard } from "@/components/ui/StatCard";
 import { RECENT_TRANSACTIONS } from "@/lib/sample-data";
+import { t } from "@/i18n";
 
 /**
  * Money coming *to* the shop — what is pending, where it lands, what has
@@ -15,16 +16,18 @@ export function PaymentsPage() {
   return (
     // White components on the cream page — see .tn-white-components (index.css).
     <div className="tn-white-components flex flex-col gap-7">
-      <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Payouts</h1>
+      <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">{t("Payouts")}</h1>
 
       <div data-tour="payouts-stats" className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-        <StatCard label="This week" value="$3,420" />
-        <StatCard label="Pending payout" value="$612" />
-        <StatCard label="Payout method" value="Bank ···· 4821" />
+        <StatCard label={t("This week")} value="$3,420" />
+        <StatCard label={t("Pending payout")} value="$612" />
+        <StatCard label={t("Payout method")} value="Bank ···· 4821" />
       </div>
 
       <div data-tour="payouts-transactions" className="flex flex-col gap-3">
-        <p className="m-0 font-sans text-base font-semibold text-tn-ink">Recent transactions</p>
+        <p className="m-0 font-sans text-base font-semibold text-tn-ink">
+          {t("Recent transactions")}
+        </p>
         <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface">
           {RECENT_TRANSACTIONS.map((txn, i) => (
             <div

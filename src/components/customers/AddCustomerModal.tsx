@@ -7,6 +7,7 @@ import { Toggle } from "@/components/ui/Toggle";
 import { PhoneInput, isPhoneValid } from "@/components/ui/PhoneInput";
 import { useAuthStore } from "@/auth/auth-store";
 import { createCustomer } from "@/lib/customers-api";
+import { t } from "@/i18n";
 
 interface AddCustomerModalProps {
   open: boolean;
@@ -46,7 +47,9 @@ export function AddCustomerModal({ open, onClose, onCreated }: AddCustomerModalP
       handleClose();
     },
     onError: (err) => {
-      setFormError(err instanceof Error ? err.message : "Couldn't add this customer — try again.");
+      setFormError(
+        err instanceof Error ? err.message : t("Couldn't add this customer — try again."),
+      );
     },
   });
 
@@ -62,11 +65,11 @@ export function AddCustomerModal({ open, onClose, onCreated }: AddCustomerModalP
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!name.trim()) {
-      setFormError("Give this customer a name.");
+      setFormError(t("Give this customer a name."));
       return;
     }
     if (!isPhoneValid(phone)) {
-      setFormError("That phone number doesn't look right for the selected country.");
+      setFormError(t("That phone number doesn't look right for the selected country."));
       return;
     }
     setFormError(null);
@@ -81,11 +84,11 @@ export function AddCustomerModal({ open, onClose, onCreated }: AddCustomerModalP
     <Modal open={open} onClose={handleClose} width={460} variant="sheet">
       <form onSubmit={handleSubmit}>
         <div className="flex items-center justify-between px-6 pt-6">
-          <h2 className="m-0 font-sans text-lg font-semibold text-tn-ink">Add Customer</h2>
+          <h2 className="m-0 font-sans text-lg font-semibold text-tn-ink">{t("Add Customer")}</h2>
           <button
             type="button"
             onClick={handleClose}
-            aria-label="Close"
+            aria-label={t("Close")}
             className="cursor-pointer border-none bg-transparent font-sans text-xl text-tn-muted-6"
           >
             &times;
@@ -93,19 +96,19 @@ export function AddCustomerModal({ open, onClose, onCreated }: AddCustomerModalP
         </div>
 
         <div className="flex flex-col gap-4 px-6 pb-6 pt-4">
-          <Field label="NAME">
+          <Field label={t("NAME")}>
             <input
               type="text"
-              placeholder="e.g. Jordan Rivera"
+              placeholder={t("e.g. Jordan Rivera")}
               value={name}
               onChange={(e) => setName(e.target.value)}
               className={formInputClass}
             />
           </Field>
-          <Field label="PHONE">
+          <Field label={t("PHONE")}>
             <PhoneInput value={phone} onChange={setPhone} />
           </Field>
-          <Field label="EMAIL">
+          <Field label={t("EMAIL")}>
             <input
               type="email"
               placeholder="jordan@email.com"
@@ -114,7 +117,7 @@ export function AddCustomerModal({ open, onClose, onCreated }: AddCustomerModalP
               className={formInputClass}
             />
           </Field>
-          <Toggle checked={isVip} onChange={setIsVip} label="VIP" />
+          <Toggle checked={isVip} onChange={setIsVip} label={t("VIP")} />
 
           {formError && <p className="m-0 font-sans text-sm text-tn-danger">{formError}</p>}
 
@@ -126,10 +129,10 @@ export function AddCustomerModal({ open, onClose, onCreated }: AddCustomerModalP
               onClick={handleClose}
               disabled={mutation.isPending}
             >
-              Cancel
+              {t("Cancel")}
             </Button>
             <Button type="submit" className="flex-1" disabled={mutation.isPending}>
-              {mutation.isPending ? "Adding…" : "Add Customer"}
+              {mutation.isPending ? t("Adding…") : t("Add Customer")}
             </Button>
           </div>
         </div>

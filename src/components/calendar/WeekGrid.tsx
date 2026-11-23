@@ -11,6 +11,7 @@ import {
 } from "@/lib/calendar-dates";
 import { staffAvatarColorStrong } from "@/lib/staff-avatar-color";
 import { todayIsoIn } from "@/lib/timezones";
+import { t, intlLocale } from "@/i18n";
 
 /**
  * One hour of the week, in pixels.
@@ -160,7 +161,7 @@ function hourLabel(hour: number): string {
 /** MON / 7 — the two lines in a column header. */
 function dayHeadingParts(day: Date): { weekday: string; dayNumber: string } {
   return {
-    weekday: day.toLocaleDateString(undefined, { weekday: "short" }).toUpperCase(),
+    weekday: day.toLocaleDateString(intlLocale(), { weekday: "short" }).toUpperCase(),
     dayNumber: String(day.getDate()),
   };
 }
@@ -237,7 +238,7 @@ export function WeekGrid({
           className="sticky top-0 z-20 grid border-b border-tn-border-softer bg-tn-table-head"
           style={{ gridTemplateColumns: `56px repeat(7, minmax(0, 1fr))` }}
         >
-          <div className="flex items-center justify-center border-r border-tn-border-soft p-2 text-center font-sans text-[12px] font-medium text-tn-muted-5">
+          <div className="flex items-center justify-center border-e border-tn-border-soft p-2 text-center font-sans text-[12px] font-medium text-tn-muted-5">
             {formatUtcOffset(timezone ?? "UTC")}
           </div>
           {days.map((day) => {
@@ -248,7 +249,7 @@ export function WeekGrid({
             return (
               <div
                 key={day.toDateString()}
-                className={`flex min-w-0 flex-col justify-center border-l border-tn-border-soft p-3 ${
+                className={`flex min-w-0 flex-col justify-center border-s border-tn-border-soft p-3 ${
                   isToday ? "bg-tn-gold-bg-soft" : ""
                 }`}
               >
@@ -268,7 +269,9 @@ export function WeekGrid({
                     isPast ? "text-tn-faint-2" : "text-tn-muted-5"
                   }`}
                 >
-                  {count === 0 ? "No bookings" : `${count} booking${count === 1 ? "" : "s"}`}
+                  {count === 0
+                    ? t("No bookings")
+                    : t("{{count}} booking{{value}}", { count, value: count === 1 ? "" : "s" })}
                 </span>
               </div>
             );
@@ -281,11 +284,11 @@ export function WeekGrid({
         >
           {/* The gutter. Labels sit on the line rather than inside the row
               so an appointment at 12:00 reads against the 12 PM rule. */}
-          <div className="relative border-r border-tn-border-soft">
+          <div className="relative border-e border-tn-border-soft">
             {hours.map((hour, index) => (
               <span
                 key={hour}
-                className="absolute right-2 -translate-y-1/2 font-sans text-[11px] text-tn-faint"
+                className="absolute end-2 -translate-y-1/2 font-sans text-[11px] text-tn-faint"
                 style={{ top: index * HOUR_PX + GRID_TOP_PAD }}
               >
                 {hourLabel(hour)}
@@ -306,7 +309,7 @@ export function WeekGrid({
                  shouldn't be greyed out with it. */
               <div
                 key={day.toDateString()}
-                className={`relative border-l border-tn-border-soft ${
+                className={`relative border-s border-tn-border-soft ${
                   isToday ? "bg-tn-gold-bg-soft" : ""
                 }`}
               >
@@ -332,7 +335,7 @@ export function WeekGrid({
                     className="pointer-events-none absolute inset-x-0 z-10 border-t border-tn-danger"
                     style={{ top: nowOffsetPx }}
                   >
-                    <span className="absolute -top-[3px] -left-[3px] size-1.5 rounded-full bg-tn-danger" />
+                    <span className="absolute -top-[3px] -start-[3px] size-1.5 rounded-full bg-tn-danger" />
                   </div>
                 )}
 
@@ -393,7 +396,7 @@ function StackCards({
         type="button"
         onClick={() => onSelectBooking(lead)}
         title={`${formatTimeLabel(new Date(lead.startAt), timezone)} · ${lead.customerName} · ${lead.staffName} · ${lead.serviceName}`}
-        className="absolute flex flex-col overflow-hidden rounded-lg border-l-[3px] bg-tn-surface px-1.5 py-1 text-left shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_2px_6px_rgba(0,0,0,0.10)]"
+        className="absolute flex flex-col overflow-hidden rounded-lg border-s-[3px] bg-tn-surface px-1.5 py-1 text-start shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_2px_6px_rgba(0,0,0,0.10)]"
         style={{
           top,
           height,
@@ -428,7 +431,10 @@ function StackCards({
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
-          aria-label={`${hidden} more booking${hidden === 1 ? "" : "s"} at this time`}
+          aria-label={t("{{hidden}} more booking{{value}} at this time", {
+            hidden,
+            value: hidden === 1 ? "" : "s",
+          })}
           className="absolute flex items-center justify-center rounded-lg border border-dashed border-tn-border font-sans text-[12px] font-semibold text-tn-muted-5 transition-colors hover:border-tn-ink-soft hover:text-tn-ink"
           /* Sized to the card it belongs to, not to the run.
              Stretched over the whole run, a short lead beside a long
@@ -502,7 +508,9 @@ function StackPopover({
           keep. A <section> with a label needs no role attribute at all —
           the element already is one. */}
       <section
-        aria-label={`Bookings at ${formatTimeLabel(new Date(stack.bookings[0]!.startAt), timezone)}`}
+        aria-label={t("Bookings at {{timeLabel}}", {
+          timeLabel: formatTimeLabel(new Date(stack.bookings[0]!.startAt), timezone),
+        })}
         className="fixed z-50 flex flex-col overflow-hidden rounded-xl border border-tn-border bg-tn-surface shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
         style={{
           left: position.left,
@@ -514,11 +522,11 @@ function StackPopover({
       >
         <div className="border-b border-tn-border-softer px-3 py-2">
           <span className="block font-sans text-[12px] font-semibold text-tn-ink">
-            {day.toLocaleDateString(undefined, { weekday: "short", day: "numeric" })} ·{" "}
+            {day.toLocaleDateString(intlLocale(), { weekday: "short", day: "numeric" })} ·{" "}
             {formatTimeLabel(new Date(stack.bookings[0]!.startAt), timezone)}
           </span>
           <span className="block font-sans text-[11px] text-tn-faint">
-            {stack.bookings.length} in the chair at once
+            {t("{{length}} in the chair at once", { length: stack.bookings.length })}
           </span>
         </div>
         <div className="flex-1 overflow-y-auto">
@@ -530,8 +538,12 @@ function StackPopover({
               // The row reads as a colour dot, a name and a service, none
               // of which a screen reader can assemble into "open this
               // one" — so the button says what it does.
-              aria-label={`Open ${booking.customerName}'s ${booking.serviceName} with ${booking.staffName}`}
-              className="flex w-full items-start gap-2 border-b border-tn-border-softer px-3 py-2 text-left last:border-b-0 hover:bg-tn-page"
+              aria-label={t("Open {{customerName}}'s {{serviceName}} with {{staffName}}", {
+                customerName: booking.customerName,
+                serviceName: booking.serviceName,
+                staffName: booking.staffName,
+              })}
+              className="flex w-full items-start gap-2 border-b border-tn-border-softer px-3 py-2 text-start last:border-b-0 hover:bg-tn-page"
             >
               <span
                 aria-hidden
@@ -557,9 +569,9 @@ function StackPopover({
         <button
           type="button"
           onClick={onOpenDay}
-          className="border-t border-tn-border-softer bg-tn-page px-3 py-2 text-left font-sans text-[12px] font-semibold text-tn-ink hover:bg-tn-surface"
+          className="border-t border-tn-border-softer bg-tn-page px-3 py-2 text-start font-sans text-[12px] font-semibold text-tn-ink hover:bg-tn-surface"
         >
-          Open this day →
+          {t("Open this day →")}
         </button>
       </section>
     </>,

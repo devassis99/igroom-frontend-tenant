@@ -1,4 +1,5 @@
 import type { Booking } from "./bookings-api";
+import { t } from "@/i18n";
 
 /**
  * Single source of truth for how a booking status renders across the
@@ -13,11 +14,11 @@ export const BOOKING_STATUS_TONE: Record<
   Booking["status"],
   { tone: "success" | "danger" | "neutral"; label: string }
 > = {
-  confirmed: { tone: "success", label: "Confirmed" },
-  walk_in: { tone: "neutral", label: "Walk-in" },
-  completed: { tone: "neutral", label: "Completed" },
-  cancelled: { tone: "danger", label: "Cancelled" },
-  no_show: { tone: "danger", label: "No-show" },
+  confirmed: { tone: "success", label: t("Confirmed") },
+  walk_in: { tone: "neutral", label: t("Walk-in") },
+  completed: { tone: "neutral", label: t("Completed") },
+  cancelled: { tone: "danger", label: t("Cancelled") },
+  no_show: { tone: "danger", label: t("No-show") },
 };
 
 /** Solid color for the List view's per-row left accent bar. */
@@ -31,9 +32,9 @@ export const BOOKING_STATUS_BAR: Record<Booking["status"], string> = {
 
 /** Tinted background + left border for the Day/Week grid's booking cards. */
 export const BOOKING_STATUS_BLOCK: Record<Booking["status"], string> = {
-  confirmed: "bg-tn-success-bg border-l-[3px] border-tn-success",
-  walk_in: "bg-tn-neutral-bg border-l-[3px] border-tn-faint",
-  completed: "bg-tn-neutral-bg border-l-[3px] border-tn-faint",
-  cancelled: "bg-tn-danger-bg border-l-[3px] border-tn-danger",
-  no_show: "bg-tn-danger-bg border-l-[3px] border-tn-danger",
+  confirmed: "bg-tn-success-bg border-s-[3px] border-tn-success",
+  walk_in: "bg-tn-neutral-bg border-s-[3px] border-tn-faint",
+  completed: "bg-tn-neutral-bg border-s-[3px] border-tn-faint",
+  cancelled: "bg-tn-danger-bg border-s-[3px] border-tn-danger",
+  no_show: "bg-tn-danger-bg border-s-[3px] border-tn-danger",
 };

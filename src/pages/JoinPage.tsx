@@ -5,6 +5,7 @@ import { useOnboardingStore } from "@/auth/onboarding-store";
 import { Button } from "@/components/ui/Button";
 import { getSignupLink, type SignupLink } from "@/lib/billing-api";
 import { ApiError } from "@/lib/http";
+import { t } from "@/i18n";
 
 /**
  * Where an invite link lands — `/join/<token>`, from the BO Plans page's
@@ -36,20 +37,26 @@ type DeadLinkCode = "LINK_USED" | "LINK_EXPIRED" | "LINK_DISABLED" | "PLAN_UNAVA
 
 const DEAD_LINK: Record<DeadLinkCode, { title: string; body: string }> = {
   LINK_USED: {
-    title: "This invite has already been used",
-    body: "A shop has already signed up to iGroom with this link — each invite works once. If that was you, log in. If not, ask whoever sent it for a new one.",
+    title: t("This invite has already been used"),
+    body: t(
+      "A shop has already signed up to iGroom with this link — each invite works once. If that was you, log in. If not, ask whoever sent it for a new one.",
+    ),
   },
   LINK_EXPIRED: {
-    title: "This invite has expired",
-    body: "Invite links only work for a limited time. Ask whoever sent it for a new one, or sign up and choose a plan yourself.",
+    title: t("This invite has expired"),
+    body: t(
+      "Invite links only work for a limited time. Ask whoever sent it for a new one, or sign up and choose a plan yourself.",
+    ),
   },
   LINK_DISABLED: {
-    title: "This invite has been switched off",
-    body: "Ask whoever sent it for a new one, or sign up and choose a plan yourself.",
+    title: t("This invite has been switched off"),
+    body: t("Ask whoever sent it for a new one, or sign up and choose a plan yourself."),
   },
   PLAN_UNAVAILABLE: {
-    title: "This plan isn't offered any more",
-    body: "The plan on this invite has been retired. Ask whoever sent it for a new one, or sign up and choose a plan yourself.",
+    title: t("This plan isn't offered any more"),
+    body: t(
+      "The plan on this invite has been retired. Ask whoever sent it for a new one, or sign up and choose a plan yourself.",
+    ),
   },
 };
 
@@ -126,17 +133,19 @@ export function JoinPage() {
     <div className="flex min-h-screen items-center justify-center bg-tn-surface px-6 py-12">
       <div className="flex w-[460px] max-w-full flex-col gap-[22px]">
         {(isLoading || link) && (
-          <p className="m-0 text-center font-sans text-sm text-tn-muted-5">Opening your invite…</p>
+          <p className="m-0 text-center font-sans text-sm text-tn-muted-5">
+            {t("Opening your invite…")}
+          </p>
         )}
 
         {(error || (!isLoading && !link)) && paidOnThisLink && (
           <>
             <div>
               <h1 className="m-0 mb-1.5 font-sans text-[24px] font-semibold text-tn-ink">
-                You're nearly done
+                {t("You're nearly done")}
               </h1>
               <p className="m-0 font-sans text-[14px] text-tn-muted-5">
-                Your payment went through — all that's left is setting up your shop.
+                {t("Your payment went through — all that's left is setting up your shop.")}
               </p>
             </div>
             <Button
@@ -145,7 +154,7 @@ export function JoinPage() {
                 navigate(onboarding.accountCreated ? onboarding.lastRoute : "/signup/receipt")
               }
             >
-              Finish setting up
+              {t("Finish setting up")}
             </Button>
           </>
         )}
@@ -154,27 +163,29 @@ export function JoinPage() {
           <>
             <div>
               <h1 className="m-0 mb-1.5 font-sans text-[24px] font-semibold text-tn-ink">
-                {dead?.title ?? "This link isn't working"}
+                {dead?.title ?? t("This link isn't working")}
               </h1>
               <p className="m-0 font-sans text-[14px] text-tn-muted-5">
                 {dead?.body ??
                   (error instanceof ApiError
                     ? error.message
-                    : "We couldn't load the plan on this link. Check it was copied in full, or ask whoever sent it for a new one.")}
+                    : t(
+                        "We couldn't load the plan on this link. Check it was copied in full, or ask whoever sent it for a new one.",
+                      ))}
               </p>
             </div>
             {deadCode === "LINK_USED" ? (
               <div className="flex flex-col gap-2.5">
                 <Button type="button" onClick={() => navigate("/login")}>
-                  Log in
+                  {t("Log in")}
                 </Button>
                 <Button type="button" variant="secondary" onClick={seeAllPlans}>
-                  Sign up and choose a plan
+                  {t("Sign up and choose a plan")}
                 </Button>
               </div>
             ) : (
               <Button type="button" onClick={seeAllPlans}>
-                Sign up and choose a plan
+                {t("Sign up and choose a plan")}
               </Button>
             )}
           </>

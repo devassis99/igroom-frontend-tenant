@@ -11,6 +11,7 @@ import {
   type AccountLocation,
   type LocationPhoto,
 } from "@/lib/locations-api";
+import { t } from "@/i18n";
 
 /**
  * This branch's own photographs — the room, the chairs, the light.
@@ -66,7 +67,7 @@ export function LocationGalleryTab({
       setEditing(result.photo.id);
     },
     onError: (err: unknown) =>
-      setError(err instanceof Error ? err.message : "Couldn’t add that photo"),
+      setError(err instanceof Error ? err.message : t("Couldn’t add that photo")),
   });
 
   const rename = useMutation({
@@ -77,7 +78,7 @@ export function LocationGalleryTab({
       void refresh();
     },
     onError: (err: unknown) =>
-      setError(err instanceof Error ? err.message : "Couldn’t save that caption"),
+      setError(err instanceof Error ? err.message : t("Couldn’t save that caption")),
   });
 
   const remove = useMutation({
@@ -87,27 +88,36 @@ export function LocationGalleryTab({
       void refresh();
     },
     onError: (err: unknown) =>
-      setError(err instanceof Error ? err.message : "Couldn’t remove that photo"),
+      setError(err instanceof Error ? err.message : t("Couldn’t remove that photo")),
   });
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <p className="m-0 font-sans text-sm font-semibold text-tn-ink">Gallery</p>
+          <p className="m-0 font-sans text-sm font-semibold text-tn-ink">{t("Gallery")}</p>
           <p className="m-0 font-sans text-xs text-tn-muted-5">
-            {location.name}’s own photographs. The first one leads this branch’s booking page.
+            {t("{{name}}’s own photographs. The first one leads this branch’s booking page.", {
+              name: location.name,
+            })}
           </p>
         </div>
         <span className="font-sans text-xs text-tn-muted-5">
-          {photosQuery.isPending ? "Loading…" : `${photos.length} of ${MAX_LOCATION_PHOTOS} photos`}
+          {photosQuery.isPending
+            ? t("Loading…")
+            : t("{{length}} of {{MAX_LOCATION_PHOTOS}} photos", {
+                length: photos.length,
+                MAX_LOCATION_PHOTOS,
+              })}
         </span>
       </div>
 
       {error && <p className="m-0 font-sans text-[12px] text-tn-danger">{error}</p>}
 
       {photosQuery.isError ? (
-        <p className="m-0 font-sans text-sm text-tn-danger">Couldn’t load this branch’s photos.</p>
+        <p className="m-0 font-sans text-sm text-tn-danger">
+          {t("Couldn’t load this branch’s photos.")}
+        </p>
       ) : (
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
           {photos.map((photo) => (
@@ -141,7 +151,7 @@ export function LocationGalleryTab({
               onUploaded={async (key) => {
                 await add.mutateAsync(key);
               }}
-              label="Add"
+              label={t("Add")}
               aspect="square"
               variant="tile"
               disabled={add.isPending}
@@ -152,15 +162,17 @@ export function LocationGalleryTab({
 
       {full && (
         <p className="m-0 font-sans text-xs text-tn-muted-6">
-          That’s the {MAX_LOCATION_PHOTOS}-photo limit. Remove one to add another.
+          {t("That’s the {{MAX_LOCATION_PHOTOS}}-photo limit. Remove one to add another.", {
+            MAX_LOCATION_PHOTOS,
+          })}
         </p>
       )}
 
       {!photosQuery.isPending && photos.length === 0 && (
         <p className="m-0 font-sans text-xs text-tn-muted-6">
-          With nothing here, this branch’s booking page falls back to the business cover from
-          Profile — fine for one shop, wrong for three. A photograph of this actual room does more
-          for a booking than any stock one.
+          {t(
+            "With nothing here, this branch’s booking page falls back to the business cover from Profile — fine for one shop, wrong for three. A photograph of this actual room does more for a booking than any stock one.",
+          )}
         </p>
       )}
     </div>
@@ -207,8 +219,8 @@ function PhotoTile({
           type="button"
           onClick={onRemove}
           disabled={removing}
-          aria-label="Remove this photo"
-          className="absolute top-2 right-2 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-none bg-tn-surface/90 font-sans text-[14px] leading-none text-tn-ink opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 disabled:opacity-50"
+          aria-label={t("Remove this photo")}
+          className="absolute top-2 end-2 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-none bg-tn-surface/90 font-sans text-[14px] leading-none text-tn-ink opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 disabled:opacity-50"
         >
           ×
         </button>
@@ -220,7 +232,7 @@ function PhotoTile({
             ref={inputRef}
             value={draft}
             maxLength={140}
-            placeholder="Caption (optional)"
+            placeholder={t("Caption (optional)")}
             onChange={(event) => setDraft(event.target.value)}
             onBlur={() => onCaption(draft.trim())}
             onKeyDown={(event) => {
@@ -243,7 +255,7 @@ function PhotoTile({
               photo.caption ? "text-tn-muted-3" : "text-tn-placeholder"
             } ${canManage ? "cursor-pointer" : "cursor-default"}`}
           >
-            {photo.caption ?? (canManage ? "Add a caption" : "")}
+            {photo.caption ?? (canManage ? t("Add a caption") : "")}
           </button>
         )}
       </div>

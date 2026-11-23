@@ -7,6 +7,7 @@ import { PhoneInput } from "@/components/ui/PhoneInput";
 import { useAuthStore } from "@/auth/auth-store";
 import { listLocationServices, listLocationStaff } from "@/lib/locations-api";
 import type { WaitlistBoard } from "@/lib/waitlist-api";
+import { t } from "@/i18n";
 
 interface AddWalkInModalProps {
   open: boolean;
@@ -104,11 +105,11 @@ export function AddWalkInModal({
   return (
     <Modal open={open} onClose={close}>
       <div className="flex items-center justify-between px-6 pt-6">
-        <h2 className="m-0 font-sans text-[18px] font-semibold text-tn-ink">Add Walk-in</h2>
+        <h2 className="m-0 font-sans text-[18px] font-semibold text-tn-ink">{t("Add Walk-in")}</h2>
         <button
           type="button"
           onClick={close}
-          aria-label="Close"
+          aria-label={t("Close")}
           className="cursor-pointer border-none bg-transparent font-sans text-xl text-tn-muted-6"
         >
           &times;
@@ -130,13 +131,13 @@ export function AddWalkInModal({
         }}
       >
         <p className="m-0 font-sans text-[14px] text-tn-muted-5">
-          For customers without the app — front desk adds them straight to the queue.
+          {t("For customers without the app — front desk adds them straight to the queue.")}
         </p>
 
-        <Field label="CUSTOMER NAME">
+        <Field label={t("CUSTOMER NAME")}>
           <input
             type="text"
-            placeholder="e.g. Robert Chen"
+            placeholder={t("e.g. Robert Chen")}
             value={name}
             onChange={(e) => setName(e.target.value)}
             className={formInputClass}
@@ -144,33 +145,36 @@ export function AddWalkInModal({
           />
         </Field>
 
-        <Field label="PHONE (OPTIONAL — SO THE DESK CAN CALL THEM)">
+        <Field label={t("PHONE (OPTIONAL — SO THE DESK CAN CALL THEM)")}>
           <PhoneInput value={phone} onChange={setPhone} />
         </Field>
 
-        <Field label="SERVICE">
+        <Field label={t("SERVICE")}>
           <select
             className={formSelectClass}
             value={effectiveServiceId}
             onChange={(e) => setServiceId(e.target.value)}
             disabled={servicesQuery.isPending}
           >
-            {servicesQuery.isPending ? <option>Loading…</option> : null}
+            {servicesQuery.isPending ? <option>{t("Loading…")}</option> : null}
             {services.map((service) => (
               <option key={service.serviceId} value={service.serviceId}>
-                {service.name} · {service.durationMinutes} min
+                {t("{{name}} · {{durationMinutes}} min", {
+                  name: service.name,
+                  durationMinutes: service.durationMinutes,
+                })}
               </option>
             ))}
           </select>
         </Field>
 
-        <Field label="BARBER PREFERENCE">
+        <Field label={t("BARBER PREFERENCE")}>
           <select
             className={formSelectClass}
             value={staffUserId}
             onChange={(e) => setStaffUserId(e.target.value)}
           >
-            <option value="">Any available barber</option>
+            <option value="">{t("Any available barber")}</option>
             {staff.map((member) => (
               <option key={member.id} value={member.id}>
                 {member.name}
@@ -179,10 +183,10 @@ export function AddWalkInModal({
           </select>
         </Field>
 
-        <Field label="NOTE (OPTIONAL)">
+        <Field label={t("NOTE (OPTIONAL)")}>
           <input
             type="text"
-            placeholder="e.g. wants the same as last time"
+            placeholder={t("e.g. wants the same as last time")}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             className={formInputClass}
@@ -191,14 +195,17 @@ export function AddWalkInModal({
 
         {services.length === 0 && !servicesQuery.isPending ? (
           <p className="m-0 rounded-xl bg-tn-page p-3 font-sans text-xs text-tn-muted-3">
-            This location has no bookable services yet — add some under Settings → Locations before
-            taking walk-ins.
+            {t(
+              "This location has no bookable services yet — add some under Settings → Locations before taking walk-ins.",
+            )}
           </p>
         ) : preview ? (
           <p className="m-0 flex items-center gap-2 rounded-xl bg-tn-page p-3 font-sans text-xs text-tn-muted-3">
             <span aria-hidden>ℹ</span>
-            Joins the queue at position #{preview.position} · estimated wait ~{preview.waitMinutes}{" "}
-            min
+            {t("Joins the queue at position #{{position}} · estimated wait ~{{waitMinutes}} min", {
+              position: preview.position,
+              waitMinutes: preview.waitMinutes,
+            })}
           </p>
         ) : null}
 
@@ -210,14 +217,14 @@ export function AddWalkInModal({
 
         <div className="flex gap-2.5">
           <Button variant="secondary" className="flex-1" onClick={close}>
-            Cancel
+            {t("Cancel")}
           </Button>
           <Button
             type="submit"
             className="flex-1"
             disabled={!name.trim() || !effectiveServiceId || pending}
           >
-            {pending ? "Adding…" : "Add to Waitlist"}
+            {pending ? t("Adding…") : t("Add to Waitlist")}
           </Button>
         </div>
       </form>

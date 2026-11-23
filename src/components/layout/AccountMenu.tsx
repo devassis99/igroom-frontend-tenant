@@ -8,6 +8,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import type { OwnerAccount } from "@/auth/types";
+import { t } from "@/i18n";
 
 interface AccountMenuProps {
   open: boolean;
@@ -76,7 +77,7 @@ function MenuRow({
       type="button"
       role="menuitem"
       onClick={onClick}
-      className="flex w-full cursor-pointer items-center gap-3 border-none bg-transparent px-4 py-2.5 text-left font-sans text-[14px] font-medium text-tn-ink-soft hover:bg-tn-page"
+      className="flex w-full cursor-pointer items-center gap-3 border-none bg-transparent px-4 py-2.5 text-start font-sans text-[14px] font-medium text-tn-ink-soft hover:bg-tn-page"
     >
       <span className="flex h-4 w-4 shrink-0 items-center justify-center text-tn-muted-5">
         {icon}
@@ -155,7 +156,7 @@ export function AccountMenu({
     <div
       ref={rootRef}
       role="menu"
-      aria-label="Account menu"
+      aria-label={t("Account menu")}
       className="fixed z-50 overflow-hidden rounded-2xl border border-tn-border bg-tn-surface"
       style={{
         left: position.left,
@@ -171,7 +172,7 @@ export function AccountMenu({
 
       <div className="border-t border-tn-border-soft px-4 py-3">
         <p className="m-0 mb-2 font-sans text-[11px] font-semibold tracking-[0.06em] text-tn-faint">
-          ORGANIZATION
+          {t("ORGANIZATION")}
         </p>
         <div className="flex items-center gap-2.5">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[oklch(90%_0.03_20)] font-sans text-[12px] font-semibold text-tn-ink">
@@ -184,11 +185,11 @@ export function AccountMenu({
       </div>
 
       <div className="border-t border-tn-border-soft py-1.5">
-        <MenuRow icon={<GearIcon />} label="Settings" onClick={onSettingsClick} />
+        <MenuRow icon={<GearIcon />} label={t("Settings")} onClick={onSettingsClick} />
       </div>
 
       <div className="border-t border-tn-border-soft py-1.5">
-        <MenuRow icon={<SignOutIcon />} label="Sign Out" onClick={onLogOut} />
+        <MenuRow icon={<SignOutIcon />} label={t("Sign Out")} onClick={onLogOut} />
       </div>
     </div>,
     document.body,

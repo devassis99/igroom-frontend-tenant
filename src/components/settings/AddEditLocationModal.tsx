@@ -17,6 +17,7 @@ import {
   type LocationInput,
   type GeocodeResult,
 } from "@/lib/locations-api";
+import { t } from "@/i18n";
 
 interface AddEditLocationModalProps {
   open: boolean;
@@ -143,12 +144,12 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
    */
   function handleUseMyLocation() {
     if (!("geolocation" in navigator)) {
-      setLocateError("This browser can't share a location — drop the pin by hand instead.");
+      setLocateError(t("This browser can't share a location — drop the pin by hand instead."));
       return;
     }
     if (!window.isSecureContext) {
       setLocateError(
-        "Location sharing needs a secure (https) connection — drop the pin by hand instead.",
+        t("Location sharing needs a secure (https) connection — drop the pin by hand instead."),
       );
       return;
     }
@@ -169,12 +170,14 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
         // leaves the owner with no idea which situation they're in.
         if (error.code === error.PERMISSION_DENIED) {
           setLocateError(
-            "Location access was blocked. Allow it in your browser's site settings, or drop the pin by hand.",
+            t(
+              "Location access was blocked. Allow it in your browser's site settings, or drop the pin by hand.",
+            ),
           );
         } else if (error.code === error.TIMEOUT) {
-          setLocateError("Locating took too long — try again, or drop the pin by hand.");
+          setLocateError(t("Locating took too long — try again, or drop the pin by hand."));
         } else {
-          setLocateError("Couldn't determine your location — drop the pin by hand.");
+          setLocateError(t("Couldn't determine your location — drop the pin by hand."));
         }
       },
       // maximumAge: 0 — an owner standing in a new shop must not be handed
@@ -230,18 +233,20 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
       onClose();
     },
     onError: (err) => {
-      setFormError(err instanceof Error ? err.message : "Couldn't save this location — try again.");
+      setFormError(
+        err instanceof Error ? err.message : t("Couldn't save this location — try again."),
+      );
     },
   });
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!form.name.trim() || !form.address.trim()) {
-      setFormError("A location needs at least a name and an address.");
+      setFormError(t("A location needs at least a name and an address."));
       return;
     }
     if (!isPhoneValid(form.phone ?? "")) {
-      setFormError("That phone number doesn't look right for the selected country.");
+      setFormError(t("That phone number doesn't look right for the selected country."));
       return;
     }
     setFormError(null);
@@ -256,12 +261,12 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
       <form onSubmit={handleSubmit}>
         <div className="flex items-center justify-between px-6 pt-6">
           <h2 className="m-0 font-sans text-lg font-semibold text-tn-ink">
-            {isEditing ? "Edit Location" : "Add Location"}
+            {isEditing ? t("Edit Location") : t("Add Location")}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("Close")}
             className="cursor-pointer border-none bg-transparent font-sans text-xl text-tn-muted-6"
           >
             &times;
@@ -269,12 +274,12 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
         </div>
 
         <div className="flex flex-col gap-4 px-6 pb-6 pt-4">
-          <Field label="NAME">
+          <Field label={t("NAME")}>
             <input
               type="text"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="The Gentry · North Loop"
+              placeholder={t("The Gentry · North Loop")}
               className={formInputClass}
             />
           </Field>
@@ -286,17 +291,17 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
             suggestion overwrote the owner's address with the geocoder's
             own phrasing.
           */}
-          <Field label="ADDRESS">
+          <Field label={t("ADDRESS")}>
             <input
               type="text"
               value={form.address}
               onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-              placeholder="88 Burnet Rd, Austin, TX"
+              placeholder={t("88 Burnet Rd, Austin, TX")}
               className={formInputClass}
             />
           </Field>
 
-          <Field label="LOCATION ON MAP (OPTIONAL)">
+          <Field label={t("LOCATION ON MAP (OPTIONAL)")}>
             <div className="flex flex-col gap-2">
               <MapSearchField
                 onSelect={handleSearchSelected}
@@ -312,10 +317,12 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
               <div className="flex items-center justify-between gap-2">
                 <p className="m-0 font-sans text-xs text-tn-muted-5">
                   {reversing
-                    ? "Updating address…"
+                    ? t("Updating address…")
                     : latitude != null && longitude != null
-                      ? "Click the map or drag the pin to fine-tune — the address updates to match."
-                      : "Click anywhere on the map to drop a pin."}
+                      ? t(
+                          "Click the map or drag the pin to fine-tune — the address updates to match.",
+                        )
+                      : t("Click anywhere on the map to drop a pin.")}
                 </p>
                 <Button
                   type="button"
@@ -324,15 +331,15 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
                   className="shrink-0"
                   onClick={handleUseMyLocation}
                   disabled={geolocating}
-                  title="Drop the pin where you are right now"
+                  title={t("Drop the pin where you are right now")}
                 >
-                  {geolocating ? "Locating…" : "◎ Use my location"}
+                  {geolocating ? t("Locating…") : t("◎ Use my location")}
                 </Button>
               </div>
               {pinAddress && pinAddress !== form.address && (
                 <div className="flex items-center gap-2 rounded-lg bg-tn-page px-3 py-2">
                   <span className="flex-1 font-sans text-xs text-tn-muted-4">
-                    Nearest address here: {pinAddress}
+                    {t("Nearest address here: {{pinAddress}}", { pinAddress })}
                   </span>
                   <Button
                     type="button"
@@ -344,7 +351,7 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
                       setPinAddress(null);
                     }}
                   >
-                    Use it
+                    {t("Use it")}
                   </Button>
                 </div>
               )}
@@ -352,7 +359,7 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
             </div>
           </Field>
 
-          <Field label="PHONE (OPTIONAL)">
+          <Field label={t("PHONE (OPTIONAL)")}>
             <PhoneInput
               value={form.phone ?? ""}
               onChange={(phone) => setForm((f) => ({ ...f, phone }))}
@@ -369,11 +376,11 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
             source; the API rejects bad values too, and the scheduling code
             falls back to UTC for rows written before either existed.
           */}
-          <Field label="TIMEZONE (OPTIONAL)">
+          <Field label={t("TIMEZONE (OPTIONAL)")}>
             <TimezonePicker
               value={form.timezone ?? ""}
               onChange={(timezone) => setForm((f) => ({ ...f, timezone }))}
-              placeholder="Not set — bookings read in UTC"
+              placeholder={t("Not set — bookings read in UTC")}
             />
           </Field>
 
@@ -383,11 +390,11 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
                 checked={active}
                 onChange={setActive}
                 disabled={location?.isPrimary}
-                label={location?.isPrimary ? "Active (primary location)" : "Active"}
+                label={location?.isPrimary ? t("Active (primary location)") : t("Active")}
               />
               {location?.isPrimary && (
                 <p className="m-0 pb-2.5 font-sans text-xs text-tn-muted-5">
-                  Your primary location can&rsquo;t be deactivated.
+                  {t("Your primary location can’t be deactivated.")}
                 </p>
               )}
             </div>
@@ -403,10 +410,14 @@ export function AddEditLocationModal({ open, onClose, location }: AddEditLocatio
               onClick={onClose}
               disabled={mutation.isPending}
             >
-              Cancel
+              {t("Cancel")}
             </Button>
             <Button type="submit" className="flex-1" disabled={mutation.isPending}>
-              {mutation.isPending ? "Saving…" : isEditing ? "Save Changes" : "Add Location"}
+              {mutation.isPending
+                ? t("Saving…")
+                : isEditing
+                  ? t("Save Changes")
+                  : t("Add Location")}
             </Button>
           </div>
         </div>

@@ -15,6 +15,7 @@ import { useAuthStore } from "@/auth/auth-store";
 import { usePermissions } from "@/auth/use-permissions";
 import { listLocations, type AccountLocation } from "@/lib/locations-api";
 import { listCollisions } from "@/lib/collisions-api";
+import { t } from "@/i18n";
 
 // Stable empty-array fallback — see CalendarPage.tsx's identical comment on why a fresh `[]` literal per render would defeat memoization downstream.
 const EMPTY_LOCATIONS: AccountLocation[] = [];
@@ -27,14 +28,14 @@ const EMPTY_LOCATIONS: AccountLocation[] = [];
 const TOTAL_SEATS = 8;
 
 /** Grid track widths shared by the header row and every body row, so the two can't drift apart. */
-const ROW_GRID = "minmax(180px,2fr) minmax(150px,1.6fr) 92px 132px 140px 150px";
+const ROW_GRID = t("minmax(180px,2fr) minmax(150px,1.6fr) 92px 132px 140px 150px");
 
 type Filter = "all" | "active" | "needs-setup";
 
 const FILTERS: { key: Filter; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "active", label: "Active" },
-  { key: "needs-setup", label: "Needs setup" },
+  { key: "all", label: t("All") },
+  { key: "active", label: t("Active") },
+  { key: "needs-setup", label: t("Needs setup") },
 ];
 
 /** The coloured left edge, and the same dot in the detail view's list. Gold = unfinished, green = bookable, grey = switched off. */
@@ -163,7 +164,7 @@ export function LocationsPage() {
           onClick={backToTable}
           className="w-fit cursor-pointer border-none bg-transparent p-0 font-sans text-xs font-semibold text-tn-muted-5 transition-colors duration-150 hover:text-tn-ink"
         >
-          &larr; All locations
+          {t("← All locations")}
         </button>
 
         <div className="flex flex-wrap items-start gap-6">
@@ -172,8 +173,8 @@ export function LocationsPage() {
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search locations"
-              aria-label="Search locations"
+              placeholder={t("Search locations")}
+              aria-label={t("Search locations")}
               className="rounded-xl border border-tn-input-border bg-tn-surface px-3 py-2 font-sans text-[14px] text-tn-ink outline-none focus:border-tn-gold placeholder:text-tn-placeholder"
             />
 
@@ -186,7 +187,7 @@ export function LocationsPage() {
                     type="button"
                     onClick={() => setSelectedId(loc.id)}
                     aria-current={isSelected ? "true" : undefined}
-                    className={`flex cursor-pointer flex-col gap-1 rounded-xl border px-3 py-2.5 text-left transition-colors duration-150 ${
+                    className={`flex cursor-pointer flex-col gap-1 rounded-xl border px-3 py-2.5 text-start transition-colors duration-150 ${
                       isSelected
                         ? "border-tn-border bg-tn-surface shadow-[0_1px_2px_rgba(20,15,5,0.06)]"
                         : "border-transparent bg-transparent hover:bg-tn-surface/70"
@@ -207,22 +208,31 @@ export function LocationsPage() {
                     </span>
                     <span className="font-sans text-[12px] text-tn-faint">
                       {loc.needsSetup
-                        ? `Setup incomplete · needs ${setupSummary(loc)}`
+                        ? t("Setup incomplete · needs {{loc}}", { loc: setupSummary(loc) })
                         : loc.bookingsToday === null
                           ? // Not a branch this caller runs, so today's
                             // count was never sent — say nothing about it
                             // rather than imply a quiet day.
-                            `${loc.staffCount} staff${loc.isPrimary ? " · Primary" : ""}`
-                          : `${loc.staffCount} staff · ${loc.bookingsToday} booking${
-                              loc.bookingsToday === 1 ? "" : "s"
-                            } today${loc.isPrimary ? " · Primary" : ""}`}
+                            t("{{staffCount}} staff{{value}}", {
+                              staffCount: loc.staffCount,
+                              value: loc.isPrimary ? t(" · Primary") : "",
+                            })
+                          : t(
+                              "{{staffCount}} staff · {{bookingsToday}} booking{{value}} today{{value2}}",
+                              {
+                                staffCount: loc.staffCount,
+                                bookingsToday: loc.bookingsToday,
+                                value: loc.bookingsToday === 1 ? "" : "s",
+                                value2: loc.isPrimary ? t(" · Primary") : "",
+                              },
+                            )}
                     </span>
                   </button>
                 );
               })}
               {searched.length === 0 && (
                 <p className="m-0 px-3 py-4 font-sans text-xs text-tn-muted-5">
-                  No locations match &ldquo;{search}&rdquo;.
+                  {t("No locations match “{{search}}”.", { search })}
                 </p>
               )}
             </div>
@@ -233,13 +243,13 @@ export function LocationsPage() {
                 onClick={openAdd}
                 className="cursor-pointer rounded-xl border border-dashed border-tn-border bg-transparent px-3 py-2.5 font-sans text-[14px] font-semibold text-tn-ink-soft hover:bg-tn-surface"
               >
-                + Add location
+                {t("+ Add location")}
               </button>
             )}
 
             <div className="flex flex-col gap-1.5 rounded-xl border border-tn-border-soft bg-tn-surface px-3 py-2.5">
               <span className="font-sans text-[12px] font-semibold text-tn-ink">
-                {usedSeats} of {TOTAL_SEATS} seats used
+                {t("{{usedSeats}} of {{TOTAL_SEATS}} seats used", { usedSeats, TOTAL_SEATS })}
               </span>
               <span className="h-1.5 w-full overflow-hidden rounded-full bg-tn-border-softer">
                 <span
@@ -280,28 +290,38 @@ export function LocationsPage() {
     <div className="tn-white-components flex flex-col gap-5">
       <div className="flex items-end justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="m-0 font-sans text-2xl font-semibold text-tn-ink">Locations</h1>
+          <h1 className="m-0 font-sans text-2xl font-semibold text-tn-ink">{t("Locations")}</h1>
           <p className="m-0 font-sans text-xs text-tn-muted-5">
-            {locations.length} location{locations.length === 1 ? "" : "s"} · {usedSeats} of{" "}
-            {TOTAL_SEATS} seats used · Business Plan · $12/seat/mo, billed per location
+            {t(
+              "{{length}} location{{value}} · {{usedSeats}} of {{TOTAL_SEATS}} seats used · Business Plan · $12/seat/mo, billed per location",
+              {
+                length: locations.length,
+                value: locations.length === 1 ? "" : "s",
+                usedSeats,
+                TOTAL_SEATS,
+              },
+            )}
           </p>
         </div>
         {canManageLocations && (
           <Button data-tour="locations-add" onClick={openAdd}>
-            + Add Location
+            {t("+ Add Location")}
           </Button>
         )}
       </div>
 
       {locationsQuery.isError && (
         <p className="m-0 font-sans text-sm text-tn-danger">
-          Couldn&rsquo;t load your locations right now (
-          {locationsQuery.error instanceof Error ? locationsQuery.error.message : "unknown error"})
-          — refresh to try again.
+          {t("Couldn’t load your locations right now ({{value}}) — refresh to try again.", {
+            value:
+              locationsQuery.error instanceof Error
+                ? locationsQuery.error.message
+                : t("unknown error"),
+          })}
         </p>
       )}
       {locationsQuery.isPending && (
-        <p className="m-0 font-sans text-sm text-tn-muted-5">Loading your locations…</p>
+        <p className="m-0 font-sans text-sm text-tn-muted-5">{t("Loading your locations…")}</p>
       )}
 
       {locations.length > 0 && (
@@ -331,14 +351,14 @@ export function LocationsPage() {
               seven days server-side, and a dropdown offering ranges the
               API can't honour would be a lie about what the page can do.
             */}
-            <span className="font-sans text-xs text-tn-muted-5">Revenue · last 7 days</span>
+            <span className="font-sans text-xs text-tn-muted-5">{t("Revenue · last 7 days")}</span>
           </div>
 
           <div className="overflow-x-auto rounded-2xl border border-tn-border bg-tn-surface">
             <div style={{ minWidth: 900 }}>
               <div
                 style={{ gridTemplateColumns: ROW_GRID }}
-                className="grid items-center gap-3.5 border-b border-tn-border-softer bg-tn-table-head py-3 pr-4 pl-[19px]"
+                className="grid items-center gap-3.5 border-b border-tn-border-softer bg-tn-table-head py-3 pe-4 ps-[19px]"
               >
                 {["LOCATION", "ADDRESS", "STAFF", "TODAY", "REVENUE · 7D"].map((heading) => (
                   <span
@@ -348,8 +368,8 @@ export function LocationsPage() {
                     {heading}
                   </span>
                 ))}
-                <span className="text-right font-sans text-[12px] font-semibold tracking-[0.05em] text-tn-muted-5">
-                  ACTIONS
+                <span className="text-end font-sans text-[12px] font-semibold tracking-[0.05em] text-tn-muted-5">
+                  {t("ACTIONS")}
                 </span>
               </div>
 
@@ -372,7 +392,7 @@ export function LocationsPage() {
                     // column to say one word.
                     borderLeftColor: statusColour(loc),
                   }}
-                  className={`group grid cursor-pointer items-center gap-3.5 border-l-[3px] py-3.5 pr-4 pl-4 hover:bg-tn-page/60 ${
+                  className={`group grid cursor-pointer items-center gap-3.5 border-s-[3px] py-3.5 pe-4 ps-4 hover:bg-tn-page/60 ${
                     index < visible.length - 1 ? "border-b border-tn-border-soft" : ""
                   }`}
                 >
@@ -383,7 +403,7 @@ export function LocationsPage() {
                         e.stopPropagation();
                         openDetail(loc);
                       }}
-                      className="cursor-pointer truncate border-none bg-transparent p-0 text-left font-sans text-[14px] font-semibold text-tn-ink"
+                      className="cursor-pointer truncate border-none bg-transparent p-0 text-start font-sans text-[14px] font-semibold text-tn-ink"
                     >
                       {loc.name}
                     </button>
@@ -393,7 +413,7 @@ export function LocationsPage() {
                       }`}
                     >
                       {loc.needsSetup
-                        ? `Needs ${setupSummary(loc)}`
+                        ? t("Needs {{loc}}", { loc: setupSummary(loc) })
                         : [loc.isPrimary ? "Primary" : null, loc.timezone]
                             .filter(Boolean)
                             .join(" · ")}
@@ -405,7 +425,7 @@ export function LocationsPage() {
                         branch, which the row already shows. */}
                     {loc.status !== "active" && (
                       <span className="mt-0.5 w-fit rounded-full bg-tn-neutral-bg px-1.5 py-0.5 font-sans text-[11px] font-semibold text-tn-muted-5">
-                        Closed · link won&rsquo;t open
+                        {t("Closed · link won’t open")}
                       </span>
                     )}
                     {/* Ranked below "needs setup", not merged into it: a
@@ -415,8 +435,10 @@ export function LocationsPage() {
                         it displaces the setup prompt. */}
                     {(collisionsByLocation.get(loc.id) ?? 0) > 0 && (
                       <span className="mt-0.5 w-fit rounded-full bg-tn-danger-bg px-1.5 py-0.5 font-sans text-[11px] font-semibold text-tn-danger">
-                        {collisionsByLocation.get(loc.id)} scheduling{" "}
-                        {collisionsByLocation.get(loc.id) === 1 ? "clash" : "clashes"}
+                        {t("{{id}} scheduling {{value}}", {
+                          id: collisionsByLocation.get(loc.id),
+                          value: collisionsByLocation.get(loc.id) === 1 ? t("clash") : t("clashes"),
+                        })}
                       </span>
                     )}
                   </div>
@@ -442,12 +464,14 @@ export function LocationsPage() {
                       // Finish setup button beside it is the way forward.
                       disabled={loc.needsSetup}
                       title={
-                        loc.needsSetup ? "Finish setup to get this location's QR code" : undefined
+                        loc.needsSetup
+                          ? t("Finish setup to get this location's QR code")
+                          : undefined
                       }
-                      aria-label={`QR code for ${loc.name}`}
+                      aria-label={t("QR code for {{name}}", { name: loc.name })}
                       className="cursor-pointer rounded-lg border border-tn-input-border bg-tn-surface px-2.5 py-1.5 font-sans text-[12px] font-semibold text-tn-ink-soft hover:bg-tn-page/60 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-tn-surface"
                     >
-                      QR
+                      {t("QR")}
                     </button>
                     {canManageLocations &&
                       (loc.needsSetup ? (
@@ -458,7 +482,7 @@ export function LocationsPage() {
                             openDetail(loc);
                           }}
                         >
-                          Finish setup
+                          {t("Finish setup")}
                         </Button>
                       ) : (
                         <button
@@ -468,10 +492,10 @@ export function LocationsPage() {
                             setEditingLocation(loc);
                             setSheetOpen(true);
                           }}
-                          aria-label={`Edit ${loc.name}`}
+                          aria-label={t("Edit {{name}}", { name: loc.name })}
                           className="cursor-pointer rounded-lg border border-tn-input-border bg-tn-surface px-2.5 py-1.5 font-sans text-[12px] font-semibold text-tn-ink-soft hover:bg-tn-page/60"
                         >
-                          Edit
+                          {t("Edit")}
                         </button>
                       ))}
                   </div>
@@ -480,7 +504,7 @@ export function LocationsPage() {
 
               {visible.length === 0 && (
                 <p className="m-0 px-4 py-6 text-center font-sans text-sm text-tn-muted-5">
-                  No locations match this filter.
+                  {t("No locations match this filter.")}
                 </p>
               )}
             </div>
@@ -490,7 +514,7 @@ export function LocationsPage() {
 
       {!locationsQuery.isPending && locations.length === 0 && (
         <p className="m-0 font-sans text-sm text-tn-muted-5">
-          No locations yet — add your first one.
+          {t("No locations yet — add your first one.")}
         </p>
       )}
 

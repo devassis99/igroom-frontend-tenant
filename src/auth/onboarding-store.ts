@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { BillingCycle } from "@/lib/sample-data";
+import { t } from "@/i18n";
 
 /** A snapshot of the real igroom-backend price at the moment ChoosePlanPage's card was clicked — see billing-api.ts. */
 export interface SelectedPlan {
@@ -135,7 +136,7 @@ const initialState = {
   googleIdToken: null as string | null,
   businessName: "",
   locationName: "",
-  category: "Barbershop",
+  category: t("Barbershop"),
   address: "",
   phone: "",
   accountCreated: false,

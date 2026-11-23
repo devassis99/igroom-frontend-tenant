@@ -30,6 +30,9 @@ export function Wordmark({
 }) {
   return (
     <span
+      // A Latin wordmark: it reads left to right in an Arabic page too,
+      // or the two halves swap places and it says "eegroom".
+      dir="ltr"
       className={`inline-flex items-baseline font-brand leading-none font-bold tracking-[-0.01em] ${className}`}
     >
       {/* Read as one word, not "groom" then "ee". */}

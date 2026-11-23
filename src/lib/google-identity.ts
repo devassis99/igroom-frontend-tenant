@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 declare global {
   interface Window {
     google?: {
@@ -39,7 +40,7 @@ function loadGoogleIdentityScript(): Promise<void> {
       existing.addEventListener("load", () => resolve(), { once: true });
       existing.addEventListener(
         "error",
-        () => reject(new Error("Failed to load Google Identity Services")),
+        () => reject(new Error(t("Failed to load Google Identity Services"))),
         { once: true },
       );
       return;
@@ -49,7 +50,7 @@ function loadGoogleIdentityScript(): Promise<void> {
     script.async = true;
     script.defer = true;
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Failed to load Google Identity Services"));
+    script.onerror = () => reject(new Error(t("Failed to load Google Identity Services")));
     document.head.appendChild(script);
   });
 
@@ -108,7 +109,7 @@ export async function renderGoogleButton(
   options?: { text?: "signin_with" | "signup_with" | "continue_with"; width?: number },
 ): Promise<void> {
   await loadGoogleIdentityScript();
-  if (!window.google) throw new Error("Google Identity Services failed to load");
+  if (!window.google) throw new Error(t("Google Identity Services failed to load"));
   ensureInitialized(clientId);
   currentCallback = onCredential;
 

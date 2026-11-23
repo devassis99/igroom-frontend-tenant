@@ -4,6 +4,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { listLocations } from "@/lib/locations-api";
 import { setServiceLocations, type Service } from "@/lib/services-api";
+import { t } from "@/i18n";
 
 interface DraftRow {
   offered: boolean;
@@ -78,7 +79,7 @@ export function ServiceLocationsModal({
 
   const save = useMutation({
     mutationFn: () => {
-      if (!service) throw new Error("No service selected");
+      if (!service) throw new Error(t("No service selected"));
       const payload = locations
         .filter((loc) => draft[loc.id]?.offered)
         .map((loc) => {
@@ -97,7 +98,7 @@ export function ServiceLocationsModal({
       onClose();
     },
     onError: (err: unknown) =>
-      setError(err instanceof Error ? err.message : "Couldn't save where this runs"),
+      setError(err instanceof Error ? err.message : t("Couldn't save where this runs")),
   });
 
   function update(locationId: string, patch: Partial<DraftRow>) {
@@ -115,17 +116,21 @@ export function ServiceLocationsModal({
       <div className="flex flex-col gap-4 p-6">
         <div className="flex flex-col gap-1">
           <h2 className="m-0 font-sans text-lg font-semibold text-tn-ink">
-            Where do we do {service?.name}?
+            {t("Where do we do {{name}}?", { name: service?.name })}
           </h2>
           <p className="m-0 font-sans text-xs text-tn-muted-5">
-            Leave price and duration blank to use the catalogue&rsquo;s ${" "}
-            {service ? (service.priceCents / 100).toFixed(2) : "0.00"} ·{" "}
-            {service?.durationMinutes ?? 0} min.
+            {t(
+              "Leave price and duration blank to use the catalogue’s $ {{value}} · {{value2}} min.",
+              {
+                value: service ? (service.priceCents / 100).toFixed(2) : "0.00",
+                value2: service?.durationMinutes ?? 0,
+              },
+            )}
           </p>
         </div>
 
         {locationsQuery.isPending && (
-          <p className="m-0 font-sans text-sm text-tn-muted-5">Loading locations…</p>
+          <p className="m-0 font-sans text-sm text-tn-muted-5">{t("Loading locations…")}</p>
         )}
 
         <div className="flex flex-col gap-2">
@@ -169,7 +174,7 @@ export function ServiceLocationsModal({
                       disabled={!canManage}
                       onChange={(e) => update(loc.id, { price: e.target.value })}
                       placeholder={service ? (service.priceCents / 100).toFixed(2) : ""}
-                      aria-label={`Price at ${loc.name}`}
+                      aria-label={t("Price at {{name}}", { name: loc.name })}
                       className="w-20 rounded-lg border border-tn-input-border bg-tn-surface px-2 py-1.5 font-sans text-[14px] text-tn-ink outline-none focus:border-tn-gold placeholder:text-tn-placeholder"
                     />
                     <input
@@ -179,10 +184,10 @@ export function ServiceLocationsModal({
                       disabled={!canManage}
                       onChange={(e) => update(loc.id, { duration: e.target.value })}
                       placeholder={String(service?.durationMinutes ?? "")}
-                      aria-label={`Duration in minutes at ${loc.name}`}
+                      aria-label={t("Duration in minutes at {{name}}", { name: loc.name })}
                       className="w-16 rounded-lg border border-tn-input-border bg-tn-surface px-2 py-1.5 font-sans text-[14px] text-tn-ink outline-none focus:border-tn-gold placeholder:text-tn-placeholder"
                     />
-                    <span className="font-sans text-xs text-tn-muted-5">min</span>
+                    <span className="font-sans text-xs text-tn-muted-5">{t("min")}</span>
                   </div>
                 )}
               </div>
@@ -194,11 +199,11 @@ export function ServiceLocationsModal({
 
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </Button>
           {canManage && (
             <Button onClick={() => save.mutate()} disabled={save.isPending}>
-              {save.isPending ? "Saving…" : "Save"}
+              {save.isPending ? t("Saving…") : t("Save")}
             </Button>
           )}
         </div>

@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/Button";
 import type { AccountLocation, LocationSetupStep } from "@/lib/locations-api";
 import { LOCATION_SETUP_STEPS } from "@/lib/location-setup";
+import { t } from "@/i18n";
 
 /**
  * The "Setup needed" checklist that stands in front of a branch's booking
@@ -26,11 +27,15 @@ export function LocationSetupGuide({
     <div className="flex flex-col gap-2.5 rounded-xl border border-tn-gold bg-tn-gold-bg px-3 py-3">
       <div className="flex flex-col gap-0.5">
         <p className="m-0 font-sans text-xs font-semibold text-tn-ink">
-          Setup needed · {remaining} {remaining === 1 ? "step" : "steps"} left
+          {t("Setup needed · {{remaining}} {{value}} left", {
+            remaining,
+            value: remaining === 1 ? t("step") : t("steps"),
+          })}
         </p>
         <p className="m-0 font-sans text-[12px] leading-relaxed text-tn-muted-4">
-          The link and QR code unlock once this location can take a booking — until then a customer
-          would land on a page they can&rsquo;t book from.
+          {t(
+            "The link and QR code unlock once this location can take a booking — until then a customer would land on a page they can’t book from.",
+          )}
         </p>
       </div>
       <ol className="m-0 flex list-none flex-col gap-2 p-0">
@@ -55,7 +60,7 @@ export function LocationSetupGuide({
                   }`}
                 >
                   {missing ? item.title : item.done}
-                  <span className="sr-only">{missing ? " — to do" : " — done"}</span>
+                  <span className="sr-only">{missing ? t(" — to do") : t(" — done")}</span>
                 </span>
                 {missing && (
                   <>

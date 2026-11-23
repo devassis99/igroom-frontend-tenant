@@ -11,8 +11,9 @@ import { WizardTabs } from "@/components/ui/WizardTabs";
 import { StaffAvailabilityEditor } from "@/components/availability/StaffAvailabilityEditor";
 import { setInitialPassword, updateOwnProfile } from "@/lib/accounts-api";
 import { Wordmark } from "@/components/brand/Logo";
+import { t } from "@/i18n";
 
-const STEPS = ["Sign in", "About you", "Your hours"];
+const STEPS = [t("Sign in"), t("About you"), t("Your hours")];
 
 /**
  * What an invited staff member sees after redeeming their emailed link.
@@ -55,7 +56,9 @@ export function StaffWelcomePage() {
       setStep(1);
     },
     onError: (err) =>
-      setFormError(err instanceof Error ? err.message : "Couldn't set that password — try again."),
+      setFormError(
+        err instanceof Error ? err.message : t("Couldn't set that password — try again."),
+      ),
   });
 
   const profileMutation = useMutation({
@@ -76,16 +79,16 @@ export function StaffWelcomePage() {
       setStep(2);
     },
     onError: (err) =>
-      setFormError(err instanceof Error ? err.message : "Couldn't save that — try again."),
+      setFormError(err instanceof Error ? err.message : t("Couldn't save that — try again.")),
   });
 
   function submitPassword() {
     if (password.length < 8) {
-      setFormError("Use at least 8 characters.");
+      setFormError(t("Use at least 8 characters."));
       return;
     }
     if (password !== confirmPassword) {
-      setFormError("Those two passwords don't match.");
+      setFormError(t("Those two passwords don't match."));
       return;
     }
     passwordMutation.mutate();
@@ -105,11 +108,14 @@ export function StaffWelcomePage() {
         <div className="flex flex-col gap-1">
           <Wordmark className="mb-2 self-start text-[24px]" />
           <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">
-            Welcome{onboarding.name ? `, ${onboarding.name.split(" ")[0]}` : ""}
+            {t("Welcome{{value}}", {
+              value: onboarding.name ? `, ${onboarding.name.split(" ")[0]}` : "",
+            })}
           </h1>
           <p className="m-0 font-sans text-sm text-tn-muted-5">
-            A couple of minutes and you&rsquo;re set up. Your shop and where you work are already
-            sorted — this is the part only you can fill in.
+            {t(
+              "A couple of minutes and you’re set up. Your shop and where you work are already sorted — this is the part only you can fill in.",
+            )}
           </p>
         </div>
 
@@ -121,19 +127,20 @@ export function StaffWelcomePage() {
               {onboarding.needsSignInMethod ? (
                 <>
                   <p className="m-0 font-sans text-sm leading-relaxed text-tn-muted-5">
-                    Pick a password so you can sign back in later. Your invite link only worked
-                    once, so this is what gets you in from now on.
+                    {t(
+                      "Pick a password so you can sign back in later. Your invite link only worked once, so this is what gets you in from now on.",
+                    )}
                   </p>
-                  <Field label="PASSWORD">
+                  <Field label={t("PASSWORD")}>
                     <input
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="At least 8 characters"
+                      placeholder={t("At least 8 characters")}
                       className={formInputClass}
                     />
                   </Field>
-                  <Field label="CONFIRM PASSWORD">
+                  <Field label={t("CONFIRM PASSWORD")}>
                     <input
                       type="password"
                       value={confirmPassword}
@@ -142,16 +149,18 @@ export function StaffWelcomePage() {
                     />
                   </Field>
                   <p className="m-0 font-sans text-xs leading-relaxed text-tn-muted-5">
-                    Prefer Google? You can sign in with Google using{" "}
+                    {t("Prefer Google? You can sign in with Google using")}{" "}
                     <span className="font-semibold text-tn-ink-soft">{staffUser?.email}</span>{" "}
-                    instead — set a password now anyway so you have a way in if that account ever
-                    changes.
+                    {t(
+                      "instead — set a password now anyway so you have a way in if that account ever changes.",
+                    )}
                   </p>
                 </>
               ) : (
                 <p className="m-0 font-sans text-sm leading-relaxed text-tn-muted-5">
-                  You&rsquo;re already set up to sign in, so there&rsquo;s nothing to do here. You
-                  can change your password any time from Settings &rsaquo; Security.
+                  {t(
+                    "You’re already set up to sign in, so there’s nothing to do here. You can change your password any time from Settings › Security.",
+                  )}
                 </p>
               )}
             </div>
@@ -160,10 +169,11 @@ export function StaffWelcomePage() {
           {step === 1 && (
             <div className="flex max-w-[520px] flex-col gap-4">
               <p className="m-0 font-sans text-sm leading-relaxed text-tn-muted-5">
-                This is what customers see when they book you. All optional — you can fill it in
-                later from your profile.
+                {t(
+                  "This is what customers see when they book you. All optional — you can fill it in later from your profile.",
+                )}
               </p>
-              <Field label="YOUR NAME">
+              <Field label={t("YOUR NAME")}>
                 <input
                   type="text"
                   value={name}
@@ -172,16 +182,16 @@ export function StaffWelcomePage() {
                 />
               </Field>
               <div className="grid grid-cols-2 gap-4">
-                <Field label="DISPLAY TITLE">
+                <Field label={t("DISPLAY TITLE")}>
                   <input
                     type="text"
                     value={displayTitle}
                     onChange={(e) => setDisplayTitle(e.target.value)}
-                    placeholder="Senior Barber"
+                    placeholder={t("Senior Barber")}
                     className={formInputClass}
                   />
                 </Field>
-                <Field label="YEARS EXPERIENCE">
+                <Field label={t("YEARS EXPERIENCE")}>
                   <input
                     type="number"
                     min={0}
@@ -193,17 +203,19 @@ export function StaffWelcomePage() {
                   />
                 </Field>
               </div>
-              <Field label="SPECIALTIES">
+              <Field label={t("SPECIALTIES")}>
                 <input
                   type="text"
                   value={specialtiesText}
                   onChange={(e) => setSpecialtiesText(e.target.value)}
-                  placeholder="Skin fades, Beard sculpting"
+                  placeholder={t("Skin fades, Beard sculpting")}
                   className={formInputClass}
                 />
               </Field>
-              <p className="m-0 -mt-2 font-sans text-xs text-tn-muted-5">Separate with commas.</p>
-              <Field label="ABOUT YOU">
+              <p className="m-0 -mt-2 font-sans text-xs text-tn-muted-5">
+                {t("Separate with commas.")}
+              </p>
+              <Field label={t("ABOUT YOU")}>
                 <textarea
                   rows={4}
                   value={bio}
@@ -217,12 +229,15 @@ export function StaffWelcomePage() {
           {step === 2 && (
             <div className="flex flex-col gap-4">
               <p className="m-0 font-sans text-sm leading-relaxed text-tn-muted-5">
-                When can you be booked? Nobody can book you until this is set, so it&rsquo;s the one
-                step worth doing now. You can change it any time from Settings &rsaquo;
-                Availability.
+                {t(
+                  "When can you be booked? Nobody can book you until this is set, so it’s the one step worth doing now. You can change it any time from Settings › Availability.",
+                )}
               </p>
               {staffUser && (
-                <StaffAvailabilityEditor staffUserId={staffUser.id} heading="Your weekly hours" />
+                <StaffAvailabilityEditor
+                  staffUserId={staffUser.id}
+                  heading={t("Your weekly hours")}
+                />
               )}
             </div>
           )}
@@ -237,7 +252,7 @@ export function StaffWelcomePage() {
                   onClick={() => setStep(2)}
                   className="cursor-pointer border-none bg-transparent p-0 font-sans text-[14px] font-semibold text-tn-muted-5 transition-colors duration-150 hover:text-tn-ink"
                 >
-                  Skip for now
+                  {t("Skip for now")}
                 </button>
               )}
             </div>
@@ -245,7 +260,7 @@ export function StaffWelcomePage() {
             <div className="flex gap-2.5">
               {step > 0 && (
                 <Button variant="secondary" onClick={() => setStep(step - 1)}>
-                  &larr; Back
+                  {t("← Back")}
                 </Button>
               )}
               {step === 0 && (
@@ -253,7 +268,7 @@ export function StaffWelcomePage() {
                   onClick={onboarding.needsSignInMethod ? submitPassword : () => setStep(1)}
                   disabled={passwordMutation.isPending}
                 >
-                  {passwordMutation.isPending ? "Saving…" : "Next: About you →"}
+                  {passwordMutation.isPending ? t("Saving…") : t("Next: About you →")}
                 </Button>
               )}
               {step === 1 && (
@@ -261,13 +276,13 @@ export function StaffWelcomePage() {
                   onClick={() => profileMutation.mutate()}
                   disabled={profileMutation.isPending}
                 >
-                  {profileMutation.isPending ? "Saving…" : "Next: Your hours →"}
+                  {profileMutation.isPending ? t("Saving…") : t("Next: Your hours →")}
                 </Button>
               )}
               {/* The availability editor saves itself with its own Save
                   Changes button, so this only closes the wizard — it isn't
                   a second submit that could disagree with what was saved. */}
-              {step === 2 && <Button onClick={finish}>Done — take me in</Button>}
+              {step === 2 && <Button onClick={finish}>{t("Done — take me in")}</Button>}
             </div>
           </div>
         </div>

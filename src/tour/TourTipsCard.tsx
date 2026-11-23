@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/Button";
 import { Toggle } from "@/components/ui/Toggle";
 import { useTour } from "./TourProvider";
 import { useTourStore } from "./tour-store";
+import { t } from "@/i18n";
 
 /**
  * The settings side of the walkthroughs, for the profile screen.
@@ -28,12 +29,17 @@ export function TourTipsCard() {
       data-tour="settings-tips"
       className="flex flex-col gap-3 border-t border-tn-border-soft pt-6"
     >
-      <p className="m-0 font-sans text-sm font-semibold text-tn-ink">Screen tips</p>
+      <p className="m-0 font-sans text-sm font-semibold text-tn-ink">{t("Screen tips")}</p>
       <p className="m-0 -mt-1 font-sans text-xs text-tn-muted-5">
-        A short walkthrough the first time someone opens a screen. This is remembered in this
-        browser, so turning it off here doesn&rsquo;t turn it off for the rest of your team.
+        {t(
+          "A short walkthrough the first time someone opens a screen. This is remembered in this browser, so turning it off here doesn’t turn it off for the rest of your team.",
+        )}
       </p>
-      <Toggle checked={autoplay} onChange={setAutoplay} label="Show tips on a screen's first use" />
+      <Toggle
+        checked={autoplay}
+        onChange={setAutoplay}
+        label={t("Show tips on a screen's first use")}
+      />
       <Button
         variant="secondary"
         size="sm"
@@ -46,7 +52,7 @@ export function TourTipsCard() {
           startTour();
         }}
       >
-        Show all tips again
+        {t("Show all tips again")}
       </Button>
     </section>
   );

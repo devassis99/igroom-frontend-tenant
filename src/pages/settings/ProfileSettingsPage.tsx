@@ -9,6 +9,7 @@ import { useAuthStore } from "@/auth/auth-store";
 import { usePermissions } from "@/auth/use-permissions";
 import { updateCoverPhoto } from "@/lib/accounts-api";
 import { TourTipsCard } from "@/tour";
+import { t } from "@/i18n";
 
 /** The mockup's T12 Profile page: the business's own details, and the one cover photo every branch's page leads with. */
 export function ProfileSettingsPage() {
@@ -33,18 +34,20 @@ export function ProfileSettingsPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="m-0 font-sans text-2xl font-semibold text-tn-ink">Profile</h1>
+      <h1 className="m-0 font-sans text-2xl font-semibold text-tn-ink">{t("Profile")}</h1>
 
       <section className="flex flex-col gap-4">
-        <p className="m-0 font-sans text-sm font-semibold text-tn-ink">Business Information</p>
-        <Field label="BUSINESS NAME">
+        <p className="m-0 font-sans text-sm font-semibold text-tn-ink">
+          {t("Business Information")}
+        </p>
+        <Field label={t("BUSINESS NAME")}>
           <input
             type="text"
             defaultValue={owner?.businessName ?? "The Gentry Barbershop"}
             className={formInputClass}
           />
         </Field>
-        <Field label="ADDRESS">
+        <Field label={t("ADDRESS")}>
           <input
             type="text"
             defaultValue={owner?.address ?? "412 Congress Ave, Austin, TX"}
@@ -52,24 +55,24 @@ export function ProfileSettingsPage() {
           />
         </Field>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="CURRENCY">
+          <Field label={t("CURRENCY")}>
             <select className={formSelectClass}>
-              <option>USD — US Dollar</option>
-              <option>PKR — Pakistani Rupee</option>
-              <option>GBP — British Pound</option>
-              <option>AED — UAE Dirham</option>
+              <option>{t("USD — US Dollar")}</option>
+              <option>{t("PKR — Pakistani Rupee")}</option>
+              <option>{t("GBP — British Pound")}</option>
+              <option>{t("AED — UAE Dirham")}</option>
             </select>
           </Field>
-          <Field label="TIME ZONE">
+          <Field label={t("TIME ZONE")}>
             <select className={formSelectClass}>
-              <option>Central Time (Austin)</option>
-              <option>Pakistan Standard Time</option>
-              <option>Eastern Time</option>
-              <option>Pacific Time</option>
+              <option>{t("Central Time (Austin)")}</option>
+              <option>{t("Pakistan Standard Time")}</option>
+              <option>{t("Eastern Time")}</option>
+              <option>{t("Pacific Time")}</option>
             </select>
           </Field>
         </div>
-        <Button className="w-fit">Save Changes</Button>
+        <Button className="w-fit">{t("Save Changes")}</Button>
       </section>
 
       <section
@@ -77,20 +80,20 @@ export function ProfileSettingsPage() {
         className="flex flex-col gap-4 border-t border-tn-border-soft pt-6"
       >
         <div className="flex items-center justify-between">
-          <p className="m-0 font-sans text-sm font-semibold text-tn-ink">Public Profile</p>
+          <p className="m-0 font-sans text-sm font-semibold text-tn-ink">{t("Public Profile")}</p>
           <Button variant="secondary" size="sm" onClick={() => setPreviewOpen(true)}>
-            📱 Preview as Customer
+            {t("📱 Preview as Customer")}
           </Button>
         </div>
         <p className="m-0 -mt-2 font-sans text-xs text-tn-muted-5">
-          What customers see on the iGroom app when they find your shop.
+          {t("What customers see on the iGroom app when they find your shop.")}
         </p>
 
         <ImageUpload
           purpose="shop-cover"
           accessToken={accessToken}
           currentUrl={account?.coverPhotoUrl ?? null}
-          label="Cover photo"
+          label={t("Cover photo")}
           hint="One photograph for the business — every branch's page leads with it. Landscape works best; 4 MB maximum."
           onUploaded={async (key) => {
             await saveCover.mutateAsync(key);
@@ -104,7 +107,7 @@ export function ProfileSettingsPage() {
           <p className="m-0 font-sans text-[12px] text-tn-danger">
             {saveCover.error instanceof Error
               ? saveCover.error.message
-              : "Couldn’t save that — try again."}
+              : t("Couldn’t save that — try again.")}
           </p>
         )}
 
@@ -116,11 +119,11 @@ export function ProfileSettingsPage() {
             shown the wrong shop. Each branch keeps its own photographs on
             its own Gallery tab. */}
         <p className="m-0 font-sans text-xs text-tn-muted-6">
-          Photos of the shop itself live with the branch they were taken in —{" "}
+          {t("Photos of the shop itself live with the branch they were taken in —")}{" "}
           <Link to="/locations" className="font-semibold text-tn-ink">
-            Locations
+            {t("Locations")}
           </Link>{" "}
-          → a branch → Gallery.
+          {t("→ a branch → Gallery.")}
         </p>
       </section>
 

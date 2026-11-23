@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { useAuthStore } from "@/auth/auth-store";
 import { LoadingScreen } from "@/components/layout/LoadingScreen";
 import { redeemSupportSession } from "@/lib/support-session-api";
+import { t } from "@/i18n";
 
 type State = { kind: "redeeming" } | { kind: "no-ticket" } | { kind: "failed"; message: string };
 
@@ -91,7 +92,7 @@ export function SupportSessionPage() {
           message:
             err instanceof Error
               ? err.message
-              : "This support link is invalid or has already been used.",
+              : t("This support link is invalid or has already been used."),
         });
       }
     }
@@ -105,15 +106,19 @@ export function SupportSessionPage() {
     <div className="flex min-h-screen items-center justify-center bg-tn-page p-6">
       <div className="flex w-full max-w-md flex-col gap-3 rounded-2xl border border-tn-border bg-tn-surface p-8">
         <h1 className="m-0 font-sans text-xl font-semibold text-tn-ink">
-          {state.kind === "no-ticket" ? "Support session ended" : "This link didn't work"}
+          {state.kind === "no-ticket" ? t("Support session ended") : t("This link didn't work")}
         </h1>
         <p className="m-0 font-sans text-sm leading-relaxed text-tn-muted-5">
           {state.kind === "no-ticket"
-            ? "This session has expired or was ended. Support links are single-use — start a new session from the back office to get back in."
+            ? t(
+                "This session has expired or was ended. Support links are single-use — start a new session from the back office to get back in.",
+              )
             : state.message}
         </p>
         <p className="m-0 font-sans text-xs leading-relaxed text-tn-faint">
-          Support links can only be opened once, and expire about a minute after they're created.
+          {t(
+            "Support links can only be opened once, and expire about a minute after they're created.",
+          )}
         </p>
       </div>
     </div>

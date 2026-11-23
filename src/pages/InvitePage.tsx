@@ -4,6 +4,7 @@ import { useAuthStore } from "@/auth/auth-store";
 import { LoadingScreen } from "@/components/layout/LoadingScreen";
 import { getMe, redeemInvite } from "@/lib/accounts-api";
 import { useStaffOnboardingStore } from "@/auth/staff-onboarding-store";
+import { t } from "@/i18n";
 
 type State = { kind: "redeeming" } | { kind: "no-token" } | { kind: "failed"; message: string };
 
@@ -94,7 +95,7 @@ export function InvitePage() {
           message:
             err instanceof Error
               ? err.message
-              : "This invite link is invalid, already used, or has expired.",
+              : t("This invite link is invalid, already used, or has expired."),
         });
       }
     }
@@ -108,20 +109,21 @@ export function InvitePage() {
     <div className="flex min-h-screen items-center justify-center bg-tn-page p-6">
       <div className="flex w-full max-w-md flex-col gap-3 rounded-2xl border border-tn-border bg-tn-surface p-8">
         <h1 className="m-0 font-sans text-xl font-semibold text-tn-ink">
-          {state.kind === "no-token" ? "Nothing to set up here" : "This link didn't work"}
+          {state.kind === "no-token" ? t("Nothing to set up here") : t("This link didn't work")}
         </h1>
         <p className="m-0 font-sans text-sm leading-relaxed text-tn-muted-5">
           {state.kind === "no-token"
-            ? "Open the link from your invite email to set up your account."
+            ? t("Open the link from your invite email to set up your account.")
             : state.message}
         </p>
         <p className="m-0 font-sans text-sm leading-relaxed text-tn-muted-5">
-          An invite works once and lasts seven days. If yours has expired or you&rsquo;ve already
-          used it, ask whoever invited you to send a new one — or{" "}
+          {t(
+            "An invite works once and lasts seven days. If yours has expired or you’ve already used it, ask whoever invited you to send a new one — or",
+          )}{" "}
           <Link to="/login" className="font-semibold text-tn-ink">
-            sign in
+            {t("sign in")}
           </Link>{" "}
-          if you&rsquo;ve already set up your account.
+          {t("if you’ve already set up your account.")}
         </p>
       </div>
     </div>

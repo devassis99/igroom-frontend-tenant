@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { t } from "@/i18n";
 
 /** How long the slide/fade transition takes, in ms — kept in one place so the exit timer (below) can wait for it before actually unmounting. */
 const TRANSITION_MS = 220;
@@ -126,8 +127,8 @@ export function Toast({ message, onDismiss, duration = 3000, tone = "success" }:
       <button
         type="button"
         onClick={dismiss}
-        aria-label="Dismiss"
-        className="ml-1 shrink-0 cursor-pointer border-none bg-transparent p-0.5 text-base leading-none opacity-80 hover:opacity-100"
+        aria-label={t("Dismiss")}
+        className="ms-1 shrink-0 cursor-pointer border-none bg-transparent p-0.5 text-base leading-none opacity-80 hover:opacity-100"
       >
         ×
       </button>

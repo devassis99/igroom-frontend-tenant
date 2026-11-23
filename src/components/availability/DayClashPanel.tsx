@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { Collapsible } from "@/components/ui/Collapsible";
 import { zoneAbbreviation } from "@/lib/timezones";
 import type { Collision, CollisionSide } from "@/lib/collisions-api";
+import { t, intlLocale } from "@/i18n";
 
 const MINUTES_PER_DAY = 24 * 60;
 
@@ -51,8 +52,8 @@ function trackTicks(startIso: string, minutes: number): { at: number; label: str
 export function hoursAndMinutes(minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
-  if (h === 0) return `${m} min`;
-  if (m === 0) return `${h}h`;
+  if (h === 0) return t("{{m}} min", { m });
+  if (m === 0) return t("{{h}}h", { h });
   return `${h}h ${m}m`;
 }
 
@@ -205,14 +206,14 @@ export const DayClashPanel = forwardRef<HTMLDivElement, DayClashPanelProps>(func
     collision.fromAt,
     collision.toAt,
   ]);
-  const weekday = new Date(`${here.localDate}T00:00:00Z`).toLocaleDateString("en-US", {
+  const weekday = new Date(`${here.localDate}T00:00:00Z`).toLocaleDateString(intlLocale(), {
     weekday: "long",
     timeZone: "UTC",
   });
   const size = isOverlap
     ? hoursAndMinutes(collision.overlapMinutes)
     : collision.gapMinutes === 0
-      ? "no gap"
+      ? t("no gap")
       : hoursAndMinutes(collision.gapMinutes);
 
   /**
@@ -248,7 +249,7 @@ export const DayClashPanel = forwardRef<HTMLDivElement, DayClashPanelProps>(func
             type="button"
             onClick={expanded ? onCollapse : onExpand}
             aria-expanded={expanded}
-            className="flex w-full cursor-pointer items-start justify-between gap-3 border-none bg-transparent px-4 py-2.5 text-left font-sans"
+            className="flex w-full cursor-pointer items-start justify-between gap-3 border-none bg-transparent px-4 py-2.5 text-start font-sans"
           >
             <span
               className={`text-[14px] leading-snug transition-colors duration-200 ${
@@ -257,29 +258,41 @@ export const DayClashPanel = forwardRef<HTMLDivElement, DayClashPanelProps>(func
             >
               {expanded ? (
                 unsaved ? (
-                  `${weekday} clashes with unsaved hours at ${there.locationName}`
+                  t("{{weekday}} clashes with unsaved hours at {{locationName}}", {
+                    weekday,
+                    locationName: there.locationName,
+                  })
                 ) : needsOtherSave ? (
-                  `Save ${there.locationName} first — ${weekday} is fixed but not saved`
+                  t("Save {{locationName}} first — {{weekday}} is fixed but not saved", {
+                    locationName: there.locationName,
+                    weekday,
+                  })
                 ) : isOverlap ? (
-                  `${weekday} can’t save — ${size} at two shops`
+                  t("{{weekday}} can’t save — {{size}} at two shops", { weekday, size })
                 ) : (
-                  `${weekday} leaves ${size} to get between shops`
+                  t("{{weekday}} leaves {{size}} to get between shops", { weekday, size })
                 )
               ) : (
                 <>
                   <span className="font-semibold">{size}</span>{" "}
                   {unsaved
-                    ? `at two shops · ${there.locationName}, unsaved`
+                    ? t("at two shops · {{locationName}}, unsaved", {
+                        locationName: there.locationName,
+                      })
                     : needsOtherSave
-                      ? `still stored at ${there.locationName} · save that tab first`
+                      ? t("still stored at {{locationName}} · save that tab first", {
+                          locationName: there.locationName,
+                        })
                       : isOverlap
-                        ? `at two shops · ${there.locationName}`
-                        : `between shops · ${there.locationName}`}
+                        ? t("at two shops · {{locationName}}", { locationName: there.locationName })
+                        : t("between shops · {{locationName}}", {
+                            locationName: there.locationName,
+                          })}
                 </>
               )}
             </span>
             <span className="flex-none font-sans text-xs font-semibold text-tn-muted-5">
-              {expanded ? "Hide" : "expand"}
+              {expanded ? t("Hide") : t("expand")}
             </span>
           </button>
 
@@ -291,16 +304,24 @@ export const DayClashPanel = forwardRef<HTMLDivElement, DayClashPanelProps>(func
             <p className="m-0 font-sans text-xs leading-relaxed text-tn-ink-soft">
               {needsOtherSave ? (
                 <>
-                  You&rsquo;ve already cut this at{" "}
-                  <span className="font-semibold">{there.locationName}</span>, but that change is
-                  still sitting in the form. Until it&rsquo;s saved, {there.locationName} is on{" "}
-                  {there.localStart}–{there.localEnd} as far as the booking system is concerned, and
-                  saving {here.locationName} would be refused. Save {there.locationName} first, then
-                  come back.
+                  {t("You’ve already cut this at")}{" "}
+                  <span className="font-semibold">{there.locationName}</span>
+                  {t(
+                    ", but that change is still sitting in the form. Until it’s saved, {{locationName}} is on {{localStart}}–{{localEnd}} as far as the booking system is concerned, and saving {{locationName2}} would be refused. Save {{locationName}} first, then come back.",
+                    {
+                      locationName: there.locationName,
+                      localStart: there.localStart,
+                      localEnd: there.localEnd,
+                      locationName2: here.locationName,
+                    },
+                  )}
                 </>
               ) : unsaved ? (
                 <>
-                  The {there.localStart}–{there.localEnd} you&rsquo;ve typed into{" "}
+                  {t("The {{localStart}}–{{localEnd}} you’ve typed into", {
+                    localStart: there.localStart,
+                    localEnd: there.localEnd,
+                  })}{" "}
                   <span className="font-semibold">{there.locationName}</span> overlaps {weekday}{" "}
                   here — {collision.window} once both are resolved to UTC. Those hours aren&rsquo;t
                   saved yet, so this won&rsquo;t stop you saving {here.locationName}; it will be
@@ -315,10 +336,17 @@ export const DayClashPanel = forwardRef<HTMLDivElement, DayClashPanelProps>(func
                 </>
               ) : (
                 <>
-                  <span className="font-semibold">{there.locationName}</span> runs{" "}
-                  {there.localStart}–{there.localEnd} on {weekday}s. That leaves {size} either side
-                  of the hours set here, and this account allows {collision.requiredGapMinutes} min
-                  to travel between shops. This is a warning — it won’t stop the save.
+                  <span className="font-semibold">{there.locationName}</span>{" "}
+                  {t(
+                    "runs {{localStart}}–{{localEnd}} on {{weekday}}s. That leaves {{size}} either side of the hours set here, and this account allows {{requiredGapMinutes}} min to travel between shops. This is a warning — it won’t stop the save.",
+                    {
+                      localStart: there.localStart,
+                      localEnd: there.localEnd,
+                      weekday,
+                      size,
+                      requiredGapMinutes: collision.requiredGapMinutes,
+                    },
+                  )}
                 </>
               )}
             </p>
@@ -339,17 +367,19 @@ export const DayClashPanel = forwardRef<HTMLDivElement, DayClashPanelProps>(func
                 tone="b"
               />
               <Bar
-                label={isOverlap ? `Collision · ${size}` : `Gap · ${size}`}
+                label={
+                  isOverlap ? t("Collision · {{size}}", { size }) : t("Gap · {{size}}", { size })
+                }
                 fromIso={collision.fromAt}
                 toIso={collision.toAt}
                 track={track}
                 tone="clash"
               />
-              <div className="ml-[116px] flex justify-between font-mono text-[11px] text-tn-muted-6 sm:ml-[162px]">
+              <div className="ms-[116px] flex justify-between font-mono text-[11px] text-tn-muted-6 sm:ms-[162px]">
                 {trackTicks(track.startIso, track.minutes).map((tick) => (
                   <span key={tick.at}>{tick.label}</span>
                 ))}
-                <span>{track.minutes > MINUTES_PER_DAY ? "next day" : "24Z"}</span>
+                <span>{track.minutes > MINUTES_PER_DAY ? t("next day") : "24Z"}</span>
               </div>
             </div>
 
@@ -361,9 +391,9 @@ export const DayClashPanel = forwardRef<HTMLDivElement, DayClashPanelProps>(func
                 type="button"
                 data-clash-fix="first"
                 onClick={onOpenOtherTab}
-                className="w-fit cursor-pointer rounded-xl border border-tn-input-border bg-tn-surface px-3.5 py-2.5 text-left font-sans text-[14px] font-semibold text-tn-ink hover:bg-tn-neutral-bg"
+                className="w-fit cursor-pointer rounded-xl border border-tn-input-border bg-tn-surface px-3.5 py-2.5 text-start font-sans text-[14px] font-semibold text-tn-ink hover:bg-tn-neutral-bg"
               >
-                Open {there.locationName} to save it
+                {t("Open {{locationName}} to save it", { locationName: there.locationName })}
               </button>
             )}
 
@@ -374,13 +404,19 @@ export const DayClashPanel = forwardRef<HTMLDivElement, DayClashPanelProps>(func
                     type="button"
                     data-clash-fix="first"
                     onClick={() => onFix(there, here, collision)}
-                    className="flex-1 cursor-pointer rounded-xl border border-tn-input-border bg-tn-surface px-3.5 py-2.5 text-left font-sans hover:bg-tn-neutral-bg"
+                    className="flex-1 cursor-pointer rounded-xl border border-tn-input-border bg-tn-surface px-3.5 py-2.5 text-start font-sans hover:bg-tn-neutral-bg"
                   >
                     <span className="block text-[14px] font-semibold text-tn-ink">
-                      {there.locationName} keeps {weekday}
+                      {t("{{locationName}} keeps {{weekday}}", {
+                        locationName: there.locationName,
+                        weekday,
+                      })}
                     </span>
                     <span className="mt-0.5 block text-[12px] text-tn-muted-5">
-                      {weekday} turns off at {here.locationName}
+                      {t("{{weekday}} turns off at {{locationName}}", {
+                        weekday,
+                        locationName: here.locationName,
+                      })}
                     </span>
                   </button>
                 )}
@@ -389,13 +425,18 @@ export const DayClashPanel = forwardRef<HTMLDivElement, DayClashPanelProps>(func
                     type="button"
                     data-clash-fix={fixable(here) ? undefined : "first"}
                     onClick={() => onFix(here, there, collision)}
-                    className="flex-1 cursor-pointer rounded-xl border border-tn-input-border bg-tn-surface px-3.5 py-2.5 text-left font-sans hover:bg-tn-neutral-bg"
+                    className="flex-1 cursor-pointer rounded-xl border border-tn-input-border bg-tn-surface px-3.5 py-2.5 text-start font-sans hover:bg-tn-neutral-bg"
                   >
                     <span className="block text-[14px] font-semibold text-tn-ink">
-                      {here.locationName} keeps {weekday}
+                      {t("{{locationName}} keeps {{weekday}}", {
+                        locationName: here.locationName,
+                        weekday,
+                      })}
                     </span>
                     <span className="mt-0.5 block text-[12px] text-tn-muted-5">
-                      {there.locationName} is trimmed back to clear it
+                      {t("{{locationName}} is trimmed back to clear it", {
+                        locationName: there.locationName,
+                      })}
                     </span>
                   </button>
                 )}
@@ -405,16 +446,19 @@ export const DayClashPanel = forwardRef<HTMLDivElement, DayClashPanelProps>(func
                     data-clash-fix={fixable(here) ? undefined : "first"}
                     className="rounded-xl border border-tn-input-border bg-tn-surface px-3.5 py-2.5 font-sans text-[14px] font-semibold text-tn-ink no-underline hover:bg-tn-neutral-bg"
                   >
-                    Open both shops in Settings › Availability
+                    {t("Open both shops in Settings › Availability")}
                   </Link>
                 )}
                 {!fixable(here) && !fixable(there) && !resolveHref && (
                   <p className="m-0 font-sans text-xs text-tn-muted-5">
-                    Neither side can be edited here —{" "}
-                    {here.source === "booking" || there.source === "booking"
-                      ? "one of these is a real booking, so move it on the calendar"
-                      : "one of these is a date override, so edit it in the panel beside the grid"}
-                    .
+                    {t("Neither side can be edited here — {{value}}.", {
+                      value:
+                        here.source === "booking" || there.source === "booking"
+                          ? t("one of these is a real booking, so move it on the calendar")
+                          : t(
+                              "one of these is a date override, so edit it in the panel beside the grid",
+                            ),
+                    })}
                   </p>
                 )}
               </div>
@@ -424,9 +468,10 @@ export const DayClashPanel = forwardRef<HTMLDivElement, DayClashPanelProps>(func
                 fixed one date at a time, eight times. */}
             {repeats > 0 && (
               <p className="m-0 font-sans text-[12px] text-tn-muted-5">
-                Same clash on {repeats} more {weekday}
-                {repeats === 1 ? "" : "s"}. Both fixes change the weekly rule, so they clear all of
-                them.
+                {t(
+                  "Same clash on {{repeats}} more {{weekday}}{{value}}. Both fixes change the weekly rule, so they clear all of them.",
+                  { repeats, weekday, value: repeats === 1 ? "" : "s" },
+                )}
               </p>
             )}
           </Collapsible>

@@ -16,6 +16,7 @@ import {
   type CustomerFilter,
   type CustomerStats,
 } from "@/lib/customers-api";
+import { t, intlLocale } from "@/i18n";
 
 type Filter = "All" | "VIP" | "New" | "Inactive 90d+";
 
@@ -79,9 +80,9 @@ function formatLastVisit(iso: string | null): string {
   if (!iso) return "—";
   const date = new Date(iso);
   const now = new Date();
-  if (date.toDateString() === now.toDateString()) return "Today";
+  if (date.toDateString() === now.toDateString()) return t("Today");
   const sameYear = date.getFullYear() === now.getFullYear();
-  return date.toLocaleDateString("en-US", {
+  return date.toLocaleDateString(intlLocale(), {
     month: "short",
     day: "numeric",
     year: sameYear ? undefined : "numeric",
@@ -180,30 +181,33 @@ export function CustomersPage() {
     // White components on the cream page — see .tn-white-components (index.css).
     <div className="tn-white-components flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Customers</h1>
+        <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">{t("Customers")}</h1>
         {canManageCustomers && (
           <Button data-tour="customers-add" onClick={() => setAddOpen(true)}>
-            + Add Customer
+            {t("+ Add Customer")}
           </Button>
         )}
       </div>
 
       {customersQuery.isError && (
         <p className="m-0 font-sans text-sm text-tn-danger">
-          Couldn&rsquo;t load your customers right now (
-          {customersQuery.error instanceof Error ? customersQuery.error.message : "unknown error"})
-          — refresh to try again.
+          {t("Couldn’t load your customers right now ({{value}}) — refresh to try again.", {
+            value:
+              customersQuery.error instanceof Error
+                ? customersQuery.error.message
+                : t("unknown error"),
+          })}
         </p>
       )}
       {customersQuery.isPending && (
-        <p className="m-0 font-sans text-sm text-tn-muted-5">Loading your customers…</p>
+        <p className="m-0 font-sans text-sm text-tn-muted-5">{t("Loading your customers…")}</p>
       )}
 
       <div className="flex flex-wrap items-center gap-3" data-tour="customers-search">
         <input
           type="search"
-          placeholder="Search by name, phone, or email"
-          aria-label="Search customers"
+          placeholder={t("Search by name, phone, or email")}
+          aria-label={t("Search customers")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="min-w-[260px] flex-1 rounded-xl border border-tn-input-border px-3.5 py-2.5 font-sans text-sm text-tn-ink outline-none focus:border-2 focus:border-tn-gold"
@@ -226,10 +230,10 @@ export function CustomersPage() {
       </div>
 
       <div data-tour="customers-stats" className="grid grid-cols-2 gap-5 sm:grid-cols-4">
-        <StatCard label="Total customers" value={String(stats.totalCustomers)} />
-        <StatCard label="New this month" value={String(stats.newThisMonth)} />
-        <StatCard label="Repeat rate" value={`${stats.repeatRatePct}%`} />
-        <StatCard label="Avg lifetime spend" value={dollars(stats.avgLifetimeSpendCents)} />
+        <StatCard label={t("Total customers")} value={String(stats.totalCustomers)} />
+        <StatCard label={t("New this month")} value={String(stats.newThisMonth)} />
+        <StatCard label={t("Repeat rate")} value={`${stats.repeatRatePct}%`} />
+        <StatCard label={t("Avg lifetime spend")} value={dollars(stats.avgLifetimeSpendCents)} />
       </div>
 
       {customersQuery.isSuccess &&
@@ -237,7 +241,7 @@ export function CustomersPage() {
         !isChangingPage &&
         (isNarrowed || stats.totalCustomers > 0 ? (
           <p className="m-0 font-sans text-sm text-tn-muted-5">
-            No customers match your search/filter.
+            {t("No customers match your search/filter.")}
           </p>
         ) : (
           <CustomersEmptyState canManage={canManageCustomers} onAdd={() => setAddOpen(true)} />
@@ -253,19 +257,19 @@ export function CustomersPage() {
             }`}
           >
             <div className="grid grid-cols-[1.8fr_1fr_0.8fr_1fr_1.2fr_1fr] bg-tn-table-head px-[18px] py-3 font-sans text-xs font-semibold text-tn-muted-5">
-              <span>Customer</span>
-              <span>Last visit</span>
-              <span>Visits</span>
-              <span>Lifetime spend</span>
-              <span>Preferred barber</span>
-              <span>Tags</span>
+              <span>{t("Customer")}</span>
+              <span>{t("Last visit")}</span>
+              <span>{t("Visits")}</span>
+              <span>{t("Lifetime spend")}</span>
+              <span>{t("Preferred barber")}</span>
+              <span>{t("Tags")}</span>
             </div>
             {customers.map((c, i) => (
               <button
                 key={c.id}
                 type="button"
                 onClick={() => setSelectedCustomer(c)}
-                className={`grid grid-cols-[1.8fr_1fr_0.8fr_1fr_1.2fr_1fr] items-center px-[18px] py-3.5 text-left ${
+                className={`grid grid-cols-[1.8fr_1fr_0.8fr_1fr_1.2fr_1fr] items-center px-[18px] py-3.5 text-start ${
                   i < customers.length - 1 ? "border-b border-tn-border-soft" : ""
                 }`}
               >

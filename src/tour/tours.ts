@@ -1,4 +1,5 @@
 import type { Tour } from "./types";
+import { t } from "@/i18n";
 
 /**
  * Every tour in the tenant app, as content.
@@ -38,35 +39,47 @@ export const TOURS: readonly Tour[] = [
   {
     id: "home",
     version: 1,
-    title: "Getting started",
+    title: t("Getting started"),
     match: ["/dashboard"],
     steps: [
       {
-        title: "Welcome to iGroom",
-        body: "This is the shop's control room: the diary, the walk-in queue, the till, your team and your takings. Here's the thirty-second version.",
+        title: t("Welcome to iGroom"),
+        body: t(
+          "This is the shop's control room: the diary, the walk-in queue, the till, your team and your takings. Here's the thirty-second version.",
+        ),
       },
       {
         anchor: "app-nav",
-        title: "Everything, in the order a day runs",
-        body: "The top band is your shift — calendar, waitlist, register, close of day. Below it, the business: customers, analytics, payouts. At the bottom, the things you set up once.",
+        title: t("Everything, in the order a day runs"),
+        body: t(
+          "The top band is your shift — calendar, waitlist, register, close of day. Below it, the business: customers, analytics, payouts. At the bottom, the things you set up once.",
+        ),
         placement: "right",
         radius: 10,
-        tip: "The arrow by the iGroom logo collapses this to icons when you want the screen back.",
+        tip: t(
+          "The arrow by the iGroom logo collapses this to icons when you want the screen back.",
+        ),
       },
       {
         anchor: "home-checklist",
-        title: "Finish setting up",
-        body: "Each item here is something a customer can't do until it's done — a menu to book from, hours to book into, a way to get paid. It ticks itself off as you go.",
+        title: t("Finish setting up"),
+        body: t(
+          "Each item here is something a customer can't do until it's done — a menu to book from, hours to book into, a way to get paid. It ticks itself off as you go.",
+        ),
       },
       {
         anchor: "home-resources",
-        title: "Help, when you want a person",
-        body: "Guides for the parts that take a minute to learn, and a way to reach us when something isn't behaving.",
+        title: t("Help, when you want a person"),
+        body: t(
+          "Guides for the parts that take a minute to learn, and a way to reach us when something isn't behaving.",
+        ),
       },
       {
         anchor: "nav-help",
-        title: "Help lives in the corner",
-        body: 'Every screen has a short walkthrough, shown the first time you open it. This button replays the one you\'re on — and searches all the others, so "how do I split tips" finds the right screen from anywhere.',
+        title: t("Help lives in the corner"),
+        body: t(
+          'Every screen has a short walkthrough, shown the first time you open it. This button replays the one you\'re on — and searches all the others, so "how do I split tips" finds the right screen from anywhere.',
+        ),
         placement: "left",
         radius: 999,
         padding: 8,
@@ -77,35 +90,49 @@ export const TOURS: readonly Tour[] = [
   {
     id: "calendar",
     version: 1,
-    title: "The calendar",
+    title: t("The calendar"),
     match: ["/calendar"],
     steps: [
       {
-        title: "The diary",
-        body: "Every booking in the shop, by barber and by day. This is the screen a front desk keeps open all day, and the one customers' online bookings land in as they come.",
+        title: t("The diary"),
+        body: t(
+          "Every booking in the shop, by barber and by day. This is the screen a front desk keeps open all day, and the one customers' online bookings land in as they come.",
+        ),
       },
       {
         anchor: "calendar-toolbar",
-        title: "Day, week, month, list",
-        body: "Day is the working view — one column per barber. Week is for spotting gaps, month for planning, list for reading everything without the grid.",
+        title: t("Day, week, month, list"),
+        body: t(
+          "Day is the working view — one column per barber. Week is for spotting gaps, month for planning, list for reading everything without the grid.",
+        ),
         tip: '"+ Add Booking" takes a walk-in or a phone booking; it checks the same availability a customer would see, so it can\'t double-book a chair.',
       },
       {
         anchor: "calendar-staff-filter",
-        title: "Who's in view",
-        body: 'Pick the barbers you want to see. Save a group as a set — "Saturday team", "the upstairs chairs" — and switch to it in one tap.',
-        tip: "A barber greyed out here is off rota that day. Booking them anyway is possible, and the slot is marked as outside their shift.",
+        title: t("Who's in view"),
+        body: t(
+          'Pick the barbers you want to see. Save a group as a set — "Saturday team", "the upstairs chairs" — and switch to it in one tap.',
+        ),
+        tip: t(
+          "A barber greyed out here is off rota that day. Booking them anyway is possible, and the slot is marked as outside their shift.",
+        ),
       },
       {
         anchor: "calendar-grid",
-        title: "The grid itself",
-        body: "Tap any booking to open it: reschedule, mark arrived, or take payment. Tap an empty slot to book straight into it.",
-        tip: "The line across the grid is now. It follows the shop's own clock, not your computer's, so a branch in another timezone reads correctly.",
+        title: t("The grid itself"),
+        body: t(
+          "Tap any booking to open it: reschedule, mark arrived, or take payment. Tap an empty slot to book straight into it.",
+        ),
+        tip: t(
+          "The line across the grid is now. It follows the shop's own clock, not your computer's, so a branch in another timezone reads correctly.",
+        ),
       },
       {
         anchor: "calendar-location",
-        title: "One branch at a time",
-        body: "Shops with more than one location pick the branch here. The calendar, the staff list and the availability all follow it.",
+        title: t("One branch at a time"),
+        body: t(
+          "Shops with more than one location pick the branch here. The calendar, the staff list and the availability all follow it.",
+        ),
       },
     ],
   },
@@ -113,28 +140,38 @@ export const TOURS: readonly Tour[] = [
   {
     id: "waitlist",
     version: 1,
-    title: "The walk-in queue",
+    title: t("The walk-in queue"),
     match: ["/waitlist"],
     steps: [
       {
-        title: "Today's walk-ins",
-        body: "Everybody waiting, in order, with how long they've been there. It updates on its own — leave it open on the front desk and it stays current.",
+        title: t("Today's walk-ins"),
+        body: t(
+          "Everybody waiting, in order, with how long they've been there. It updates on its own — leave it open on the front desk and it stays current.",
+        ),
       },
       {
         anchor: "waitlist-add",
-        title: "Add somebody at the desk",
-        body: "Name, what they're after, and who they'll take. They get a place in the line and a text when their chair is close.",
-        tip: "Customers can add themselves from the QR code on your Locations page. Both land in the same queue.",
+        title: t("Add somebody at the desk"),
+        body: t(
+          "Name, what they're after, and who they'll take. They get a place in the line and a text when their chair is close.",
+        ),
+        tip: t(
+          "Customers can add themselves from the QR code on your Locations page. Both land in the same queue.",
+        ),
       },
       {
         anchor: "waitlist-toolbar",
-        title: "List or board",
-        body: "List is the queue in order — fastest to read mid-shift. Board shows it by barber, which is what you want when you're deciding who takes the next one.",
+        title: t("List or board"),
+        body: t(
+          "List is the queue in order — fastest to read mid-shift. Board shows it by barber, which is what you want when you're deciding who takes the next one.",
+        ),
       },
       {
         anchor: "waitlist-board",
-        title: "Seat, complete, no-show",
-        body: "Seating somebody moves them into the chair and starts their ticket. No-show frees the slot and keeps the record, so your wait estimates stay honest.",
+        title: t("Seat, complete, no-show"),
+        body: t(
+          "Seating somebody moves them into the chair and starts their ticket. No-show frees the slot and keeps the record, so your wait estimates stay honest.",
+        ),
       },
     ],
   },
@@ -142,28 +179,38 @@ export const TOURS: readonly Tour[] = [
   {
     id: "register",
     version: 1,
-    title: "The register",
+    title: t("The register"),
     match: ["/register"],
     steps: [
       {
-        title: "Taking the money",
-        body: "Today's appointments on the left, the open ticket on the right. Tap a customer, add anything extra, take the payment.",
+        title: t("Taking the money"),
+        body: t(
+          "Today's appointments on the left, the open ticket on the right. Tap a customer, add anything extra, take the payment.",
+        ),
       },
       {
         anchor: "register-queue",
-        title: "Today, in order",
-        body: "Everyone booked or seated today. A greyed-out row is one that can't be charged yet — the reason is printed underneath it.",
+        title: t("Today, in order"),
+        body: t(
+          "Everyone booked or seated today. A greyed-out row is one that can't be charged yet — the reason is printed underneath it.",
+        ),
       },
       {
         anchor: "register-ticket",
-        title: "The open ticket",
-        body: "Services, products, discount and tip, then the payment. Card or cash, split across both if that's what's happening.",
-        tip: "The tip splits by the rule set in Close of day, so nobody has to do arithmetic at the counter.",
+        title: t("The open ticket"),
+        body: t(
+          "Services, products, discount and tip, then the payment. Card or cash, split across both if that's what's happening.",
+        ),
+        tip: t(
+          "The tip splits by the rule set in Close of day, so nobody has to do arithmetic at the counter.",
+        ),
       },
       {
         anchor: "register-counter-sale",
-        title: "A sale with no appointment",
-        body: "Somebody buying a bottle of something on their way past. Opens an empty ticket that works exactly like the others.",
+        title: t("A sale with no appointment"),
+        body: t(
+          "Somebody buying a bottle of something on their way past. Opens an empty ticket that works exactly like the others.",
+        ),
       },
     ],
   },
@@ -171,28 +218,36 @@ export const TOURS: readonly Tour[] = [
   {
     id: "close-of-day",
     version: 1,
-    title: "Closing up",
+    title: t("Closing up"),
     match: ["/close-of-day"],
     steps: [
       {
-        title: "The end of the night",
-        body: "What came in today, who is owed what out of it, and the drawer count that closes the day.",
+        title: t("The end of the night"),
+        body: t(
+          "What came in today, who is owed what out of it, and the drawer count that closes the day.",
+        ),
       },
       {
         anchor: "close-stats",
-        title: "The day in three numbers",
-        body: "Tickets rung up, money taken, tips collected. These are the day's own totals — they stop moving once the day is closed.",
+        title: t("The day in three numbers"),
+        body: t(
+          "Tickets rung up, money taken, tips collected. These are the day's own totals — they stop moving once the day is closed.",
+        ),
       },
       {
         anchor: "close-tip-rule",
-        title: "How tips are shared",
-        body: "Set it once and every ticket follows it: straight to the barber, or pooled and split. Changing the rule affects tickets from here on, not the ones already rung up.",
+        title: t("How tips are shared"),
+        body: t(
+          "Set it once and every ticket follows it: straight to the barber, or pooled and split. Changing the rule affects tickets from here on, not the ones already rung up.",
+        ),
       },
       {
         anchor: "close-finish",
-        title: "Count and close",
-        body: "Enter what's actually in the drawer, and iGroom records the difference against what it expected. Closing locks the day — a correction after that is a new ticket, not an edit.",
-        tip: "Do this before you lock up. A day left open keeps collecting tomorrow's takings.",
+        title: t("Count and close"),
+        body: t(
+          "Enter what's actually in the drawer, and iGroom records the difference against what it expected. Closing locks the day — a correction after that is a new ticket, not an edit.",
+        ),
+        tip: t("Do this before you lock up. A day left open keeps collecting tomorrow's takings."),
       },
     ],
   },
@@ -200,28 +255,36 @@ export const TOURS: readonly Tour[] = [
   {
     id: "customers",
     version: 1,
-    title: "Customers",
+    title: t("Customers"),
     match: ["/customers"],
     steps: [
       {
-        title: "Everyone who has been in",
-        body: "Built from your bookings rather than typed up: anybody who books, walks in, or is added at the desk shows up here with their history.",
+        title: t("Everyone who has been in"),
+        body: t(
+          "Built from your bookings rather than typed up: anybody who books, walks in, or is added at the desk shows up here with their history.",
+        ),
       },
       {
         anchor: "customers-search",
-        title: "Find somebody fast",
-        body: "Name, phone or email. The chips beside it narrow to your regulars, this month's new faces, or the ones you haven't seen in three months.",
-        tip: '"Inactive 90d+" is the list worth exporting before a quiet week.',
+        title: t("Find somebody fast"),
+        body: t(
+          "Name, phone or email. The chips beside it narrow to your regulars, this month's new faces, or the ones you haven't seen in three months.",
+        ),
+        tip: t('"Inactive 90d+" is the list worth exporting before a quiet week.'),
       },
       {
         anchor: "customers-stats",
-        title: "How the book is doing",
-        body: "Repeat rate is the number to watch — it says whether the people coming in are coming back, which no amount of new bookings makes up for.",
+        title: t("How the book is doing"),
+        body: t(
+          "Repeat rate is the number to watch — it says whether the people coming in are coming back, which no amount of new bookings makes up for.",
+        ),
       },
       {
         anchor: "customers-add",
-        title: "Add one by hand",
-        body: "For the customer who only ever phones. Once they're here, the desk can book them without taking their details again.",
+        title: t("Add one by hand"),
+        body: t(
+          "For the customer who only ever phones. Once they're here, the desk can book them without taking their details again.",
+        ),
       },
     ],
   },
@@ -229,28 +292,36 @@ export const TOURS: readonly Tour[] = [
   {
     id: "services",
     version: 1,
-    title: "Your menu",
+    title: t("Your menu"),
     match: ["/services"],
     steps: [
       {
-        title: "What you sell",
-        body: "Every service, with its price and how long the chair is needed. This is what customers book from, and what the calendar uses to size a slot.",
+        title: t("What you sell"),
+        body: t(
+          "Every service, with its price and how long the chair is needed. This is what customers book from, and what the calendar uses to size a slot.",
+        ),
       },
       {
         anchor: "services-add",
-        title: "Add a service",
-        body: "Name, price, duration, and which branches offer it. The duration is the one people underestimate — it's what stops the day running late.",
+        title: t("Add a service"),
+        body: t(
+          "Name, price, duration, and which branches offer it. The duration is the one people underestimate — it's what stops the day running late.",
+        ),
       },
       {
         anchor: "services-tools",
-        title: "Categories and order",
-        body: "Categories group the menu for customers. The order here is the order they see, so the things you want booked go at the top.",
-        tip: "Export to CSV gives you the whole menu as a spreadsheet — useful for a price review, or for a printed list on the wall.",
+        title: t("Categories and order"),
+        body: t(
+          "Categories group the menu for customers. The order here is the order they see, so the things you want booked go at the top.",
+        ),
+        tip: t(
+          "Export to CSV gives you the whole menu as a spreadsheet — useful for a price review, or for a printed list on the wall.",
+        ),
       },
       {
         anchor: "services-search",
-        title: "Find one quickly",
-        body: "Once a menu passes about twenty services, this is faster than scrolling.",
+        title: t("Find one quickly"),
+        body: t("Once a menu passes about twenty services, this is faster than scrolling."),
       },
     ],
   },
@@ -258,27 +329,35 @@ export const TOURS: readonly Tour[] = [
   {
     id: "staff",
     version: 1,
-    title: "Your team",
+    title: t("Your team"),
     match: ["/staff"],
     steps: [
       {
-        title: "Who works here",
-        body: "Your barbers and stylists, and how each of them is doing: what they've sold, their average ticket, how full their chair is.",
+        title: t("Who works here"),
+        body: t(
+          "Your barbers and stylists, and how each of them is doing: what they've sold, their average ticket, how full their chair is.",
+        ),
       },
       {
         anchor: "staff-add",
-        title: "Add someone",
-        body: "They get an email invite, set their own password, and land on a short setup for their hours. Nothing to hand out but the invite.",
+        title: t("Add someone"),
+        body: t(
+          "They get an email invite, set their own password, and land on a short setup for their hours. Nothing to hand out but the invite.",
+        ),
       },
       {
         anchor: "staff-stats",
-        title: "The team at a glance",
-        body: "Utilization is chair time booked against chair time available. It's the number that says whether you need another pair of hands or just more bookings.",
+        title: t("The team at a glance"),
+        body: t(
+          "Utilization is chair time booked against chair time available. It's the number that says whether you need another pair of hands or just more bookings.",
+        ),
       },
       {
         anchor: "staff-table",
-        title: "Per person",
-        body: "The same figures per barber, plus their commission. Open anyone to change their services, rota or pay.",
+        title: t("Per person"),
+        body: t(
+          "The same figures per barber, plus their commission. Open anyone to change their services, rota or pay.",
+        ),
       },
     ],
   },
@@ -286,23 +365,31 @@ export const TOURS: readonly Tour[] = [
   {
     id: "locations",
     version: 1,
-    title: "Your branches",
+    title: t("Your branches"),
     match: ["/locations"],
     steps: [
       {
-        title: "Your branches",
-        body: "Each one has its own address, hours, team, menu and payouts. Pick a branch on the left and everything to the right belongs to it.",
+        title: t("Your branches"),
+        body: t(
+          "Each one has its own address, hours, team, menu and payouts. Pick a branch on the left and everything to the right belongs to it.",
+        ),
       },
       {
         anchor: "locations-add",
-        title: "Add a branch",
-        body: "A new site takes a seat on your plan. Its hours, staff and menu are set from the tabs once it exists.",
+        title: t("Add a branch"),
+        body: t(
+          "A new site takes a seat on your plan. Its hours, staff and menu are set from the tabs once it exists.",
+        ),
       },
       {
         anchor: "locations-list",
-        title: "Switching between them",
-        body: "The list is filtered by the box above it, which earns its place around the point a chain passes five sites.",
-        tip: "Each branch has its own QR code for the walk-in queue — print it and put it by the door.",
+        title: t("Switching between them"),
+        body: t(
+          "The list is filtered by the box above it, which earns its place around the point a chain passes five sites.",
+        ),
+        tip: t(
+          "Each branch has its own QR code for the walk-in queue — print it and put it by the door.",
+        ),
       },
     ],
   },
@@ -310,27 +397,33 @@ export const TOURS: readonly Tour[] = [
   {
     id: "analytics",
     version: 1,
-    title: "Analytics",
+    title: t("Analytics"),
     match: ["/analytics"],
     steps: [
       {
-        title: "How today is going",
-        body: "Bookings, waiting, revenue and rating — plus today's schedule and the same figures branch by branch.",
+        title: t("How today is going"),
+        body: t(
+          "Bookings, waiting, revenue and rating — plus today's schedule and the same figures branch by branch.",
+        ),
       },
       {
         anchor: "analytics-stats",
-        title: "Today in four numbers",
-        body: "The ones worth a glance between clients. Everything below breaks them down.",
+        title: t("Today in four numbers"),
+        body: t("The ones worth a glance between clients. Everything below breaks them down."),
       },
       {
         anchor: "analytics-schedule",
-        title: "Today's schedule",
-        body: "A read-only version of the diary for when you just want to see what's coming rather than change it.",
+        title: t("Today's schedule"),
+        body: t(
+          "A read-only version of the diary for when you just want to see what's coming rather than change it.",
+        ),
       },
       {
         anchor: "analytics-locations",
-        title: "Branch by branch",
-        body: "Where the day's bookings and money are actually happening — the comparison that tells you which site needs attention.",
+        title: t("Branch by branch"),
+        body: t(
+          "Where the day's bookings and money are actually happening — the comparison that tells you which site needs attention.",
+        ),
       },
     ],
   },
@@ -338,22 +431,28 @@ export const TOURS: readonly Tour[] = [
   {
     id: "payouts",
     version: 1,
-    title: "Payouts",
+    title: t("Payouts"),
     match: ["/payouts"],
     steps: [
       {
-        title: "Money coming to you",
-        body: "What you've taken, what is still on its way, and the account it lands in. This is money in — your own subscription lives in Settings, under Billing.",
+        title: t("Money coming to you"),
+        body: t(
+          "What you've taken, what is still on its way, and the account it lands in. This is money in — your own subscription lives in Settings, under Billing.",
+        ),
       },
       {
         anchor: "payouts-stats",
-        title: "Taken, pending, where it lands",
-        body: "Card payments settle on a delay, so \"pending\" is normal — it's today's takings on their way to the bank.",
+        title: t("Taken, pending, where it lands"),
+        body: t(
+          "Card payments settle on a delay, so \"pending\" is normal — it's today's takings on their way to the bank.",
+        ),
       },
       {
         anchor: "payouts-transactions",
-        title: "Recent transactions",
-        body: "Line by line, so a figure that looks wrong can be traced back to the ticket it came from.",
+        title: t("Recent transactions"),
+        body: t(
+          "Line by line, so a figure that looks wrong can be traced back to the ticket it came from.",
+        ),
       },
     ],
   },
@@ -361,23 +460,27 @@ export const TOURS: readonly Tour[] = [
   {
     id: "integrations",
     version: 1,
-    title: "Integrations",
+    title: t("Integrations"),
     match: ["/integrations", "/settings/integrations"],
     steps: [
       {
-        title: "Everything else you run on",
-        body: "Payments, messaging, accounting, marketing. Connect one and iGroom keeps it fed rather than asking you to copy things between two systems.",
+        title: t("Everything else you run on"),
+        body: t(
+          "Payments, messaging, accounting, marketing. Connect one and iGroom keeps it fed rather than asking you to copy things between two systems.",
+        ),
       },
       {
         anchor: "integrations-categories",
-        title: "By what it does",
-        body: 'Browse by category rather than by brand — the question is usually "how do I text customers", not "is X supported".',
+        title: t("By what it does"),
+        body: t(
+          'Browse by category rather than by brand — the question is usually "how do I text customers", not "is X supported".',
+        ),
         placement: "right",
       },
       {
         anchor: "integrations-search",
-        title: "Or search for it by name",
-        body: "If you already use something, look for it here before setting up anything new.",
+        title: t("Or search for it by name"),
+        body: t("If you already use something, look for it here before setting up anything new."),
       },
     ],
   },
@@ -385,30 +488,42 @@ export const TOURS: readonly Tour[] = [
   {
     id: "settings-profile",
     version: 1,
-    title: "Profile settings",
+    title: t("Profile settings"),
     match: ["/settings"],
     steps: [
       {
-        title: "Your shop's details",
-        body: "The name, contact details and photos customers see, plus the account settings behind them.",
+        title: t("Your shop's details"),
+        body: t(
+          "The name, contact details and photos customers see, plus the account settings behind them.",
+        ),
       },
       {
         anchor: "settings-nav",
-        title: "Everything under settings",
-        body: "Profile, availability, security, your team's roles, integrations and billing. Each is its own screen with its own tips.",
+        title: t("Everything under settings"),
+        body: t(
+          "Profile, availability, security, your team's roles, integrations and billing. Each is its own screen with its own tips.",
+        ),
         placement: "right",
       },
       {
         anchor: "settings-public-profile",
-        title: "What customers see",
-        body: "Photos, description and the details on your public page. Preview as Customer shows it exactly as it appears in the customer app.",
-        tip: "Shops with real photos of the room get noticeably more bookings than ones with none. It's the cheapest change on this page.",
+        title: t("What customers see"),
+        body: t(
+          "Photos, description and the details on your public page. Preview as Customer shows it exactly as it appears in the customer app.",
+        ),
+        tip: t(
+          "Shops with real photos of the room get noticeably more bookings than ones with none. It's the cheapest change on this page.",
+        ),
       },
       {
         anchor: "settings-tips",
-        title: "These walkthroughs",
-        body: "Every screen has one, shown the first time you open it. Replay them all from here, or switch them off for everyone who uses this browser.",
-        tip: "Switching them off doesn't remove them — the help button in the bottom-right corner always brings the current screen's tips back.",
+        title: t("These walkthroughs"),
+        body: t(
+          "Every screen has one, shown the first time you open it. Replay them all from here, or switch them off for everyone who uses this browser.",
+        ),
+        tip: t(
+          "Switching them off doesn't remove them — the help button in the bottom-right corner always brings the current screen's tips back.",
+        ),
       },
     ],
   },
@@ -416,23 +531,31 @@ export const TOURS: readonly Tour[] = [
   {
     id: "settings-hours",
     version: 1,
-    title: "Availability",
+    title: t("Availability"),
     match: ["/settings/hours"],
     steps: [
       {
-        title: "When people can be booked",
-        body: "Each person's working week, plus the days that don't follow it — holidays, a late start, a Saturday off. This is what decides the slots a customer sees.",
+        title: t("When people can be booked"),
+        body: t(
+          "Each person's working week, plus the days that don't follow it — holidays, a late start, a Saturday off. This is what decides the slots a customer sees.",
+        ),
       },
       {
         anchor: "hours-controls",
-        title: "Whose week you're editing",
-        body: "Pick the person, and the branch if you run more than one. Travel buffer is the gap iGroom leaves when somebody works at two sites in a day.",
+        title: t("Whose week you're editing"),
+        body: t(
+          "Pick the person, and the branch if you run more than one. Travel buffer is the gap iGroom leaves when somebody works at two sites in a day.",
+        ),
       },
       {
         anchor: "hours-editor",
-        title: "The week itself",
-        body: "Set the hours per day, copy one day across the others, and add an override for anything that's a one-off.",
-        tip: "A clash warning here is worth reading rather than dismissing — it means a booking already exists in the hours you're removing.",
+        title: t("The week itself"),
+        body: t(
+          "Set the hours per day, copy one day across the others, and add an override for anything that's a one-off.",
+        ),
+        tip: t(
+          "A clash warning here is worth reading rather than dismissing — it means a booking already exists in the hours you're removing.",
+        ),
       },
     ],
   },
@@ -440,18 +563,22 @@ export const TOURS: readonly Tour[] = [
   {
     id: "settings-security",
     version: 1,
-    title: "Security",
+    title: t("Security"),
     match: ["/settings/security"],
     steps: [
       {
-        title: "Getting in, and staying safe",
-        body: "Your password, two-factor, and everywhere you're currently signed in.",
+        title: t("Getting in, and staying safe"),
+        body: t("Your password, two-factor, and everywhere you're currently signed in."),
       },
       {
         anchor: "security-rows",
-        title: "Worth ten minutes",
-        body: "This account can move money and read every customer's details. Two-factor is the single change that protects both.",
-        tip: "Active sessions is where to look if a device was lost — signing it out here ends its access immediately.",
+        title: t("Worth ten minutes"),
+        body: t(
+          "This account can move money and read every customer's details. Two-factor is the single change that protects both.",
+        ),
+        tip: t(
+          "Active sessions is where to look if a device was lost — signing it out here ends its access immediately.",
+        ),
       },
     ],
   },
@@ -459,22 +586,26 @@ export const TOURS: readonly Tour[] = [
   {
     id: "settings-staff",
     version: 1,
-    title: "Staff management",
+    title: t("Staff management"),
     match: ["/settings/staff"],
     steps: [
       {
-        title: "Who can do what",
+        title: t("Who can do what"),
         body: "Your team's accounts and the roles that decide what each of them can see. This is the access side of staff; their hours and pay live on the Staff screen.",
       },
       {
         anchor: "staff-mgmt-tabs",
-        title: "Members and roles",
-        body: "Members are people. Roles are the sets of permissions you give them — change a role and everybody on it changes with it.",
+        title: t("Members and roles"),
+        body: t(
+          "Members are people. Roles are the sets of permissions you give them — change a role and everybody on it changes with it.",
+        ),
       },
       {
         anchor: "staff-mgmt-add",
-        title: "Adding someone",
-        body: "Invite them by email and pick a role. Give the smallest role that lets them do their job — a front desk rarely needs to see payouts.",
+        title: t("Adding someone"),
+        body: t(
+          "Invite them by email and pick a role. Give the smallest role that lets them do their job — a front desk rarely needs to see payouts.",
+        ),
       },
     ],
   },
@@ -482,23 +613,29 @@ export const TOURS: readonly Tour[] = [
   {
     id: "settings-billing",
     version: 1,
-    title: "Billing & plan",
+    title: t("Billing & plan"),
     match: ["/settings/billing"],
     steps: [
       {
-        title: "Your subscription",
-        body: "What you pay iGroom, the card it comes off, and every invoice so far. Money coming *to* you is on the Payouts screen instead.",
+        title: t("Your subscription"),
+        body: t(
+          "What you pay iGroom, the card it comes off, and every invoice so far. Money coming *to* you is on the Payouts screen instead.",
+        ),
       },
       {
         anchor: "billing-plan",
-        title: "Your plan and seats",
+        title: t("Your plan and seats"),
         body: "Seats are counted per location. Adding a branch takes one; closing a branch gives it back at the next renewal.",
       },
       {
         anchor: "billing-payment-method",
-        title: "The card on file",
-        body: "Kept by our payment provider, never by iGroom — we only ever see the last four digits.",
-        tip: "Keep a second card here if you can. A single expired card is the most common reason an account lapses.",
+        title: t("The card on file"),
+        body: t(
+          "Kept by our payment provider, never by iGroom — we only ever see the last four digits.",
+        ),
+        tip: t(
+          "Keep a second card here if you can. A single expired card is the most common reason an account lapses.",
+        ),
       },
     ],
   },
@@ -506,12 +643,14 @@ export const TOURS: readonly Tour[] = [
   {
     id: "staff-welcome",
     version: 1,
-    title: "Setting up your account",
+    title: t("Setting up your account"),
     match: ["/welcome"],
     steps: [
       {
-        title: "Welcome to the team",
-        body: "Two things before you start: a password of your own, and the hours you work. Both take a minute, and the shop's calendar can't book you until the hours are in.",
+        title: t("Welcome to the team"),
+        body: t(
+          "Two things before you start: a password of your own, and the hours you work. Both take a minute, and the shop's calendar can't book you until the hours are in.",
+        ),
       },
     ],
   },

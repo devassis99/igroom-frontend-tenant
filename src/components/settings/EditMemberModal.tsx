@@ -10,6 +10,7 @@ import { listRoles } from "@/lib/roles-api";
 import { updateStaff, type ServiceIdsByLocation, type StaffMember } from "@/lib/staff-api";
 import { LocationMultiSelect } from "@/components/settings/LocationMultiSelect";
 import { LocationServicesPicker } from "@/components/settings/LocationServicesPicker";
+import { t } from "@/i18n";
 
 interface EditMemberModalProps {
   /** null closes the modal — same "undefined/null open state doubles as the value" pattern as ServicesPage's ServiceModal. */
@@ -17,7 +18,7 @@ interface EditMemberModalProps {
   onClose: () => void;
 }
 
-const TABS = ["Profile", "Services", "Role & Pay"];
+const TABS = [t("Profile"), t("Services"), t("Role & Pay")];
 
 /**
  * The T12g ✎ "opens the profile edit" affordance — also reused by T10's
@@ -110,7 +111,7 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
 
   const mutation = useMutation({
     mutationFn: () => {
-      if (!member) throw new Error("No member selected");
+      if (!member) throw new Error(t("No member selected"));
       const specialties = specialtiesText
         .split(",")
         .map((s) => s.trim())
@@ -140,7 +141,7 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
       onClose();
     },
     onError: (err) => {
-      setFormError(err instanceof Error ? err.message : "Couldn't save — try again.");
+      setFormError(err instanceof Error ? err.message : t("Couldn't save — try again."));
     },
   });
 
@@ -178,10 +179,12 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
     // doesn't run that shop can't put somebody into it, and the backend
     // refuses it either way (assertCallerAtLocations). Saying so beats
     // offering the tick and failing the save.
-    if (!loc.inScope) return "Not one of your locations — ask an owner to assign them here";
+    if (!loc.inScope) return t("Not one of your locations — ask an owner to assign them here");
     if (currentZone === null) return undefined;
     if (resolvedZone(loc) === currentZone) return undefined;
-    return `Runs on ${resolvedZone(loc)} — a member's shops must share one timezone`;
+    return t("Runs on {{loc}} — a member's shops must share one timezone", {
+      loc: resolvedZone(loc),
+    });
   }
 
   function handleLocationsChange(nextLocationIds: string[]) {
@@ -200,14 +203,14 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
     e.preventDefault();
     if (!name.trim()) {
       setTab(0);
-      setFormError("Give this member a name.");
+      setFormError(t("Give this member a name."));
       return;
     }
     if (commissionRate.trim() !== "") {
       const n = Number(commissionRate);
       if (!Number.isFinite(n) || n < 0 || n > 100) {
         setTab(2);
-        setFormError("Commission rate must be a number between 0 and 100.");
+        setFormError(t("Commission rate must be a number between 0 and 100."));
         return;
       }
     }
@@ -215,7 +218,7 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
       const n = Number(rating);
       if (!Number.isFinite(n) || n < 0 || n > 5) {
         setTab(2);
-        setFormError("Rating must be a number between 0 and 5.");
+        setFormError(t("Rating must be a number between 0 and 5."));
         return;
       }
     }
@@ -223,7 +226,7 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
       const n = Number(yearsExperience);
       if (!Number.isFinite(n) || n < 0 || n > 80) {
         setTab(0);
-        setFormError("Years of experience must be a number between 0 and 80.");
+        setFormError(t("Years of experience must be a number between 0 and 80."));
         return;
       }
     }
@@ -238,11 +241,11 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
     <Modal open={member !== null} onClose={onClose} width={560} variant="sheet">
       <form onSubmit={handleSubmit}>
         <div className="flex items-center justify-between px-6 pt-6">
-          <h2 className="m-0 font-sans text-lg font-semibold text-tn-ink">Edit Member</h2>
+          <h2 className="m-0 font-sans text-lg font-semibold text-tn-ink">{t("Edit Member")}</h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("Close")}
             className="cursor-pointer border-none bg-transparent font-sans text-xl text-tn-muted-6"
           >
             &times;
@@ -256,7 +259,7 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
         <div className="flex flex-col gap-4 px-6 pb-6 pt-4">
           {tab === 0 && (
             <>
-              <Field label="NAME">
+              <Field label={t("NAME")}>
                 <input
                   type="text"
                   value={name}
@@ -265,7 +268,7 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
                 />
               </Field>
 
-              <Field label="LOCATIONS">
+              <Field label={t("LOCATIONS")}>
                 <LocationMultiSelect
                   locations={locations}
                   value={locationIds}
@@ -273,7 +276,12 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
                   loading={locationsQuery.isPending}
                   error={
                     locationsQuery.isError
-                      ? `Couldn\u2019t load the shop list \u2014 ${locationsQuery.error instanceof Error ? locationsQuery.error.message : "unknown error"}`
+                      ? t("Couldn’t load the shop list — {{value}}", {
+                          value:
+                            locationsQuery.error instanceof Error
+                              ? locationsQuery.error.message
+                              : t("unknown error"),
+                        })
                       : undefined
                   }
                   unavailableReason={locationUnavailableReason}
@@ -281,31 +289,35 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
               </Field>
               {currentZone !== null && locations.some(locationUnavailableReason) && (
                 <p className="m-0 -mt-2 font-sans text-xs text-tn-muted-5">
-                  Shops on a different clock are greyed out. This member&rsquo;s hours are written
-                  in <span className="font-semibold text-tn-ink-soft">{currentZone}</span>, and one
-                  schedule can only describe one working day. To move them somewhere else, untick
-                  their current shop first.
+                  {t(
+                    "Shops on a different clock are greyed out. This member’s hours are written in",
+                  )}{" "}
+                  <span className="font-semibold text-tn-ink-soft">{currentZone}</span>
+                  {t(
+                    ", and one schedule can only describe one working day. To move them somewhere else, untick their current shop first.",
+                  )}
                 </p>
               )}
               {removedLocations.length > 0 && (
                 <p className="m-0 -mt-2 font-sans text-xs text-tn-muted-5">
-                  Saving removes this member from{" "}
-                  {removedLocations.map((loc) => loc.name).join(", ")} and clears the services they
-                  were assigned there. Their other shops are untouched.
+                  {t(
+                    "Saving removes this member from {{join}} and clears the services they were assigned there. Their other shops are untouched.",
+                    { join: removedLocations.map((loc) => loc.name).join(", ") },
+                  )}
                 </p>
               )}
 
               <div className="grid grid-cols-2 gap-3.5">
-                <Field label="DISPLAY TITLE">
+                <Field label={t("DISPLAY TITLE")}>
                   <input
                     type="text"
-                    placeholder="Senior Barber"
+                    placeholder={t("Senior Barber")}
                     value={displayTitle}
                     onChange={(e) => setDisplayTitle(e.target.value)}
                     className={formInputClass}
                   />
                 </Field>
-                <Field label="YEARS EXPERIENCE">
+                <Field label={t("YEARS EXPERIENCE")}>
                   <input
                     type="number"
                     min={0}
@@ -319,18 +331,20 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
                 </Field>
               </div>
 
-              <Field label="SPECIALTIES">
+              <Field label={t("SPECIALTIES")}>
                 <input
                   type="text"
-                  placeholder="Skin fades, Beard sculpting"
+                  placeholder={t("Skin fades, Beard sculpting")}
                   value={specialtiesText}
                   onChange={(e) => setSpecialtiesText(e.target.value)}
                   className={formInputClass}
                 />
               </Field>
-              <p className="m-0 -mt-2 font-sans text-xs text-tn-muted-5">Separate with commas.</p>
+              <p className="m-0 -mt-2 font-sans text-xs text-tn-muted-5">
+                {t("Separate with commas.")}
+              </p>
 
-              <Field label="BIO">
+              <Field label={t("BIO")}>
                 <textarea
                   rows={4}
                   value={bio}
@@ -339,8 +353,9 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
                 />
               </Field>
               <p className="m-0 -mt-2 font-sans text-xs text-tn-muted-5">
-                Display title, specialties and bio show on this member&rsquo;s public profile in the
-                customer app.
+                {t(
+                  "Display title, specialties and bio show on this member’s public profile in the customer app.",
+                )}
               </p>
             </>
           )}
@@ -348,8 +363,9 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
           {tab === 1 && (
             <>
               <p className="m-0 font-sans text-xs text-tn-muted-5">
-                Which services this member can be booked for, at each shop they work at. The menu
-                differs per shop, so the picks do too.
+                {t(
+                  "Which services this member can be booked for, at each shop they work at. The menu differs per shop, so the picks do too.",
+                )}
               </p>
               <LocationServicesPicker
                 locations={selectedLocations}
@@ -361,14 +377,14 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
 
           {tab === 2 && (
             <>
-              <Field label="ROLE">
+              <Field label={t("ROLE")}>
                 <select
                   value={roleId}
                   onChange={(e) => setRoleId(e.target.value)}
                   disabled={isSelf}
                   className={formSelectClass}
                 >
-                  {roleId === "" && <option value="">Loading roles…</option>}
+                  {roleId === "" && <option value="">{t("Loading roles…")}</option>}
                   {roles.map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.name}
@@ -378,12 +394,12 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
               </Field>
               {isSelf && (
                 <p className="m-0 -mt-2 font-sans text-xs text-tn-muted-5">
-                  You can&rsquo;t change your own role — ask an owner or manager.
+                  {t("You can’t change your own role — ask an owner or manager.")}
                 </p>
               )}
 
               <div className="grid grid-cols-2 gap-3.5">
-                <Field label="COMMISSION RATE (%)">
+                <Field label={t("COMMISSION RATE (%)")}>
                   <input
                     type="number"
                     min={0}
@@ -395,7 +411,7 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
                     className={formInputClass}
                   />
                 </Field>
-                <Field label="RATING (0–5)">
+                <Field label={t("RATING (0–5)")}>
                   <input
                     type="number"
                     min={0}
@@ -409,8 +425,9 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
                 </Field>
               </div>
               <p className="m-0 -mt-2 font-sans text-xs text-tn-muted-5">
-                Used on the Staff page to calculate commission payout and show a star rating. Leave
-                blank if unknown.
+                {t(
+                  "Used on the Staff page to calculate commission payout and show a star rating. Leave blank if unknown.",
+                )}
               </p>
             </>
           )}
@@ -425,10 +442,10 @@ export function EditMemberModal({ member, onClose }: EditMemberModalProps) {
               onClick={onClose}
               disabled={mutation.isPending}
             >
-              Cancel
+              {t("Cancel")}
             </Button>
             <Button type="submit" className="flex-1" disabled={mutation.isPending}>
-              {mutation.isPending ? "Saving…" : "Save Changes"}
+              {mutation.isPending ? t("Saving…") : t("Save Changes")}
             </Button>
           </div>
         </div>

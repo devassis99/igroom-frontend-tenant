@@ -17,6 +17,7 @@ import { BOOKING_STATUS_TONE } from "@/lib/booking-status";
 import { formatDateTimeLabel, zonedHourMinute, zonedTimeToUtc } from "@/lib/calendar-dates";
 import { todayIsoIn } from "@/lib/timezones";
 import { invalidateVisitCaches } from "@/lib/visit-cache";
+import { t, intlLocale } from "@/i18n";
 
 type Mode = "detail" | "reschedule" | "cancel";
 
@@ -117,7 +118,7 @@ export function AppointmentModal({
 
   const rescheduleMutation = useMutation({
     mutationFn: () => {
-      if (!booking) return Promise.reject(new Error("No booking selected"));
+      if (!booking) return Promise.reject(new Error(t("No booking selected")));
       // Read as the shop's wall clock, the same conversion
       // AddBookingModal does — not `new Date("...T...")`, which resolves
       // in whatever zone the manager's laptop is set to.
@@ -137,19 +138,20 @@ export function AppointmentModal({
       handleClose();
     },
     onError: (err) =>
-      setError(err instanceof Error ? err.message : "Couldn't reschedule — try again."),
+      setError(err instanceof Error ? err.message : t("Couldn't reschedule — try again.")),
   });
 
   const cancelMutation = useMutation({
     mutationFn: () => {
-      if (!booking) return Promise.reject(new Error("No booking selected"));
+      if (!booking) return Promise.reject(new Error(t("No booking selected")));
       return cancelBooking(accessToken, booking.id);
     },
     onSuccess: () => {
       void invalidateVisitCaches(queryClient);
       handleClose();
     },
-    onError: (err) => setError(err instanceof Error ? err.message : "Couldn't cancel — try again."),
+    onError: (err) =>
+      setError(err instanceof Error ? err.message : t("Couldn't cancel — try again.")),
   });
 
   // Reconciles a still-"confirmed"/"walk_in" appointment once its time has
@@ -157,7 +159,7 @@ export function AppointmentModal({
   // AppointmentListView.tsx's Past tab.
   const markStatusMutation = useMutation({
     mutationFn: (nextStatus: "completed" | "no_show") => {
-      if (!booking) return Promise.reject(new Error("No booking selected"));
+      if (!booking) return Promise.reject(new Error(t("No booking selected")));
       return updateBooking(accessToken, booking.id, { status: nextStatus });
     },
     onSuccess: () => {
@@ -167,7 +169,8 @@ export function AppointmentModal({
       void invalidateVisitCaches(queryClient);
       handleClose();
     },
-    onError: (err) => setError(err instanceof Error ? err.message : "Couldn't update — try again."),
+    onError: (err) =>
+      setError(err instanceof Error ? err.message : t("Couldn't update — try again.")),
   });
 
   /**
@@ -181,7 +184,7 @@ export function AppointmentModal({
    */
   const checkInMutation = useMutation({
     mutationFn: (checkedIn: boolean) => {
-      if (!booking) return Promise.reject(new Error("No booking selected"));
+      if (!booking) return Promise.reject(new Error(t("No booking selected")));
       return setBookingCheckedIn(accessToken, booking.id, checkedIn);
     },
     onSuccess: (updated) => {
@@ -191,7 +194,7 @@ export function AppointmentModal({
       setError(null);
     },
     onError: (err) =>
-      setError(err instanceof Error ? err.message : "Couldn't check them in — try again."),
+      setError(err instanceof Error ? err.message : t("Couldn't check them in — try again.")),
   });
 
   // Only fetched once the appointment's actually past — see
@@ -211,14 +214,14 @@ export function AppointmentModal({
   const isPast = end.getTime() < Date.now();
   const checkedInAt = booking.checkedInAt ? new Date(booking.checkedInAt) : null;
   const arrivedLabel = checkedInAt
-    ? checkedInAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+    ? checkedInAt.toLocaleTimeString(intlLocale(), { hour: "numeric", minute: "2-digit" })
     : "";
   const review = reviewQuery.data?.reviews[0];
 
   const titles: Record<Mode, string> = {
-    detail: "Appointment",
-    reschedule: "Reschedule",
-    cancel: "Cancel appointment",
+    detail: t("Appointment"),
+    reschedule: t("Reschedule"),
+    cancel: t("Cancel appointment"),
   };
 
   return (
@@ -228,7 +231,7 @@ export function AppointmentModal({
         <button
           type="button"
           onClick={handleClose}
-          aria-label="Close"
+          aria-label={t("Close")}
           className="cursor-pointer border-none bg-transparent font-sans text-xl text-tn-muted-6"
         >
           &times;
@@ -257,24 +260,31 @@ export function AppointmentModal({
                   appointment is still "confirmed" while they sit in the
                   shop. Two separate facts, two separate pills.
                 */}
-                {checkedInAt && <StatusPill tone="success">Arrived {arrivedLabel}</StatusPill>}
+                {checkedInAt && (
+                  <StatusPill tone="success">
+                    {t("Arrived {{arrivedLabel}}", { arrivedLabel })}
+                  </StatusPill>
+                )}
               </div>
             </div>
 
             <div className="flex flex-col overflow-hidden rounded-xl border border-tn-border">
               {(
                 [
-                  ["Service", booking.serviceName],
-                  ["Barber", booking.staffName],
-                  ["Date & time", formatDateTimeLabel(start, timezone)],
-                  ["Duration", `${booking.durationMinutes} min`],
+                  [t("Service"), booking.serviceName],
+                  [t("Barber"), booking.staffName],
+                  [t("Date & time"), formatDateTimeLabel(start, timezone)],
+                  [
+                    t("Duration"),
+                    t("{{durationMinutes}} min", { durationMinutes: booking.durationMinutes }),
+                  ],
                   ...(booking.priceCents != null
-                    ? ([["Price", `$${(booking.priceCents / 100).toFixed(2)}`]] as [
+                    ? ([[t("Price"), `$${(booking.priceCents / 100).toFixed(2)}`]] as [
                         string,
                         string,
                       ][])
                     : []),
-                  ...(booking.notes ? ([["Notes", booking.notes]] as [string, string][]) : []),
+                  ...(booking.notes ? ([[t("Notes"), booking.notes]] as [string, string][]) : []),
                 ] as [string, string][]
               ).map(([label, value], i, arr) => (
                 <div
@@ -282,7 +292,7 @@ export function AppointmentModal({
                   className={`flex justify-between gap-4 px-4 py-3 ${i < arr.length - 1 ? "border-b border-tn-border-soft" : ""}`}
                 >
                   <span className="font-sans text-[14px] text-tn-muted-5">{label}</span>
-                  <span className="text-right font-sans text-[14px] font-semibold text-tn-ink-soft">
+                  <span className="text-end font-sans text-[14px] font-semibold text-tn-ink-soft">
                     {value}
                   </span>
                 </div>
@@ -292,14 +302,16 @@ export function AppointmentModal({
             {isPast && (
               <div className="flex flex-col gap-1.5 rounded-xl border border-tn-border p-3.5">
                 <p className="m-0 font-sans text-[12px] font-semibold tracking-wide text-tn-muted-5">
-                  CUSTOMER REVIEW
+                  {t("CUSTOMER REVIEW")}
                 </p>
                 {reviewQuery.isPending ? (
-                  <p className="m-0 font-sans text-[14px] text-tn-faint-2">Loading review…</p>
+                  <p className="m-0 font-sans text-[14px] text-tn-faint-2">
+                    {t("Loading review…")}
+                  </p>
                 ) : review ? (
                   <>
                     <span
-                      aria-label={`${review.rating} out of 5 stars`}
+                      aria-label={t("{{rating}} out of 5 stars", { rating: review.rating })}
                       className="font-sans text-[14px] text-tn-gold"
                     >
                       {"★".repeat(review.rating)}
@@ -312,11 +324,11 @@ export function AppointmentModal({
                         review.comment ? "text-tn-ink-soft" : "text-tn-faint-2"
                       }`}
                     >
-                      {review.comment || "No written comment"}
+                      {review.comment || t("No written comment")}
                     </p>
                   </>
                 ) : (
-                  <p className="m-0 font-sans text-[14px] text-tn-faint-2">No review yet</p>
+                  <p className="m-0 font-sans text-[14px] text-tn-faint-2">{t("No review yet")}</p>
                 )}
               </div>
             )}
@@ -332,7 +344,7 @@ export function AppointmentModal({
                     disabled={markStatusMutation.isPending}
                     onClick={() => markStatusMutation.mutate("completed")}
                   >
-                    Mark completed
+                    {t("Mark completed")}
                   </Button>
                   {/*
                     A no-show and an arrival can't both be true of one
@@ -348,7 +360,7 @@ export function AppointmentModal({
                       disabled={checkInMutation.isPending}
                       onClick={() => checkInMutation.mutate(false)}
                     >
-                      Undo check-in
+                      {t("Undo check-in")}
                     </Button>
                   ) : (
                     <Button
@@ -357,7 +369,7 @@ export function AppointmentModal({
                       disabled={markStatusMutation.isPending}
                       onClick={() => markStatusMutation.mutate("no_show")}
                     >
-                      Mark no-show
+                      {t("Mark no-show")}
                     </Button>
                   )}
                   <Button
@@ -369,7 +381,7 @@ export function AppointmentModal({
                         window.location.href = `mailto:${booking.customerEmail}`;
                     }}
                   >
-                    Message
+                    {t("Message")}
                   </Button>
                 </div>
               ) : (
@@ -380,7 +392,7 @@ export function AppointmentModal({
                       className="flex-1"
                       onClick={() => setMode("reschedule")}
                     >
-                      Reschedule
+                      {t("Reschedule")}
                     </Button>
                     <Button
                       variant="secondary"
@@ -391,7 +403,7 @@ export function AppointmentModal({
                           window.location.href = `mailto:${booking.customerEmail}`;
                       }}
                     >
-                      Message
+                      {t("Message")}
                     </Button>
                     {checkedInAt ? (
                       <Button
@@ -406,7 +418,7 @@ export function AppointmentModal({
                         onClick={() => checkInMutation.mutate(false)}
                         disabled={checkInMutation.isPending}
                       >
-                        Undo check-in
+                        {t("Undo check-in")}
                       </Button>
                     ) : (
                       <Button
@@ -414,7 +426,7 @@ export function AppointmentModal({
                         onClick={() => checkInMutation.mutate(true)}
                         disabled={checkInMutation.isPending}
                       >
-                        {checkInMutation.isPending ? "Checking in…" : "Check In"}
+                        {checkInMutation.isPending ? t("Checking in…") : t("Check In")}
                       </Button>
                     )}
                   </div>
@@ -423,7 +435,7 @@ export function AppointmentModal({
                     onClick={() => setMode("cancel")}
                     className="cursor-pointer border-none bg-transparent text-center font-sans text-xs font-medium text-tn-danger"
                   >
-                    Cancel appointment
+                    {t("Cancel appointment")}
                   </button>
                 </>
               ))}
@@ -439,13 +451,16 @@ export function AppointmentModal({
                   {booking.customerName} · {booking.serviceName}
                 </p>
                 <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
-                  Currently {formatDateTimeLabel(start, timezone)} with {booking.staffName}
+                  {t("Currently {{start}} with {{staffName}}", {
+                    start: formatDateTimeLabel(start, timezone),
+                    staffName: booking.staffName,
+                  })}
                 </p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <Field label="NEW DATE">
+              <Field label={t("NEW DATE")}>
                 <input
                   type="date"
                   className={formInputClass}
@@ -453,12 +468,12 @@ export function AppointmentModal({
                   onChange={(e) => setNewDate(e.target.value)}
                 />
               </Field>
-              <Field label="NEW TIME">
-                <TimePicker label="New time" value={newTime} onChange={setNewTime} />
+              <Field label={t("NEW TIME")}>
+                <TimePicker label={t("New time")} value={newTime} onChange={setNewTime} />
               </Field>
             </div>
 
-            <Field label="BARBER">
+            <Field label={t("BARBER")}>
               <select
                 className={formSelectClass}
                 value={newStaffId}
@@ -474,21 +489,21 @@ export function AppointmentModal({
 
             <label className="flex items-center gap-2 font-sans text-[14px] text-tn-muted-1">
               <input type="checkbox" defaultChecked className="accent-tn-gold" disabled />
-              Notify customer by SMS
+              {t("Notify customer by SMS")}
             </label>
 
             {error && <p className="m-0 font-sans text-xs text-tn-danger">{error}</p>}
 
             <div className="flex gap-2.5 border-t border-tn-border-soft pt-3">
               <Button variant="secondary" className="flex-1" onClick={() => setMode("detail")}>
-                Back
+                {t("Back")}
               </Button>
               <Button
                 className="flex-1"
                 onClick={() => rescheduleMutation.mutate()}
                 disabled={rescheduleMutation.isPending || !newDate || !newTime}
               >
-                {rescheduleMutation.isPending ? "Saving…" : "Confirm New Time"}
+                {rescheduleMutation.isPending ? t("Saving…") : t("Confirm New Time")}
               </Button>
             </div>
           </>
@@ -503,7 +518,10 @@ export function AppointmentModal({
                   {booking.customerName} · {booking.serviceName}
                 </p>
                 <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
-                  {formatDateTimeLabel(start, timezone)} with {booking.staffName}
+                  {t("{{start}} with {{staffName}}", {
+                    start: formatDateTimeLabel(start, timezone),
+                    staffName: booking.staffName,
+                  })}
                 </p>
               </div>
             </div>
@@ -514,24 +532,24 @@ export function AppointmentModal({
                   ⚠
                 </span>
                 <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">
-                  This can&rsquo;t be undone
+                  {t("This can’t be undone")}
                 </p>
               </div>
               <p className="m-0 font-sans text-xs text-tn-muted-4">
-                The slot stays in the shop&rsquo;s history marked as cancelled.
+                {t("The slot stays in the shop’s history marked as cancelled.")}
               </p>
             </div>
 
             <label className="flex items-center gap-2 font-sans text-[14px] text-tn-muted-1">
               <input type="checkbox" defaultChecked className="accent-tn-gold" disabled />
-              Notify customer by SMS
+              {t("Notify customer by SMS")}
             </label>
 
             {error && <p className="m-0 font-sans text-xs text-tn-danger">{error}</p>}
 
             <div className="flex gap-2.5 border-t border-tn-border-soft pt-3">
               <Button variant="secondary" className="flex-1" onClick={() => setMode("detail")}>
-                Keep Appointment
+                {t("Keep Appointment")}
               </Button>
               <Button
                 variant="danger"
@@ -539,7 +557,7 @@ export function AppointmentModal({
                 onClick={() => cancelMutation.mutate()}
                 disabled={cancelMutation.isPending}
               >
-                {cancelMutation.isPending ? "Cancelling…" : "Cancel Appointment"}
+                {cancelMutation.isPending ? t("Cancelling…") : t("Cancel Appointment")}
               </Button>
             </div>
           </>

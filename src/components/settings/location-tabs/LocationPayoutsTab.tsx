@@ -1,16 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/auth/auth-store";
 import { getLocationPayouts, type AccountLocation } from "@/lib/locations-api";
+import { t, intlLocale } from "@/i18n";
 
 function money(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  paid: "Paid",
-  refunded: "Refunded",
-  failed: "Failed",
-  requires_payment: "Awaiting payment",
+  paid: t("Paid"),
+  refunded: t("Refunded"),
+  failed: t("Failed"),
+  requires_payment: t("Awaiting payment"),
 };
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
@@ -45,10 +46,10 @@ export function LocationPayoutsTab({ location }: { location: AccountLocation }) 
   });
 
   if (payoutsQuery.isPending) {
-    return <p className="m-0 font-sans text-sm text-tn-muted-5">Loading takings…</p>;
+    return <p className="m-0 font-sans text-sm text-tn-muted-5">{t("Loading takings…")}</p>;
   }
   if (payoutsQuery.isError) {
-    return <p className="m-0 font-sans text-sm text-tn-danger">Couldn&rsquo;t load takings.</p>;
+    return <p className="m-0 font-sans text-sm text-tn-danger">{t("Couldn’t load takings.")}</p>;
   }
 
   const { totals, payments, windowDays } = payoutsQuery.data;
@@ -57,33 +58,37 @@ export function LocationPayoutsTab({ location }: { location: AccountLocation }) 
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
         <p className="m-0 font-sans text-sm font-semibold text-tn-ink">
-          Last {windowDays} days at {location.name}
+          {t("Last {{windowDays}} days at {{name}}", { windowDays, name: location.name })}
         </p>
         <p className="m-0 font-sans text-xs text-tn-muted-5">
-          Money taken through the app. Bank transfers aren&rsquo;t connected yet, so nothing here is
-          a payout date — it&rsquo;s what was booked, what Stripe captured, and what&rsquo;s still
-          to collect in the chair.
+          {t(
+            "Money taken through the app. Bank transfers aren’t connected yet, so nothing here is a payout date — it’s what was booked, what Stripe captured, and what’s still to collect in the chair.",
+          )}
         </p>
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <Stat label="Booked" value={money(totals.bookedCents)} hint="Total price of appointments" />
         <Stat
-          label="Captured online"
+          label={t("Booked")}
+          value={money(totals.bookedCents)}
+          hint={t("Total price of appointments")}
+        />
+        <Stat
+          label={t("Captured online")}
           value={money(totals.capturedCents)}
-          hint="Paid through checkout"
+          hint={t("Paid through checkout")}
         />
         <Stat
-          label="To collect"
+          label={t("To collect")}
           value={money(totals.outstandingCents)}
-          hint="Deposits' balance + in-person bookings"
+          hint={t("Deposits' balance + in-person bookings")}
         />
-        <Stat label="Refunded" value={money(totals.refundedCents)} />
+        <Stat label={t("Refunded")} value={money(totals.refundedCents)} />
       </div>
 
       {payments.length === 0 ? (
         <p className="m-0 rounded-2xl border border-dashed border-tn-border px-4 py-6 text-center font-sans text-sm text-tn-muted-5">
-          No online payments here yet — every booking at this location was taken in person.
+          {t("No online payments here yet — every booking at this location was taken in person.")}
         </p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-tn-border bg-tn-surface">
@@ -106,7 +111,7 @@ export function LocationPayoutsTab({ location }: { location: AccountLocation }) 
                 }`}
               >
                 <span className="font-sans text-xs text-tn-muted-5">
-                  {new Date(payment.startAt).toLocaleDateString(undefined, {
+                  {new Date(payment.startAt).toLocaleDateString(intlLocale(), {
                     month: "short",
                     day: "numeric",
                   })}
@@ -121,13 +126,15 @@ export function LocationPayoutsTab({ location }: { location: AccountLocation }) 
                   {money(payment.capturedCents)}
                   {payment.remainingCents > 0 && (
                     <span className="block font-sans text-[11px] text-tn-gold">
-                      {money(payment.remainingCents)} due
+                      {t("{{remainingCents}} due", {
+                        remainingCents: money(payment.remainingCents),
+                      })}
                     </span>
                   )}
                 </span>
                 <span className="font-sans text-[12px] text-tn-muted-5">
                   {payment.status ? (STATUS_LABELS[payment.status] ?? payment.status) : "—"}
-                  {payment.type === "deposit" && " · deposit"}
+                  {payment.type === "deposit" && t(" · deposit")}
                 </span>
               </div>
             ))}

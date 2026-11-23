@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAnchoredPanel } from "@/components/ui/use-anchored-panel";
 import { Button } from "./Button";
+import { t } from "@/i18n";
 
 interface CopyTimesPopoverProps {
   /** JS day-of-week (0 = Sunday) whose hours are being copied. Always shown ticked and locked — it is the source, not a destination. */
@@ -120,8 +121,8 @@ export function CopyTimesPopover({
         ref={anchorRef}
         type="button"
         onClick={toggleOpen}
-        title="Copy these hours to other days"
-        aria-label={`Copy ${sourceLabel}'s hours to other days`}
+        title={t("Copy these hours to other days")}
+        aria-label={t("Copy {{sourceLabel}}'s hours to other days", { sourceLabel })}
         aria-haspopup="dialog"
         aria-expanded={open}
         className={`cursor-pointer rounded-md border-none bg-transparent px-1 ${
@@ -136,7 +137,7 @@ export function CopyTimesPopover({
         createPortal(
           <div
             ref={panelRef}
-            aria-label={`Copy ${sourceLabel}'s hours to other days`}
+            aria-label={t("Copy {{sourceLabel}}'s hours to other days", { sourceLabel })}
             className="fixed z-50 overflow-hidden rounded-2xl border border-tn-border bg-tn-surface"
             style={{
               top: position.top,
@@ -149,7 +150,7 @@ export function CopyTimesPopover({
             }}
           >
             <p className="m-0 px-4 pt-3 pb-2 font-sans text-[12px] font-semibold tracking-[0.04em] text-tn-faint">
-              COPY TIMES TO
+              {t("COPY TIMES TO")}
             </p>
 
             <div className="flex flex-col">
@@ -180,7 +181,7 @@ export function CopyTimesPopover({
 
             <div className="flex justify-end border-t border-tn-border-soft px-4 py-2.5">
               <Button size="sm" onClick={apply} disabled={selected.length === 0}>
-                Apply
+                {t("Apply")}
               </Button>
             </div>
           </div>,

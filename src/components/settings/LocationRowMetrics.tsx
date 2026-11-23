@@ -1,4 +1,5 @@
 import type { AccountLocation } from "@/lib/locations-api";
+import { t, intlLocale } from "@/i18n";
 
 /** Deterministic per-id tint, same hash the staff pages use so a person keeps one colour everywhere. */
 const AVATAR_COLORS = [
@@ -28,11 +29,14 @@ export function StaffStack({ location }: { location: AccountLocation }) {
   const overflow = location.staffCount - shown.length;
 
   if (location.staffCount === 0) {
-    return <span className="font-sans text-xs text-tn-faint">None</span>;
+    return <span className="font-sans text-xs text-tn-faint">{t("None")}</span>;
   }
 
   return (
-    <div className="flex items-center" title={`${location.staffCount} staff`}>
+    <div
+      className="flex items-center"
+      title={t("{{staffCount}} staff", { staffCount: location.staffCount })}
+    >
       {shown.map((member, index) => (
         <span
           key={member.id}
@@ -67,14 +71,14 @@ export function UtilisationCell({ location }: { location: AccountLocation }) {
   // was never sent. "Not bookable" would be a claim about the shop; this
   // is a fact about the reader.
   if (location.slotsCapacity === null || location.slotsBooked === null) {
-    return <span className="font-sans text-xs text-tn-faint">Not your location</span>;
+    return <span className="font-sans text-xs text-tn-faint">{t("Not your location")}</span>;
   }
   if (location.slotsCapacity === 0) {
     // "Closed today" is a fact about the calendar; "Not bookable" sounds
     // like a fault, and is only true of a branch that has no hours at all.
     return (
       <span className="font-sans text-xs text-tn-faint">
-        {location.closedToday ? "Closed today" : "Not bookable"}
+        {location.closedToday ? t("Closed today") : t("Not bookable")}
       </span>
     );
   }
@@ -119,7 +123,7 @@ export function RevenueSparkline({ location }: { location: AccountLocation }) {
   return (
     <div className="flex flex-col gap-1.5">
       <span className="font-sans text-xs font-semibold text-tn-ink">
-        ${(total / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+        ${(total / 100).toLocaleString(intlLocale(), { maximumFractionDigits: 0 })}
       </span>
       <div className="flex h-[18px] items-end gap-[2px]">
         {series.map((day) => (

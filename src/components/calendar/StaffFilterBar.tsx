@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { BookingsStaffMember } from "@/lib/bookings-api";
 import type { StaffSet, StaffShift } from "@/lib/bookings-api";
 import { staffAvatarColor } from "@/lib/staff-avatar-color";
+import { t } from "@/i18n";
 
 /** "09:00" -> "9 AM", "13:30" -> "1:30 PM" — a pure string formatter (no Date object) since these are plain wall-clock values with no date of their own. */
 function formatHHmm(hhmm: string): string {
@@ -13,7 +14,7 @@ function formatHHmm(hhmm: string): string {
 }
 
 function formatShiftRanges(shift: StaffShift | undefined): string {
-  if (!shift || shift.isOff || shift.ranges.length === 0) return "Not working today";
+  if (!shift || shift.isOff || shift.ranges.length === 0) return t("Not working today");
   return shift.ranges.map((r) => `${formatHHmm(r.startTime)}–${formatHHmm(r.endTime)}`).join(", ");
 }
 
@@ -171,7 +172,7 @@ export function StaffFilterBar({
           </span>
           <span className="truncate font-sans text-[11px] text-tn-muted-5">
             {formatShiftRanges(shift)}
-            {count > 0 ? ` · ${count} booked` : ""}
+            {count > 0 ? t(" · {{count}} booked", { count }) : ""}
           </span>
         </span>
       </label>
@@ -185,7 +186,10 @@ export function StaffFilterBar({
         onClick={() => setPickerOpen((v) => !v)}
         className="flex cursor-pointer items-center gap-2 rounded-full border-none bg-tn-dark-gradient px-3.5 py-2 font-sans text-[13px] font-semibold text-tn-on-dark transition-[opacity,transform] duration-200 hover:opacity-90 active:scale-[0.97]"
       >
-        Staff: {selectedStaffIds.length} of {allStaff.length}
+        {t("Staff: {{length}} of {{length2}}", {
+          length: selectedStaffIds.length,
+          length2: allStaff.length,
+        })}
         {/* Rotated rather than swapped for a second glyph, so the arrow
             turns with the panel instead of blinking into a new character. */}
         <span
@@ -225,7 +229,7 @@ export function StaffFilterBar({
         }}
         className="cursor-pointer rounded-full border border-dashed border-tn-input-border bg-transparent px-3.5 py-2 font-sans text-[13px] font-medium text-tn-muted-5 transition-[background-color,color,transform] duration-200 hover:bg-tn-page hover:text-tn-ink active:scale-[0.97]"
       >
-        + Save current
+        {t("+ Save current")}
       </button>
 
       <button
@@ -233,7 +237,7 @@ export function StaffFilterBar({
         onClick={onOpenManageSets}
         className="cursor-pointer border-none bg-transparent px-1 font-sans text-[13px] font-medium text-tn-blue transition-opacity duration-200 hover:opacity-70"
       >
-        Manage sets
+        {t("Manage sets")}
       </button>
 
       <div className="flex-1" />
@@ -245,9 +249,11 @@ export function StaffFilterBar({
           key={`hiding-${hidingOffCount}-${hidingNoBookingsCount}`}
           className="tn-rise-in font-sans text-xs text-tn-muted-6"
         >
-          {hidingOffCount > 0 ? `Hiding ${hidingOffCount} off today` : ""}
+          {hidingOffCount > 0 ? t("Hiding {{hidingOffCount}} off today", { hidingOffCount }) : ""}
           {hidingOffCount > 0 && hidingNoBookingsCount > 0 ? " · " : ""}
-          {hidingNoBookingsCount > 0 ? `${hidingNoBookingsCount} with no bookings` : ""}
+          {hidingNoBookingsCount > 0
+            ? t("{{hidingNoBookingsCount}} with no bookings", { hidingNoBookingsCount })
+            : ""}
         </span>
       )}
 
@@ -257,15 +263,17 @@ export function StaffFilterBar({
         // *tied* z-index it's the later element in the DOM (the grid header, which
         // renders after this whole component) that wins and paints on top,
         // bleeding through this panel. Needs to clear it outright, not just match it.
-        <div className="tn-picker-in absolute left-0 top-[46px] z-30 flex w-[352px] flex-col gap-3 rounded-2xl border border-tn-input-border bg-tn-surface p-3.5 shadow-[0_26px_56px_-22px_rgba(40,30,10,0.45)]">
+        <div className="tn-picker-in absolute start-0 top-[46px] z-30 flex w-[352px] flex-col gap-3 rounded-2xl border border-tn-input-border bg-tn-surface p-3.5 shadow-[0_26px_56px_-22px_rgba(40,30,10,0.45)]">
           <div className="flex items-center justify-between">
-            <span className="font-sans text-[14px] font-semibold text-tn-ink">Staff in view</span>
+            <span className="font-sans text-[14px] font-semibold text-tn-ink">
+              {t("Staff in view")}
+            </span>
             <button
               type="button"
               onClick={() => setPending(new Set())}
               className="cursor-pointer border-none bg-transparent font-sans text-xs font-medium text-tn-blue"
             >
-              Clear all
+              {t("Clear all")}
             </button>
           </div>
 
@@ -273,16 +281,16 @@ export function StaffFilterBar({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search staff"
+            placeholder={t("Search staff")}
             className="rounded-lg border border-tn-input-border bg-tn-page px-3 py-2.5 font-sans text-[14px] text-tn-ink outline-none"
           />
 
           <div className="flex flex-wrap gap-1.5">
             {(
               [
-                ["onShift", "On shift today"],
-                ["hasBookings", "Has bookings"],
-                ["all", `All ${allStaff.length}`],
+                ["onShift", t("On shift today")],
+                ["hasBookings", t("Has bookings")],
+                ["all", t("All {{length}}", { length: allStaff.length })],
               ] as const
             ).map(([value, label]) => (
               <button
@@ -303,18 +311,18 @@ export function StaffFilterBar({
           <div className="flex max-h-[280px] flex-col gap-0.5 overflow-y-auto">
             {onShift.length > 0 && (
               <span className="mx-0.5 my-1 font-sans text-[11px] font-bold tracking-wider text-tn-muted-6">
-                ON SHIFT TODAY
+                {t("ON SHIFT TODAY")}
               </span>
             )}
             {onShift.map(renderRow)}
             {visibleNotWorking.length > 0 && (
               <span className="mx-0.5 my-1 mt-2 font-sans text-[11px] font-bold tracking-wider text-tn-muted-6">
-                NOT WORKING TODAY
+                {t("NOT WORKING TODAY")}
               </span>
             )}
             {visibleNotWorking.map(renderRow)}
             {onShift.length === 0 && visibleNotWorking.length === 0 && (
-              <span className="p-2 font-sans text-xs text-tn-muted-6">No staff match.</span>
+              <span className="p-2 font-sans text-xs text-tn-muted-6">{t("No staff match.")}</span>
             )}
           </div>
 
@@ -328,7 +336,7 @@ export function StaffFilterBar({
               }}
               className="cursor-pointer border-none bg-transparent font-sans text-xs font-medium text-tn-blue"
             >
-              Save as set&hellip;
+              {t("Save as set…")}
             </button>
             <div className="flex gap-2">
               <button
@@ -336,7 +344,7 @@ export function StaffFilterBar({
                 onClick={() => setPickerOpen(false)}
                 className="cursor-pointer rounded-lg border border-tn-input-border bg-transparent px-3.5 py-2 font-sans text-xs font-semibold text-tn-muted-1 transition-[background-color,transform] duration-200 hover:bg-tn-page active:scale-[0.97]"
               >
-                Cancel
+                {t("Cancel")}
               </button>
               <button
                 type="button"
@@ -346,7 +354,7 @@ export function StaffFilterBar({
                 }}
                 className="cursor-pointer rounded-lg border-none bg-tn-dark-gradient px-3.5 py-2 font-sans text-xs font-semibold text-tn-on-dark transition-[opacity,transform] duration-200 hover:opacity-90 active:scale-[0.97]"
               >
-                Apply &middot; {pending.size}
+                {t("Apply · {{size}}", { size: pending.size })}
               </button>
             </div>
           </div>
@@ -358,10 +366,12 @@ export function StaffFilterBar({
           <div className="flex w-[330px] flex-col gap-3.5 rounded-2xl border border-tn-input-border bg-white p-4 shadow-[0_22px_48px_-22px_rgba(40,30,10,0.42)]">
             <div className="flex flex-col gap-0.5">
               <span className="font-sans text-[14px] font-semibold text-tn-ink">
-                Save this selection
+                {t("Save this selection")}
               </span>
               <span className="font-sans text-[12px] text-tn-muted-6">
-                {selectedStaffIds.length} people &middot; appears as a chip above the calendar
+                {t("{{length}} people · appears as a chip above the calendar", {
+                  length: selectedStaffIds.length,
+                })}
               </span>
             </div>
             <input
@@ -369,7 +379,7 @@ export function StaffFilterBar({
               ref={saveNameInputRef}
               value={saveName}
               onChange={(e) => setSaveName(e.target.value)}
-              placeholder="e.g. Front room"
+              placeholder={t("e.g. Front room")}
               className="rounded-lg border border-tn-blue bg-tn-surface px-3 py-2.5 font-sans text-[14px] font-medium text-tn-ink outline-none"
             />
             <label htmlFor="save-set-shared" className="flex items-center gap-2.5">
@@ -380,7 +390,9 @@ export function StaffFilterBar({
                 onChange={(e) => setSaveShared(e.target.checked)}
                 className="h-4 w-4 accent-tn-ink"
               />
-              <span className="font-sans text-xs text-tn-muted-1">Share with other managers</span>
+              <span className="font-sans text-xs text-tn-muted-1">
+                {t("Share with other managers")}
+              </span>
             </label>
             <div className="flex justify-end gap-2 border-t border-tn-border-soft pt-3">
               <button
@@ -388,7 +400,7 @@ export function StaffFilterBar({
                 onClick={() => setSaveDialogOpen(false)}
                 className="cursor-pointer rounded-lg border border-tn-input-border bg-transparent px-3.5 py-2 font-sans text-xs font-semibold text-tn-muted-1"
               >
-                Cancel
+                {t("Cancel")}
               </button>
               <button
                 type="button"
@@ -399,7 +411,7 @@ export function StaffFilterBar({
                 }}
                 className="cursor-pointer rounded-lg border-none bg-tn-dark-gradient px-3.5 py-2 font-sans text-xs font-semibold text-tn-on-dark hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Save set
+                {t("Save set")}
               </button>
             </div>
           </div>

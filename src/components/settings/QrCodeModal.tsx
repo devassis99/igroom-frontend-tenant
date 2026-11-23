@@ -6,6 +6,7 @@ import type { AccountLocation } from "@/lib/locations-api";
 import { usePermissions } from "@/auth/use-permissions";
 import { branchBookingUrl } from "@/lib/public-link";
 import { LocationSetupGuide } from "@/components/settings/LocationSetupGuide";
+import { t } from "@/i18n";
 
 interface QrCodeModalProps {
   location: AccountLocation | null;
@@ -59,7 +60,7 @@ export function QrCodeModal({ location, onClose }: QrCodeModalProps) {
         }
       })
       .catch(() => {
-        if (!cancelled) setError("Couldn't generate the code — try reopening this panel.");
+        if (!cancelled) setError(t("Couldn't generate the code — try reopening this panel."));
       });
     return () => {
       cancelled = true;
@@ -103,13 +104,15 @@ export function QrCodeModal({ location, onClose }: QrCodeModalProps) {
       <div className="flex flex-col gap-4 p-6">
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col gap-0.5">
-            <h2 className="m-0 font-sans text-lg font-semibold text-tn-ink">Booking QR code</h2>
+            <h2 className="m-0 font-sans text-lg font-semibold text-tn-ink">
+              {t("Booking QR code")}
+            </h2>
             <p className="m-0 font-sans text-xs text-tn-muted-5">{location?.name}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("Close")}
             className="cursor-pointer border-none bg-transparent font-sans text-base text-tn-muted-5"
           >
             ×
@@ -121,9 +124,11 @@ export function QrCodeModal({ location, onClose }: QrCodeModalProps) {
         {url === null && !locked && (
           <div className="rounded-xl border border-tn-gold bg-tn-gold-bg p-3.5">
             <p className="m-0 font-sans text-xs leading-relaxed text-tn-ink-soft">
-              No public booking site is configured yet, so there&rsquo;s nothing for a scan to open.
-              Set <code className="font-mono text-[12px]">VITE_BOOKING_BASE_URL</code> and this will
-              generate a real code pointing at this location.
+              {t(
+                "No public booking site is configured yet, so there’s nothing for a scan to open. Set",
+              )}{" "}
+              <code className="font-mono text-[12px]">VITE_BOOKING_BASE_URL</code>{" "}
+              {t("and this will generate a real code pointing at this location.")}
             </p>
           </div>
         )}
@@ -142,10 +147,10 @@ export function QrCodeModal({ location, onClose }: QrCodeModalProps) {
             <p className="m-0 text-center font-sans text-[12px] break-all text-tn-muted-5">{url}</p>
             <div className="flex gap-2">
               <Button variant="secondary" className="flex-1" onClick={handleDownload}>
-                Download SVG
+                {t("Download SVG")}
               </Button>
               <Button className="flex-1" onClick={handlePrint}>
-                Print
+                {t("Print")}
               </Button>
             </div>
           </>

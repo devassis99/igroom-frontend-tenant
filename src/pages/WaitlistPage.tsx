@@ -27,6 +27,7 @@ import {
   type WaitlistBoard,
   type WaitlistChair,
 } from "@/lib/waitlist-api";
+import { t, intlLocale } from "@/i18n";
 
 type View = "list" | "board";
 
@@ -47,14 +48,18 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * 46;
 function errorMessage(error: unknown): string | null {
   if (!error) return null;
   if (error instanceof ApiError) return error.message;
-  return "Something went wrong. Try again.";
+  return t("Something went wrong. Try again.");
 }
 
 /** "8 min left", or "3 min over" once an appointment runs past its slot — which the desk needs to see. */
 function chairTimeLabel(minutesLeft: number | null): { text: string; over: boolean } {
-  if (minutesLeft === null) return { text: "In progress", over: false };
-  if (minutesLeft < 0) return { text: `${Math.abs(minutesLeft)} min over`, over: true };
-  return { text: `${minutesLeft} min left`, over: false };
+  if (minutesLeft === null) return { text: t("In progress"), over: false };
+  if (minutesLeft < 0)
+    return {
+      text: t("{{minutesLeft}} min over", { minutesLeft: Math.abs(minutesLeft) }),
+      over: true,
+    };
+  return { text: t("{{minutesLeft}} min left", { minutesLeft }), over: false };
 }
 
 /** T8 / T8b Live Waitlist — the front desk's view of the walk-in queue, backed by /waitlist. */
@@ -247,7 +252,9 @@ export function WaitlistPage() {
     <div className="tn-white-components flex flex-col gap-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Live Waitlist</h1>
+          <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">
+            {t("Live Waitlist")}
+          </h1>
           {locations.length > 1 && (
             <LocationFilterPopover
               locations={locations}
@@ -256,7 +263,7 @@ export function WaitlistPage() {
                 setTransitionKind("location");
                 setChosenLocationId(next);
               }}
-              label="Filter by location"
+              label={t("Filter by location")}
               includeAllOption={false}
             />
           )}
@@ -266,14 +273,14 @@ export function WaitlistPage() {
             value={view}
             onChange={changeView}
             options={[
-              { value: "list", label: "List" },
-              { value: "board", label: "Board" },
+              { value: "list", label: t("List") },
+              { value: "board", label: t("Board") },
             ]}
           />
           <div className="flex items-center gap-2 rounded-full bg-tn-success-bg px-3.5 py-2">
             <span className="h-2 w-2 rounded-full bg-tn-success" />
             <span className="font-sans text-xs font-semibold text-tn-success">
-              {board?.waitingCount ?? 0} waiting
+              {t("{{value}} waiting", { value: board?.waitingCount ?? 0 })}
             </span>
           </div>
           <Button
@@ -281,7 +288,7 @@ export function WaitlistPage() {
             onClick={() => setWalkInOpen(true)}
             disabled={!selectedLocationId}
           >
-            + Add Walk-in
+            {t("+ Add Walk-in")}
           </Button>
         </div>
       </div>
@@ -304,11 +311,12 @@ export function WaitlistPage() {
          */
         <div className="rounded-2xl border border-dashed border-tn-border bg-tn-surface px-5 py-12 text-center">
           <p className="m-0 font-sans text-[16px] font-semibold text-tn-ink">
-            You&rsquo;re not assigned to a location yet
+            {t("You’re not assigned to a location yet")}
           </p>
           <p className="m-0 mt-2 font-sans text-[14px] text-tn-muted-5">
-            The waitlist is per shop, so there&rsquo;s no queue to show until an owner adds you to
-            one.
+            {t(
+              "The waitlist is per shop, so there’s no queue to show until an owner adds you to one.",
+            )}
           </p>
         </div>
       ) : boardQuery.isPending ? (
@@ -316,10 +324,10 @@ export function WaitlistPage() {
       ) : boardQuery.isError ? (
         <div className="rounded-2xl border border-tn-danger bg-tn-danger-bg px-5 py-8 text-center">
           <p className="m-0 font-sans text-sm text-tn-danger">
-            {errorMessage(boardQuery.error) ?? "Couldn't load the waitlist."}
+            {errorMessage(boardQuery.error) ?? t("Couldn't load the waitlist.")}
           </p>
           <Button variant="secondary" className="mt-3" onClick={() => void boardQuery.refetch()}>
-            Try again
+            {t("Try again")}
           </Button>
         </div>
       ) : !board ? null : (
@@ -461,10 +469,10 @@ function ListView({
     <>
       <div>
         <p className="m-0 mb-3 font-sans text-[14px] font-semibold tracking-[0.02em] text-tn-muted-1">
-          NOW SERVING
+          {t("NOW SERVING")}
         </p>
         {board.nowServing.length === 0 ? (
-          <EmptyPanel>Nobody's in a chair right now.</EmptyPanel>
+          <EmptyPanel>{t("Nobody's in a chair right now.")}</EmptyPanel>
         ) : (
           <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface">
             {board.nowServing.map((entry, index) => {
@@ -485,7 +493,7 @@ function ListView({
                       {entry.customerName} · {entry.serviceName}
                     </p>
                     <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
-                      With {entry.staffName ?? "—"}
+                      {t("With {{value}}", { value: entry.staffName ?? "—" })}
                     </p>
                   </div>
                   <span
@@ -501,7 +509,7 @@ function ListView({
                       onClick={() => onComplete(entry)}
                       disabled={busyEntryId === entry.entryId}
                     >
-                      Complete
+                      {t("Complete")}
                     </Button>
                     {/*
                       Where No-show used to sit. Somebody in a chair is
@@ -519,7 +527,7 @@ function ListView({
                       disabled={busyEntryId === entry.entryId}
                       className="cursor-pointer border-none bg-transparent font-sans text-xs text-tn-muted-6 hover:text-tn-danger sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100"
                     >
-                      {entry.source === "appointment" ? "Undo check-in" : "Remove"}
+                      {entry.source === "appointment" ? t("Undo check-in") : t("Remove")}
                     </button>
                   </div>
                 </div>
@@ -531,7 +539,7 @@ function ListView({
 
       <div>
         <p className="m-0 mb-3 font-sans text-[14px] font-semibold tracking-[0.02em] text-tn-muted-1">
-          WAITING
+          {t("WAITING")}
         </p>
         {/*
           Checked-in appointments, above the queue.
@@ -563,13 +571,16 @@ function ListView({
                     {arrival.customerName} · {arrival.serviceName}
                   </p>
                   <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
-                    Booked{" "}
-                    {new Date(arrival.startAt).toLocaleTimeString([], {
-                      hour: "numeric",
-                      minute: "2-digit",
+                    {t("Booked {{localeTimeString}}{{value}} · here {{waitingMinutes}} min", {
+                      localeTimeString: new Date(arrival.startAt).toLocaleTimeString(intlLocale(), {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      }),
+                      value: arrival.staffName
+                        ? t(" with {{value}}", { value: arrival.staffName.split(" ")[0] })
+                        : "",
+                      waitingMinutes: arrival.waitingMinutes,
                     })}
-                    {arrival.staffName ? ` with ${arrival.staffName.split(" ")[0]}` : ""} · here{" "}
-                    {arrival.waitingMinutes} min
                   </p>
                 </div>
                 <span
@@ -580,8 +591,10 @@ function ListView({
                   }`}
                 >
                   {arrival.minutesLateStarting > 5
-                    ? `${arrival.minutesLateStarting} min late`
-                    : "Checked in"}
+                    ? t("{{minutesLateStarting}} min late", {
+                        minutesLateStarting: arrival.minutesLateStarting,
+                      })
+                    : t("Checked in")}
                 </span>
               </div>
             ))}
@@ -590,8 +603,9 @@ function ListView({
 
         {board.waiting.length === 0 && board.arrivals.length === 0 ? (
           <EmptyPanel>
-            Nobody's waiting. Anyone who joins from the app, a QR code or the button above lands
-            here.
+            {t(
+              "Nobody's waiting. Anyone who joins from the app, a QR code or the button above lands here.",
+            )}
           </EmptyPanel>
         ) : board.waiting.length === 0 ? null : (
           <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface">
@@ -614,10 +628,14 @@ function ListView({
                     {entry.customerName} · {entry.serviceName}
                   </p>
                   <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
-                    Waiting {entry.waitingMinutes} min ·{" "}
-                    {entry.staffName ? `Prefers ${entry.staffName.split(" ")[0]}` : "Any barber"}
-                    {entry.status === "notified" ? " · Called in" : ""}
-                    {entry.source !== "staff" ? " · Joined online" : ""}
+                    {t("Waiting {{waitingMinutes}} min · {{value}}{{value2}}{{value3}}", {
+                      waitingMinutes: entry.waitingMinutes,
+                      value: entry.staffName
+                        ? t("Prefers {{value}}", { value: entry.staffName.split(" ")[0] })
+                        : t("Any barber"),
+                      value2: entry.status === "notified" ? t(" · Called in") : "",
+                      value3: entry.source !== "staff" ? t(" · Joined online") : "",
+                    })}
                   </p>
                   {entry.notes ? (
                     <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-6">{entry.notes}</p>
@@ -625,7 +643,9 @@ function ListView({
                 </div>
 
                 <span className="font-sans text-xs text-tn-muted-5">
-                  ~{entry.estimatedWaitMinutes} min
+                  {t("~{{estimatedWaitMinutes}} min", {
+                    estimatedWaitMinutes: entry.estimatedWaitMinutes,
+                  })}
                 </span>
 
                 <div className="flex items-center gap-2">
@@ -636,11 +656,11 @@ function ListView({
                       onClick={() => onCallIn(entry.entryId)}
                       disabled={busyEntryId === entry.entryId}
                     >
-                      Call In
+                      {t("Call In")}
                     </Button>
                   ) : (
                     <Button size="sm" onClick={() => onSeat(entry)}>
-                      Seat
+                      {t("Seat")}
                     </Button>
                   )}
                   {/*
@@ -664,7 +684,7 @@ function ListView({
                       disabled={busyEntryId === entry.entryId}
                       className="cursor-pointer border-none bg-transparent font-sans text-xs text-tn-muted-6 hover:text-tn-danger sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100"
                     >
-                      No-show
+                      {t("No-show")}
                     </button>
                   )}
                   <button
@@ -673,7 +693,7 @@ function ListView({
                     disabled={busyEntryId === entry.entryId}
                     className="cursor-pointer border-none bg-transparent font-sans text-xs text-tn-muted-6 hover:text-tn-danger sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100"
                   >
-                    Remove
+                    {t("Remove")}
                   </button>
                 </div>
               </div>
@@ -696,7 +716,7 @@ function BoardView({
     <>
       <div>
         <p className="m-0 mb-3 font-sans text-[14px] font-semibold tracking-[0.02em] text-tn-muted-1">
-          CHAIRS — NOW SERVING
+          {t("CHAIRS — NOW SERVING")}
         </p>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {board.chairs.map((chair) => (
@@ -707,10 +727,10 @@ function BoardView({
 
       <div>
         <p className="m-0 mb-3 font-sans text-[14px] font-semibold tracking-[0.02em] text-tn-muted-1">
-          UP NEXT
+          {t("UP NEXT")}
         </p>
         {board.waiting.length === 0 ? (
-          <EmptyPanel>Nobody's waiting.</EmptyPanel>
+          <EmptyPanel>{t("Nobody's waiting.")}</EmptyPanel>
         ) : (
           <div className="flex flex-wrap gap-7">
             {board.waiting.map((entry, index) => (
@@ -730,7 +750,7 @@ function BoardView({
                   >
                     {initialsOf(entry.customerName)}
                   </span>
-                  <span className="absolute -top-1 -right-1 flex h-[22px] w-[22px] items-center justify-center rounded-full bg-tn-dark font-sans text-[12px] font-semibold text-tn-on-dark">
+                  <span className="absolute -top-1 -end-1 flex h-[22px] w-[22px] items-center justify-center rounded-full bg-tn-dark font-sans text-[12px] font-semibold text-tn-on-dark">
                     {entry.position}
                   </span>
                 </span>
@@ -739,7 +759,11 @@ function BoardView({
                 </span>
                 <span className="-mt-1 font-sans text-xs text-tn-muted-5">{entry.serviceName}</span>
                 <span className="font-sans text-xs font-semibold text-tn-gold">
-                  {entry.status === "notified" ? "Called in" : `~${entry.estimatedWaitMinutes} min`}
+                  {entry.status === "notified"
+                    ? t("Called in")
+                    : t("~{{estimatedWaitMinutes}} min", {
+                        estimatedWaitMinutes: entry.estimatedWaitMinutes,
+                      })}
                 </span>
               </button>
             ))}
@@ -772,7 +796,7 @@ function ChairCard({ chair }: { chair: WaitlistChair }) {
           <span className="h-4 w-4 rounded-full border-2 border-tn-faint-2" />
         </span>
         <p className="m-0 font-sans text-[16px] font-semibold text-tn-muted-5">{chair.name}</p>
-        <p className="m-0 font-sans text-[14px] text-tn-muted-6">Open — ready for next</p>
+        <p className="m-0 font-sans text-[14px] text-tn-muted-6">{t("Open — ready for next")}</p>
       </div>
     );
   }
@@ -818,7 +842,9 @@ function ChairCard({ chair }: { chair: WaitlistChair }) {
         />
       </span>
       <p className="m-0 font-sans text-[16px] font-semibold text-tn-ink">{chair.name}</p>
-      <p className="m-0 font-sans text-[14px] text-tn-muted-5">with {current.customerName}</p>
+      <p className="m-0 font-sans text-[14px] text-tn-muted-5">
+        {t("with {{customerName}}", { customerName: current.customerName })}
+      </p>
       <span className="rounded-lg bg-tn-page px-3 py-1.5 font-sans text-xs text-tn-muted-3">
         {current.serviceName}
       </span>

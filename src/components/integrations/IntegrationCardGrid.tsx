@@ -10,6 +10,7 @@ import {
   type Integration as LiveIntegration,
 } from "@/lib/integrations-api";
 import type { IntegrationCard } from "./useIntegrationsFilter";
+import { t } from "@/i18n";
 
 export type LoadStatus = "pending" | "error" | "ready";
 
@@ -25,7 +26,7 @@ export function IntegrationCardGrid({ integrations, search, status }: Integratio
   if (integrations.length === 0) {
     return (
       <p className="m-0 font-sans text-sm text-tn-muted-5">
-        No integrations match &ldquo;{search}&rdquo;.
+        {t("No integrations match “{{search}}”.", { search })}
       </p>
     );
   }
@@ -47,7 +48,7 @@ function Card({ card, status }: { card: IntegrationCard; status: LoadStatus }) {
         <span aria-hidden>{card.icon}</span>
         <span className="font-sans text-sm font-semibold text-tn-ink">{card.name}</span>
         {card.connected && (
-          <span className="ml-auto h-1.5 w-1.5 rounded-full bg-tn-success" aria-hidden />
+          <span className="ms-auto h-1.5 w-1.5 rounded-full bg-tn-success" aria-hidden />
         )}
       </div>
       <p className="m-0 font-sans text-xs leading-relaxed text-tn-muted-5">
@@ -74,28 +75,28 @@ function Footer({ card, status }: { card: IntegrationCard; status: LoadStatus })
   if (!card.supported) {
     return (
       <span className="mt-auto pt-1 font-sans text-[12px] font-medium text-tn-muted-6">
-        Not available yet
+        {t("Not available yet")}
       </span>
     );
   }
   if (status === "pending") {
     return (
       <span className="mt-auto pt-1 font-sans text-[12px] font-medium text-tn-muted-6">
-        Checking&hellip;
+        {t("Checking…")}
       </span>
     );
   }
   if (status === "error") {
     return (
       <span className="mt-auto pt-1 font-sans text-[12px] font-medium text-tn-danger">
-        Couldn&rsquo;t load — see the message above
+        {t("Couldn’t load — see the message above")}
       </span>
     );
   }
   // Reached the server, and it doesn't offer this one yet.
   return (
     <span className="mt-auto pt-1 font-sans text-[12px] font-medium text-tn-muted-6">
-      Not available yet
+      {t("Not available yet")}
     </span>
   );
 }
@@ -152,17 +153,23 @@ function LiveControls({ live }: { live: LiveIntegration }) {
               blocking time" is a fact the barber can go and check. */}
           <span className="font-sans text-[12px] text-tn-muted-5">
             {live.blockedCount === 0
-              ? "Nothing on it is blocking time yet"
-              : `${live.blockedCount} ${live.blockedCount === 1 ? "event is" : "events are"} blocking time`}
-            {live.lastSyncedAt ? ` · checked ${relativeTime(live.lastSyncedAt)}` : ""}
+              ? t("Nothing on it is blocking time yet")
+              : t("{{blockedCount}} {{value}} blocking time", {
+                  blockedCount: live.blockedCount,
+                  value: live.blockedCount === 1 ? t("event is") : t("events are"),
+                })}
+            {live.lastSyncedAt
+              ? t(" · checked {{lastSyncedAt}}", { lastSyncedAt: relativeTime(live.lastSyncedAt) })
+              : ""}
           </span>
         </div>
       )}
 
       {needsReauth && (
         <p className="m-0 font-sans text-[12px] leading-relaxed text-tn-danger">
-          Google stopped accepting our access — reconnect to start blocking time again. Anything
-          already blocked stays put in the meantime.
+          {t(
+            "Google stopped accepting our access — reconnect to start blocking time again. Anything already blocked stays put in the meantime.",
+          )}
         </p>
       )}
 
@@ -174,7 +181,7 @@ function LiveControls({ live }: { live: LiveIntegration }) {
           // else's Google account — and finding that out at Google's
           // consent screen is finding it out too late.
           <span className="font-sans text-[12px] text-tn-muted-6">
-            Connects your own calendar. Each barber connects theirs.
+            {t("Connects your own calendar. Each barber connects theirs.")}
           </span>
         )}
 
@@ -187,7 +194,7 @@ function LiveControls({ live }: { live: LiveIntegration }) {
               onClick={() => sync.mutate()}
               disabled={sync.isPending}
             >
-              {sync.isPending ? "Checking…" : "Check now"}
+              {sync.isPending ? t("Checking…") : t("Check now")}
             </Button>
             <Button
               variant="secondary"
@@ -195,12 +202,12 @@ function LiveControls({ live }: { live: LiveIntegration }) {
               onClick={() => remove.mutate()}
               disabled={remove.isPending}
             >
-              Disconnect
+              {t("Disconnect")}
             </Button>
           </>
         ) : (
           <Button size="sm" onClick={() => connect.mutate()} disabled={connect.isPending}>
-            {needsReauth ? "Reconnect" : "Connect"}
+            {needsReauth ? t("Reconnect") : t("Connect")}
           </Button>
         )}
       </div>
@@ -217,11 +224,11 @@ function LiveControls({ live }: { live: LiveIntegration }) {
 /** "4 minutes ago", from an ISO instant. Coarse on purpose — this is reassurance, not telemetry. */
 function relativeTime(iso: string): string {
   const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 1) return t("just now");
+  if (minutes < 60) return t("{{minutes}}m ago", { minutes });
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.round(hours / 24)}d ago`;
+  if (hours < 24) return t("{{hours}}h ago", { hours });
+  return t("{{round}}d ago", { round: Math.round(hours / 24) });
 }
 
 export default IntegrationCardGrid;

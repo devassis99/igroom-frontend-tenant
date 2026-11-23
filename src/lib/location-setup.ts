@@ -1,4 +1,5 @@
 import type { AccountLocation, LocationSetupStep } from "./locations-api";
+import { t } from "@/i18n";
 
 /**
  * The four things a branch needs before its booking link is worth
@@ -20,38 +21,42 @@ export const LOCATION_SETUP_STEPS: readonly {
   {
     step: "timezone",
     tab: "details",
-    title: "Set the timezone",
-    done: "Timezone set",
-    how: "Pick it under TIMEZONE on this tab, then Save changes. Until then booking times are read in UTC, so customers would see slots at the wrong hour.",
-    action: "Set timezone",
+    title: t("Set the timezone"),
+    done: t("Timezone set"),
+    how: t(
+      "Pick it under TIMEZONE on this tab, then Save changes. Until then booking times are read in UTC, so customers would see slots at the wrong hour.",
+    ),
+    action: t("Set timezone"),
     short: "timezone",
   },
   {
     step: "services",
     tab: "services",
-    title: "Offer a service here",
-    done: "Services offered",
-    how: "Tick at least one service in Services & pricing that isn't hidden from online booking. If the list is empty, add your services on the Services page first.",
-    action: "Open Services & pricing",
+    title: t("Offer a service here"),
+    done: t("Services offered"),
+    how: t(
+      "Tick at least one service in Services & pricing that isn't hidden from online booking. If the list is empty, add your services on the Services page first.",
+    ),
+    action: t("Open Services & pricing"),
     short: "services",
   },
   {
     step: "staff",
     tab: "staff",
-    title: "Assign someone to work here",
-    done: "Staff assigned",
-    how: "Add at least one team member to this location in the Staff tab.",
-    action: "Open Staff",
+    title: t("Assign someone to work here"),
+    done: t("Staff assigned"),
+    how: t("Add at least one team member to this location in the Staff tab."),
+    action: t("Open Staff"),
     short: "staff",
   },
   {
     step: "hours",
     tab: "availability",
-    title: "Set working hours",
-    done: "Working hours set",
-    how: "Give at least one person here their weekly hours in the Availability tab.",
-    action: "Open Availability",
-    short: "working hours",
+    title: t("Set working hours"),
+    done: t("Working hours set"),
+    how: t("Give at least one person here their weekly hours in the Availability tab."),
+    action: t("Open Availability"),
+    short: t("working hours"),
   },
 ];
 
@@ -61,5 +66,8 @@ export function setupSummary(location: Pick<AccountLocation, "setupMissing">): s
     (s) => s.short,
   );
   if (parts.length <= 1) return parts.join("");
-  return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+  return t("{{join}} and {{value}}", {
+    join: parts.slice(0, -1).join(", "),
+    value: parts[parts.length - 1],
+  });
 }

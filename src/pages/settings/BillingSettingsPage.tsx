@@ -21,6 +21,7 @@ import {
   setDefaultPaymentMethod,
   type PaymentMethod,
 } from "@/lib/payment-methods-api";
+import { t } from "@/i18n";
 
 const PER_INTERVAL: Record<string, string> = {
   month: "/ month",
@@ -33,10 +34,10 @@ const INVOICE_STATUS: Record<
   string,
   { label: string; tone: "success" | "danger" | "neutral" | "gold" }
 > = {
-  paid: { label: "Paid", tone: "success" },
-  open: { label: "Due", tone: "gold" },
-  uncollectible: { label: "Unpaid", tone: "danger" },
-  void: { label: "Void", tone: "neutral" },
+  paid: { label: t("Paid"), tone: "success" },
+  open: { label: t("Due"), tone: "gold" },
+  uncollectible: { label: t("Unpaid"), tone: "danger" },
+  void: { label: t("Void"), tone: "neutral" },
 };
 
 /** One line under the plan name: what's next for this subscription, in the order that matters most. */
@@ -44,17 +45,25 @@ function subscriptionLine(overview: BillingOverview): string | null {
   const sub = overview.subscription;
   if (!sub) return null;
   if (sub.status === "past_due" || overview.accountStatus === "past_due") {
-    return "Your last payment failed — update your card below and we'll retry automatically.";
+    return t("Your last payment failed — update your card below and we'll retry automatically.");
   }
-  if (sub.status === "canceled") return "This subscription has ended.";
+  if (sub.status === "canceled") return t("This subscription has ended.");
   if (sub.cancelAtPeriodEnd) {
-    return `Cancels on ${formatBillingDate(sub.currentPeriodEnd)} — no further charges.`;
+    return t("Cancels on {{currentPeriodEnd}} — no further charges.", {
+      currentPeriodEnd: formatBillingDate(sub.currentPeriodEnd),
+    });
   }
   const next = sub.nextCharge
-    ? `next charge ${formatMoney(sub.nextCharge.amount, sub.nextCharge.currency)} on ${formatBillingDate(sub.nextCharge.date)}`
+    ? t("next charge {{amount}} on {{date}}", {
+        amount: formatMoney(sub.nextCharge.amount, sub.nextCharge.currency),
+        date: formatBillingDate(sub.nextCharge.date),
+      })
     : null;
   if (sub.trialEndsAt) {
-    return `Free trial until ${formatBillingDate(sub.trialEndsAt)}${next ? ` · ${next}` : ""}`;
+    return t("Free trial until {{trialEndsAt}}{{value}}", {
+      trialEndsAt: formatBillingDate(sub.trialEndsAt),
+      value: next ? ` · ${next}` : "",
+    });
   }
   return next ? next.charAt(0).toUpperCase() + next.slice(1) : null;
 }
@@ -83,7 +92,7 @@ export function BillingSettingsPage() {
       const { url } = await getInvoicePdfUrl(accessToken ?? "", invoice.id);
       window.open(url, "_blank", "noopener");
     } catch (err) {
-      setDownloadError(err instanceof Error ? err.message : "Couldn't download that invoice.");
+      setDownloadError(err instanceof Error ? err.message : t("Couldn't download that invoice."));
     } finally {
       setDownloadingId(null);
     }
@@ -109,7 +118,7 @@ export function BillingSettingsPage() {
       setCardError(null);
     },
     onError: (err) =>
-      setCardError(err instanceof Error ? err.message : "Couldn't update the default card."),
+      setCardError(err instanceof Error ? err.message : t("Couldn't update the default card.")),
   });
 
   const removeMutation = useMutation({
@@ -125,7 +134,7 @@ export function BillingSettingsPage() {
       // is live — that message is the useful one, so surface it on the
       // page rather than swallowing it when the dialog closes.
       setRemovingCard(null);
-      setCardError(err instanceof Error ? err.message : "Couldn't remove that card.");
+      setCardError(err instanceof Error ? err.message : t("Couldn't remove that card."));
     },
   });
 
@@ -133,20 +142,20 @@ export function BillingSettingsPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="m-0 font-sans text-2xl font-semibold text-tn-ink">Billing &amp; Plan</h1>
+      <h1 className="m-0 font-sans text-2xl font-semibold text-tn-ink">{t("Billing & Plan")}</h1>
 
       <section
         data-tour="billing-plan"
         className="flex flex-col gap-4 rounded-2xl border border-tn-border p-5"
       >
         {overviewQuery.isPending && (
-          <p className="m-0 font-sans text-sm text-tn-muted-5">Loading your plan…</p>
+          <p className="m-0 font-sans text-sm text-tn-muted-5">{t("Loading your plan…")}</p>
         )}
         {overviewQuery.isError && (
           <p className="m-0 font-sans text-sm text-tn-danger">
             {overviewQuery.error instanceof Error
               ? overviewQuery.error.message
-              : "Couldn't load your plan."}
+              : t("Couldn't load your plan.")}
           </p>
         )}
         {overview && (
@@ -154,10 +163,10 @@ export function BillingSettingsPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <span className="font-sans text-xs font-semibold tracking-[0.02em] text-tn-muted-5">
-                  CURRENT PLAN
+                  {t("CURRENT PLAN")}
                 </span>
                 <p className="m-0 mt-1 font-sans text-xl font-semibold text-tn-ink">
-                  {overview.plan?.name ?? owner?.planName ?? "No plan"}
+                  {overview.plan?.name ?? owner?.planName ?? t("No plan")}
                 </p>
                 {overview.plan && (
                   <p className="m-0 mt-1 font-sans text-xs text-tn-muted-5">
@@ -173,9 +182,11 @@ export function BillingSettingsPage() {
               </div>
               {(overview.subscription?.status === "past_due" ||
                 overview.accountStatus === "past_due") && (
-                <StatusPill tone="danger">Payment failed</StatusPill>
+                <StatusPill tone="danger">{t("Payment failed")}</StatusPill>
               )}
-              {overview.subscription?.trialEndsAt && <StatusPill tone="gold">Trial</StatusPill>}
+              {overview.subscription?.trialEndsAt && (
+                <StatusPill tone="gold">{t("Trial")}</StatusPill>
+              )}
             </div>
 
             {overview.seats && (
@@ -183,7 +194,10 @@ export function BillingSettingsPage() {
                 <span className="font-sans text-sm font-semibold text-tn-ink">
                   {overview.seats.used}{" "}
                   <span className="font-normal text-tn-muted-4">
-                    of {overview.seats.limit} {overview.seats.unit}
+                    {t("of {{limit}} {{unit}}", {
+                      limit: overview.seats.limit,
+                      unit: overview.seats.unit,
+                    })}
                   </span>
                 </span>
                 <span
@@ -192,8 +206,8 @@ export function BillingSettingsPage() {
                   }`}
                 >
                   {overview.seats.used >= overview.seats.limit
-                    ? "Limit reached"
-                    : `${overview.seats.limit - overview.seats.used} left`}
+                    ? t("Limit reached")
+                    : t("{{value}} left", { value: overview.seats.limit - overview.seats.used })}
                 </span>
               </div>
             )}
@@ -207,29 +221,29 @@ export function BillingSettingsPage() {
 
       <section className="flex flex-col gap-3" data-tour="billing-payment-method">
         <div className="flex items-center justify-between">
-          <p className="m-0 font-sans text-sm font-semibold text-tn-ink">Payment method</p>
+          <p className="m-0 font-sans text-sm font-semibold text-tn-ink">{t("Payment method")}</p>
           <Button variant="ghost" size="sm" onClick={() => setAddingCard(true)}>
-            Add card
+            {t("Add card")}
           </Button>
         </div>
 
         {paymentMethodsQuery.isPending && (
-          <p className="m-0 font-sans text-sm text-tn-muted-5">Loading saved cards…</p>
+          <p className="m-0 font-sans text-sm text-tn-muted-5">{t("Loading saved cards…")}</p>
         )}
 
         {paymentMethodsQuery.isError && (
           <p className="m-0 font-sans text-sm text-tn-danger">
             {paymentMethodsQuery.error instanceof Error
               ? paymentMethodsQuery.error.message
-              : "Couldn't load your saved cards."}
+              : t("Couldn't load your saved cards.")}
           </p>
         )}
 
         {paymentMethodsQuery.isSuccess && paymentMethods.length === 0 && (
           <div className="rounded-2xl border border-dashed border-tn-border p-6 text-center">
-            <p className="m-0 font-sans text-sm text-tn-muted-4">No card on file.</p>
+            <p className="m-0 font-sans text-sm text-tn-muted-4">{t("No card on file.")}</p>
             <p className="m-0 mt-1 font-sans text-xs text-tn-muted-5">
-              Add one to keep your subscription from lapsing at the next renewal.
+              {t("Add one to keep your subscription from lapsing at the next renewal.")}
             </p>
           </div>
         )}
@@ -245,11 +259,13 @@ export function BillingSettingsPage() {
             <div className="flex-1">
               <p className="m-0 font-sans text-sm font-medium text-tn-ink">•••• {card.last4}</p>
               <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
-                Expires {formatCardExpiry(card.expMonth, card.expYear)}
+                {t("Expires {{expMonth}}", {
+                  expMonth: formatCardExpiry(card.expMonth, card.expYear),
+                })}
               </p>
             </div>
             {card.isDefault ? (
-              <StatusPill tone="neutral">DEFAULT</StatusPill>
+              <StatusPill tone="neutral">{t("DEFAULT")}</StatusPill>
             ) : (
               <Button
                 variant="secondary"
@@ -257,13 +273,13 @@ export function BillingSettingsPage() {
                 disabled={busy}
                 onClick={() => defaultMutation.mutate(card.id)}
               >
-                Make default
+                {t("Make default")}
               </Button>
             )}
             <button
               type="button"
-              title="Remove card"
-              aria-label={`Remove card ending ${card.last4}`}
+              title={t("Remove card")}
+              aria-label={t("Remove card ending {{last4}}", { last4: card.last4 })}
               disabled={busy}
               onClick={() => setRemovingCard(card)}
               className="cursor-pointer border-none bg-transparent p-0 font-sans text-tn-muted-5 disabled:cursor-not-allowed disabled:opacity-40"
@@ -278,15 +294,16 @@ export function BillingSettingsPage() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <p className="m-0 font-sans text-sm font-semibold text-tn-ink">Billing history</p>
+        <p className="m-0 font-sans text-sm font-semibold text-tn-ink">{t("Billing history")}</p>
 
         {overview && overview.invoices.length === 0 && (
           <div className="rounded-2xl border border-dashed border-tn-border p-6 text-center">
-            <p className="m-0 font-sans text-sm text-tn-muted-4">No invoices yet.</p>
+            <p className="m-0 font-sans text-sm text-tn-muted-4">{t("No invoices yet.")}</p>
             {overview.subscription?.trialEndsAt && (
               <p className="m-0 mt-1 font-sans text-xs text-tn-muted-5">
-                Your first one is issued when your trial ends on{" "}
-                {formatBillingDate(overview.subscription.trialEndsAt)}.
+                {t("Your first one is issued when your trial ends on {{trialEndsAt}}.", {
+                  trialEndsAt: formatBillingDate(overview.subscription.trialEndsAt),
+                })}
               </p>
             )}
           </div>
@@ -324,8 +341,10 @@ export function BillingSettingsPage() {
                     type="button"
                     onClick={() => void downloadInvoice(invoice)}
                     disabled={downloadingId === invoice.id}
-                    aria-label={`Download invoice ${invoice.number ?? formatBillingDate(invoice.issuedAt)}`}
-                    title="Download PDF"
+                    aria-label={t("Download invoice {{value}}", {
+                      value: invoice.number ?? formatBillingDate(invoice.issuedAt),
+                    })}
+                    title={t("Download PDF")}
                     className="cursor-pointer border-0 bg-transparent font-sans text-tn-muted-5 hover:text-tn-ink disabled:cursor-wait disabled:opacity-50"
                   >
                     {downloadingId === invoice.id ? "…" : "↓"}
@@ -345,15 +364,19 @@ export function BillingSettingsPage() {
         open={removingCard !== null}
         onClose={() => setRemovingCard(null)}
         onConfirm={() => removingCard && removeMutation.mutate(removingCard.id)}
-        title={`Remove card ending ${removingCard?.last4 ?? ""}?`}
+        title={t("Remove card ending {{value}}?", { value: removingCard?.last4 ?? "" })}
         body={
           paymentMethods.length === 1
-            ? "This is the only card on file. Any subscription renewal after this will have nothing to charge until you add another."
+            ? t(
+                "This is the only card on file. Any subscription renewal after this will have nothing to charge until you add another.",
+              )
             : removingCard?.isDefault
-              ? "This is the card your subscription is charged to. Another saved card will be promoted to default in its place."
-              : "You can add it again later."
+              ? t(
+                  "This is the card your subscription is charged to. Another saved card will be promoted to default in its place.",
+                )
+              : t("You can add it again later.")
         }
-        confirmLabel="Remove"
+        confirmLabel={t("Remove")}
         confirming={removeMutation.isPending}
       />
     </div>

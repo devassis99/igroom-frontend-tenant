@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/Button";
+import { t } from "@/i18n";
 
 function BookIcon() {
   return (
@@ -47,14 +48,16 @@ interface ResourceCard {
 
 const RESOURCE_CARDS: ResourceCard[] = [
   {
-    title: "Help Docs",
-    description: "Browse our documentation to find answers, guides, and best practices.",
-    ctaLabel: "Browse Docs",
+    title: t("Help Docs"),
+    description: t("Browse our documentation to find answers, guides, and best practices."),
+    ctaLabel: t("Browse Docs"),
   },
   {
-    title: "Contact Support",
-    description: "Need help? Our support team is ready to assist you with any questions or issues.",
-    ctaLabel: "Get Support",
+    title: t("Contact Support"),
+    description: t(
+      "Need help? Our support team is ready to assist you with any questions or issues.",
+    ),
+    ctaLabel: t("Get Support"),
   },
 ];
 
@@ -73,7 +76,9 @@ const RESOURCE_CARDS: ResourceCard[] = [
 export function ResourcesSupportSection() {
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="m-0 font-sans text-xl font-semibold text-tn-ink">Resources &amp; Support</h2>
+      <h2 className="m-0 font-sans text-xl font-semibold text-tn-ink">
+        {t("Resources & Support")}
+      </h2>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {RESOURCE_CARDS.map((card) => (
           <div
@@ -93,7 +98,7 @@ export function ResourcesSupportSection() {
               variant="secondary"
               size="sm"
               disabled
-              title="Coming soon"
+              title={t("Coming soon")}
               className="mt-1 flex w-fit items-center gap-1.5"
             >
               {card.ctaLabel}

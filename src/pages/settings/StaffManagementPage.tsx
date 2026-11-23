@@ -30,6 +30,7 @@ import {
   type StaffRoleDef,
   type PermissionCatalogEntry,
 } from "@/lib/roles-api";
+import { t } from "@/i18n";
 
 type StaffTab = "members" | "roles";
 
@@ -128,14 +129,14 @@ function RoleFormModal({ open, onClose, role, permissionsCatalog }: RoleFormModa
       onClose();
     },
     onError: (err) => {
-      setFormError(err instanceof Error ? err.message : "Couldn't save this role — try again.");
+      setFormError(err instanceof Error ? err.message : t("Couldn't save this role — try again."));
     },
   });
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!isSystem && !name.trim()) {
-      setFormError("Give this role a name.");
+      setFormError(t("Give this role a name."));
       return;
     }
     setFormError(null);
@@ -147,12 +148,12 @@ function RoleFormModal({ open, onClose, role, permissionsCatalog }: RoleFormModa
       <form onSubmit={handleSubmit}>
         <div className="flex items-center justify-between px-6 pt-6">
           <h2 className="m-0 font-sans text-lg font-semibold text-tn-ink">
-            {role ? `Edit ${role.name}` : "New Role"}
+            {role ? t("Edit {{name}}", { name: role.name }) : t("New Role")}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("Close")}
             className="cursor-pointer border-none bg-transparent font-sans text-xl text-tn-muted-6"
           >
             &times;
@@ -160,10 +161,10 @@ function RoleFormModal({ open, onClose, role, permissionsCatalog }: RoleFormModa
         </div>
 
         <div className="flex flex-col gap-4 px-6 pb-6 pt-4">
-          <Field label="NAME">
+          <Field label={t("NAME")}>
             <input
               type="text"
-              placeholder="Front Desk Lead"
+              placeholder={t("Front Desk Lead")}
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={isSystem}
@@ -172,14 +173,14 @@ function RoleFormModal({ open, onClose, role, permissionsCatalog }: RoleFormModa
           </Field>
           {isSystem && (
             <p className="m-0 -mt-2 font-sans text-xs text-tn-muted-5">
-              The Owner role can&rsquo;t be renamed and always has every permission.
+              {t("The Owner role can’t be renamed and always has every permission.")}
             </p>
           )}
 
-          <Field label="DESCRIPTION">
+          <Field label={t("DESCRIPTION")}>
             <input
               type="text"
-              placeholder="What does this role do?"
+              placeholder={t("What does this role do?")}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className={formInputClass}
@@ -188,7 +189,7 @@ function RoleFormModal({ open, onClose, role, permissionsCatalog }: RoleFormModa
 
           <div>
             <p className="m-0 mb-2 font-sans text-[12px] font-semibold tracking-[0.04em] text-tn-faint">
-              PERMISSIONS
+              {t("PERMISSIONS")}
             </p>
             <div className="flex flex-col gap-2 rounded-xl border border-tn-border p-3.5">
               {permissionsCatalog.map((p) => (
@@ -223,10 +224,10 @@ function RoleFormModal({ open, onClose, role, permissionsCatalog }: RoleFormModa
               onClick={onClose}
               disabled={mutation.isPending}
             >
-              Cancel
+              {t("Cancel")}
             </Button>
             <Button type="submit" className="flex-1" disabled={mutation.isPending}>
-              {mutation.isPending ? "Saving…" : role ? "Save Changes" : "Create Role"}
+              {mutation.isPending ? t("Saving…") : role ? t("Save Changes") : t("Create Role")}
             </Button>
           </div>
         </div>
@@ -326,21 +327,21 @@ export function StaffManagementPage() {
       // Same in reverse — a resend supersedes a link somebody just copied.
       setCopiedFor(null);
       if (result.invite.delivery === "sent") {
-        setInviteToast({ message: "Invite sent", tone: "success" });
+        setInviteToast({ message: t("Invite sent"), tone: "success" });
       } else if (result.invite.delivery === "logged") {
         setInviteToast({
-          message: "No email provider set up — the invite link is in the server console",
+          message: t("No email provider set up — the invite link is in the server console"),
           tone: "notice",
         });
       } else {
         setInviteToast({
-          message: "Couldn't send that email — the link is valid, see the server log",
+          message: t("Couldn't send that email — the link is valid, see the server log"),
           tone: "danger",
         });
       }
     },
     onError: () =>
-      setInviteToast({ message: "Couldn't resend the invite — try again", tone: "danger" }),
+      setInviteToast({ message: t("Couldn't resend the invite — try again"), tone: "danger" }),
   });
 
   /**
@@ -371,13 +372,13 @@ export function StaffManagementPage() {
       // dead. Leaving both badges up would claim two working links.
       setResentFor(null);
       setInviteToast({
-        message: "Setup link copied — it replaces the emailed one, so send it to them directly",
+        message: t("Setup link copied — it replaces the emailed one, so send it to them directly"),
         tone: "notice",
       });
     },
     onError: () =>
       setInviteToast({
-        message: "Couldn't copy the link — check clipboard permissions and try again",
+        message: t("Couldn't copy the link — check clipboard permissions and try again"),
         tone: "danger",
       }),
   });
@@ -457,16 +458,18 @@ export function StaffManagementPage() {
     // White components on the cream page — see .tn-white-components (index.css).
     <div className="tn-white-components flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="m-0 font-sans text-2xl font-semibold text-tn-ink">Staff Management</h1>
+        <h1 className="m-0 font-sans text-2xl font-semibold text-tn-ink">
+          {t("Staff Management")}
+        </h1>
         {activeTab === "members"
           ? canManageStaff && (
               <Button data-tour="staff-mgmt-add" onClick={handleNewMember}>
-                + New Member
+                {t("+ New Member")}
               </Button>
             )
           : canManageRoles && (
               <Button data-tour="staff-mgmt-add" onClick={openCreateRole}>
-                + New Role
+                {t("+ New Role")}
               </Button>
             )}
       </div>
@@ -474,14 +477,14 @@ export function StaffManagementPage() {
       <div className="flex gap-1 border-b border-tn-border-soft" data-tour="staff-mgmt-tabs">
         <TabButton
           active={activeTab === "members"}
-          label="Members"
+          label={t("Members")}
           count={activeStaffCount}
           onClick={() => setActiveTab("members")}
         />
         {canViewRoles && (
           <TabButton
             active={activeTab === "roles"}
-            label="Roles"
+            label={t("Roles")}
             count={roleCount}
             onClick={() => setActiveTab("roles")}
           />
@@ -493,9 +496,12 @@ export function StaffManagementPage() {
           <>
             {staffQuery.isError && (
               <p className="m-0 font-sans text-sm text-tn-danger">
-                Couldn&rsquo;t load your team right now (
-                {staffQuery.error instanceof Error ? staffQuery.error.message : "unknown error"}) —
-                refresh to try again.
+                {t("Couldn’t load your team right now ({{value}}) — refresh to try again.", {
+                  value:
+                    staffQuery.error instanceof Error
+                      ? staffQuery.error.message
+                      : t("unknown error"),
+                })}
               </p>
             )}
 
@@ -503,19 +509,21 @@ export function StaffManagementPage() {
               <div
                 className={`${MEMBER_GRID} bg-tn-table-head px-[18px] py-3 font-sans text-xs font-semibold text-tn-muted-5`}
               >
-                <span>Name</span>
-                <span>Role</span>
-                <span>Locations</span>
-                <span>Status</span>
-                <span className="sr-only">Actions</span>
+                <span>{t("Name")}</span>
+                <span>{t("Role")}</span>
+                <span>{t("Locations")}</span>
+                <span>{t("Status")}</span>
+                <span className="sr-only">{t("Actions")}</span>
               </div>
 
               {staffQuery.isPending && (
-                <p className="m-0 p-[18px] font-sans text-sm text-tn-muted-5">Loading your team…</p>
+                <p className="m-0 p-[18px] font-sans text-sm text-tn-muted-5">
+                  {t("Loading your team…")}
+                </p>
               )}
               {!staffQuery.isPending && staff.length === 0 && (
                 <p className="m-0 p-[18px] font-sans text-sm text-tn-muted-5">
-                  No team members yet — add your first one.
+                  {t("No team members yet — add your first one.")}
                 </p>
               )}
 
@@ -527,10 +535,10 @@ export function StaffManagementPage() {
                     ? "success"
                     : "gold";
                 const statusLabel = !member.isActive
-                  ? "Deactivated"
+                  ? t("Deactivated")
                   : member.claimed
-                    ? "Active"
-                    : "Invited";
+                    ? t("Active")
+                    : t("Invited");
 
                 return (
                   <div
@@ -577,15 +585,15 @@ export function StaffManagementPage() {
                             type="button"
                             title={
                               canManageStaff
-                                ? "Email them a fresh setup link"
-                                : "You don't have permission to do this"
+                                ? t("Email them a fresh setup link")
+                                : t("You don't have permission to do this")
                             }
-                            aria-label={`Resend the invite to ${member.name}`}
+                            aria-label={t("Resend the invite to {{name}}", { name: member.name })}
                             onClick={() => resendInviteMutation.mutate(member.id)}
                             disabled={!canManageStaff || resendInviteMutation.isPending}
                             className="cursor-pointer border-none bg-transparent p-0 text-tn-gold hover:underline disabled:cursor-not-allowed disabled:opacity-40"
                           >
-                            {resentFor === member.id ? "Sent" : "Resend"}
+                            {resentFor === member.id ? t("Sent") : t("Resend")}
                           </button>
                           <span aria-hidden className="text-tn-muted-6">
                             ·
@@ -594,15 +602,17 @@ export function StaffManagementPage() {
                             type="button"
                             title={
                               canManageStaff
-                                ? "Copy a setup link to send them yourself — replaces the emailed one"
-                                : "You don't have permission to do this"
+                                ? t(
+                                    "Copy a setup link to send them yourself — replaces the emailed one",
+                                  )
+                                : t("You don't have permission to do this")
                             }
-                            aria-label={`Copy a setup link for ${member.name}`}
+                            aria-label={t("Copy a setup link for {{name}}", { name: member.name })}
                             onClick={() => copyLinkMutation.mutate(member.id)}
                             disabled={!canManageStaff || copyLinkMutation.isPending}
                             className="cursor-pointer border-none bg-transparent p-0 text-tn-muted-5 hover:text-tn-ink disabled:cursor-not-allowed disabled:opacity-40"
                           >
-                            {copiedFor === member.id ? "Copied" : "Copy link"}
+                            {copiedFor === member.id ? t("Copied") : t("Copy link")}
                           </button>
                         </span>
                       )}
@@ -619,31 +629,31 @@ export function StaffManagementPage() {
                       <button
                         type="button"
                         title={
-                          canManageStaff ? undefined : "You don't have permission to edit staff"
+                          canManageStaff ? undefined : t("You don't have permission to edit staff")
                         }
-                        aria-label={`Edit ${member.name}`}
+                        aria-label={t("Edit {{name}}", { name: member.name })}
                         onClick={() => setEditingMember(member)}
                         disabled={!canManageStaff}
                         className={ROW_ACTION_CLASS}
                       >
-                        Edit
+                        {t("Edit")}
                       </button>
                       {!isSelf && (
                         <button
                           type="button"
                           title={
-                            canManageStaff ? undefined : "You don't have permission to do this"
+                            canManageStaff ? undefined : t("You don't have permission to do this")
                           }
                           aria-label={
                             member.isActive
-                              ? `Deactivate ${member.name}`
-                              : `Reactivate ${member.name}`
+                              ? t("Deactivate {{name}}", { name: member.name })
+                              : t("Reactivate {{name}}", { name: member.name })
                           }
                           onClick={() => setTogglingMember(member)}
                           disabled={!canManageStaff}
                           className={ROW_ACTION_CLASS}
                         >
-                          {member.isActive ? "Deactivate" : "Reactivate"}
+                          {member.isActive ? t("Deactivate") : t("Reactivate")}
                         </button>
                       )}
                     </span>
@@ -653,22 +663,23 @@ export function StaffManagementPage() {
             </div>
 
             <p className="m-0 font-sans text-xs text-tn-muted-6">
-              Staff are deactivated rather than deleted, so their past bookings keep the right name
-              on them. Reactivate puts them back on the roster.
+              {t(
+                "Staff are deactivated rather than deleted, so their past bookings keep the right name on them. Reactivate puts them back on the roster.",
+              )}
             </p>
           </>
         ) : (
           <>
             {rolesQuery.isError && (
               <p className="m-0 font-sans text-sm text-tn-danger">
-                Couldn&rsquo;t load roles right now — refresh to try again.
+                {t("Couldn’t load roles right now — refresh to try again.")}
               </p>
             )}
             {deleteRoleMutation.isError && (
               <p className="m-0 font-sans text-sm text-tn-danger">
                 {deleteRoleMutation.error instanceof Error
                   ? deleteRoleMutation.error.message
-                  : "Couldn't delete this role — try again."}
+                  : t("Couldn't delete this role — try again.")}
               </p>
             )}
 
@@ -676,19 +687,21 @@ export function StaffManagementPage() {
               <div
                 className={`${ROLE_GRID} bg-tn-table-head px-[18px] py-3 font-sans text-xs font-semibold text-tn-muted-5`}
               >
-                <span>Role</span>
-                <span>Description</span>
-                <span>Members</span>
-                <span>Permissions</span>
-                <span className="sr-only">Actions</span>
+                <span>{t("Role")}</span>
+                <span>{t("Description")}</span>
+                <span>{t("Members")}</span>
+                <span>{t("Permissions")}</span>
+                <span className="sr-only">{t("Actions")}</span>
               </div>
 
               {rolesQuery.isPending && (
-                <p className="m-0 p-[18px] font-sans text-sm text-tn-muted-5">Loading roles…</p>
+                <p className="m-0 p-[18px] font-sans text-sm text-tn-muted-5">
+                  {t("Loading roles…")}
+                </p>
               )}
               {!rolesQuery.isPending && roles.length === 0 && (
                 <p className="m-0 p-[18px] font-sans text-sm text-tn-muted-5">
-                  No roles yet — add your first one.
+                  {t("No roles yet — add your first one.")}
                 </p>
               )}
 
@@ -703,7 +716,7 @@ export function StaffManagementPage() {
                     {role.name}
                     {role.isSystem && (
                       <span className="rounded-full bg-tn-gold-bg px-2 py-0.5 font-sans text-[11px] font-semibold text-tn-gold">
-                        OWNER
+                        {t("OWNER")}
                       </span>
                     )}
                   </span>
@@ -713,8 +726,11 @@ export function StaffManagementPage() {
                   <span className="font-sans text-[14px] text-tn-muted-2">{role.memberCount}</span>
                   <span className="font-sans text-[14px] text-tn-muted-2">
                     {role.isSystem
-                      ? "All permissions"
-                      : `${role.permissions.length} permission${role.permissions.length === 1 ? "" : "s"}`}
+                      ? t("All permissions")
+                      : t("{{length}} permission{{value}}", {
+                          length: role.permissions.length,
+                          value: role.permissions.length === 1 ? "" : "s",
+                        })}
                   </span>
                   <span className="flex justify-end gap-2">
                     {/* The Owner role can't be edited or deleted (isSystem —
@@ -726,25 +742,25 @@ export function StaffManagementPage() {
                       <>
                         <button
                           type="button"
-                          aria-label={`Edit ${role.name}`}
+                          aria-label={t("Edit {{name}}", { name: role.name })}
                           onClick={() => openEditRole(role)}
                           className={ROW_ACTION_CLASS}
                         >
-                          Edit
+                          {t("Edit")}
                         </button>
                         <button
                           type="button"
                           title={
                             role.memberCount > 0
-                              ? "Reassign every member with this role before deleting it"
+                              ? t("Reassign every member with this role before deleting it")
                               : undefined
                           }
-                          aria-label={`Delete ${role.name}`}
+                          aria-label={t("Delete {{name}}", { name: role.name })}
                           onClick={() => setDeletingRole(role)}
                           disabled={role.memberCount > 0}
                           className={`${ROW_ACTION_CLASS} hover:border-tn-danger hover:text-tn-danger disabled:hover:border-tn-input-border disabled:hover:text-tn-ink-soft`}
                         >
-                          Delete
+                          {t("Delete")}
                         </button>
                       </>
                     )}
@@ -755,7 +771,7 @@ export function StaffManagementPage() {
 
             {canManageRoles && (
               <p className="m-0 font-sans text-xs text-tn-muted-6">
-                A role can be deleted once nobody&rsquo;s assigned to it.
+                {t("A role can be deleted once nobody’s assigned to it.")}
               </p>
             )}
           </>
@@ -790,11 +806,11 @@ export function StaffManagementPage() {
         title={
           togglingMember?.isActive
             ? isOwner
-              ? `Deactivate ${togglingMember.name}?`
-              : `Remove ${togglingMember.name} from your locations?`
+              ? t("Deactivate {{name}}?", { name: togglingMember.name })
+              : t("Remove {{name}} from your locations?", { name: togglingMember.name })
             : isOwner
-              ? `Activate ${togglingMember?.name}?`
-              : `Put ${togglingMember?.name} back on your locations?`
+              ? t("Activate {{name}}?", { name: togglingMember?.name })
+              : t("Put {{name}} back on your locations?", { name: togglingMember?.name })
         }
         /* The same button does two different things depending on who is
            pressing it, so it has to say which. An owner closes the
@@ -805,20 +821,22 @@ export function StaffManagementPage() {
         body={
           togglingMember?.isActive
             ? isOwner
-              ? "They'll be signed out and won't be able to log back in until reactivated."
-              : "They'll stop being bookable at your locations and drop off those calendars. Their hours and history there are kept, and they carry on as normal anywhere else. Only an owner can close their account entirely."
+              ? t("They'll be signed out and won't be able to log back in until reactivated.")
+              : t(
+                  "They'll stop being bookable at your locations and drop off those calendars. Their hours and history there are kept, and they carry on as normal anywhere else. Only an owner can close their account entirely.",
+                )
             : isOwner
-              ? "They'll be able to sign in again."
-              : "They'll be bookable at your locations again, with the hours they had before."
+              ? t("They'll be able to sign in again.")
+              : t("They'll be bookable at your locations again, with the hours they had before.")
         }
         confirmLabel={
           togglingMember?.isActive
             ? isOwner
-              ? "Deactivate"
-              : "Remove from my locations"
+              ? t("Deactivate")
+              : t("Remove from my locations")
             : isOwner
-              ? "Activate"
-              : "Put back"
+              ? t("Activate")
+              : t("Put back")
         }
         confirming={toggleActiveMutation.isPending}
         danger={togglingMember?.isActive ?? false}
@@ -834,9 +852,11 @@ export function StaffManagementPage() {
         open={deletingRole !== null}
         onClose={() => setDeletingRole(null)}
         onConfirm={() => deletingRole && deleteRoleMutation.mutate(deletingRole.id)}
-        title={`Delete ${deletingRole?.name}?`}
-        body="This can't be undone. Anyone currently assigned to it would need to be reassigned first."
-        confirmLabel="Delete"
+        title={t("Delete {{name}}?", { name: deletingRole?.name })}
+        body={t(
+          "This can't be undone. Anyone currently assigned to it would need to be reassigned first.",
+        )}
+        confirmLabel={t("Delete")}
         confirming={deleteRoleMutation.isPending}
         danger
       />

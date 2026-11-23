@@ -1,6 +1,7 @@
 import { request } from "./http";
 import type { BillingCycle } from "./sample-data";
 
+import { intlLocale } from "@/i18n";
 /**
  * Talks to igroom-backend's public GET /billing/products (see
  * products.service.ts's listCatalog) — the same catalog the back
@@ -118,7 +119,7 @@ export function getSignupLink(token: string): Promise<{ signupLink: SignupLink }
 
 /** "$30" / "$30.50" — the amount a signup link charges, in its own currency. */
 export function formatPlanAmount(cents: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat(intlLocale(), {
     style: "currency",
     currency: currency.toUpperCase(),
     minimumFractionDigits: cents % 100 === 0 ? 0 : 2,

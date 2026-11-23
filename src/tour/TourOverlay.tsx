@@ -11,6 +11,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cardWidth, placeCard, useTourAnchor, type Size } from "./tour-anchor";
 import type { Tour } from "./types";
+import { t } from "@/i18n";
 
 /**
  * The tour itself, on screen: a dimmed page with one element lit up,
@@ -182,13 +183,13 @@ export function TourOverlay({ tour, stepIndex, onNext, onBack, onDismiss }: Tour
           <div
             aria-hidden="true"
             onClick={onDismiss}
-            className={`${panel} tn-tour-fade top-0 left-0 w-full`}
+            className={`${panel} tn-tour-fade top-0 start-0 w-full`}
             style={{ height: Math.max(hole.top, 0) }}
           />
           <div
             aria-hidden="true"
             onClick={onDismiss}
-            className={`${panel} tn-tour-fade left-0 w-full`}
+            className={`${panel} tn-tour-fade start-0 w-full`}
             style={{
               top: hole.top + hole.height,
               height: Math.max(viewport.height - hole.top - hole.height, 0),
@@ -197,7 +198,7 @@ export function TourOverlay({ tour, stepIndex, onNext, onBack, onDismiss }: Tour
           <div
             aria-hidden="true"
             onClick={onDismiss}
-            className={`${panel} tn-tour-fade left-0`}
+            className={`${panel} tn-tour-fade start-0`}
             style={{ top: hole.top, height: hole.height, width: Math.max(hole.left, 0) }}
           />
           <div
@@ -283,7 +284,7 @@ export function TourOverlay({ tour, stepIndex, onNext, onBack, onDismiss }: Tour
 
         {step.tip ? (
           <p className="mt-3.5 rounded-xl bg-tn-gold-bg-soft px-3.5 py-3 font-sans text-[14px] leading-relaxed text-tn-ink-soft">
-            <span className="font-semibold text-tn-gold">Pro tip: </span>
+            <span className="font-semibold text-tn-gold">{t("Pro tip:")} </span>
             {step.tip}
           </p>
         ) : null}
@@ -292,9 +293,9 @@ export function TourOverlay({ tour, stepIndex, onNext, onBack, onDismiss }: Tour
           <button
             type="button"
             onClick={onDismiss}
-            className="-ml-1.5 rounded-lg px-1.5 py-2 font-sans text-[14px] font-medium text-tn-muted-5 transition-colors hover:text-tn-ink"
+            className="-ms-1.5 rounded-lg px-1.5 py-2 font-sans text-[14px] font-medium text-tn-muted-5 transition-colors hover:text-tn-ink"
           >
-            Skip
+            {t("Skip")}
           </button>
 
           <div className="flex items-center gap-2">
@@ -304,7 +305,7 @@ export function TourOverlay({ tour, stepIndex, onNext, onBack, onDismiss }: Tour
                 onClick={onBack}
                 className="rounded-[10px] border border-tn-input-border bg-tn-surface px-3.5 py-2 font-sans text-[14px] font-semibold text-tn-ink transition-colors hover:bg-tn-page"
               >
-                Back
+                {t("Back")}
               </button>
             )}
             <button
@@ -312,7 +313,7 @@ export function TourOverlay({ tour, stepIndex, onNext, onBack, onDismiss }: Tour
               onClick={onNext}
               className="rounded-[10px] bg-tn-dark-gradient px-4 py-2 font-sans text-[14px] font-semibold text-tn-on-dark transition-colors hover:opacity-90"
             >
-              {isLast ? "Finish" : "Next"}
+              {isLast ? t("Finish") : t("Next")}
             </button>
           </div>
         </div>

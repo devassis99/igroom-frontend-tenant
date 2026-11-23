@@ -1,7 +1,9 @@
 import { type ReactNode } from "react";
 import { NavLink, Outlet } from "react-router";
 import { usePermissions } from "@/auth/use-permissions";
+import { t } from "@/i18n";
 
+import { GlobeIcon } from "@/components/LanguageMenu";
 type NavIconComponent = (props: { className?: string }) => ReactNode;
 
 interface SettingsNavItem {
@@ -21,27 +23,28 @@ interface SettingsNavItem {
 }
 
 const GENERAL_ITEMS: SettingsNavItem[] = [
-  { to: "/settings", label: "Business Profile", icon: BusinessProfileIcon, end: true },
-  { to: "/settings/hours", label: "Availability", icon: AvailabilityIcon },
-  { to: "/settings/security", label: "Security", icon: SecurityIcon },
+  { to: "/settings", label: t("Business Profile"), icon: BusinessProfileIcon, end: true },
+  { to: "/settings/hours", label: t("Availability"), icon: AvailabilityIcon },
+  { to: "/settings/security", label: t("Security"), icon: SecurityIcon },
+  { to: "/settings/language", label: t("Language"), icon: GlobeIcon },
 ];
 
 const WORKSPACE_ITEMS: SettingsNavItem[] = [
   {
     to: "/settings/staff",
-    label: "Staff Management",
+    label: t("Staff Management"),
     icon: StaffIcon,
     permission: "staff.view",
   },
   {
     to: "/settings/integrations",
-    label: "Integrations",
+    label: t("Integrations"),
     icon: IntegrationsIcon,
-    badge: "BUSINESS",
+    badge: t("BUSINESS"),
   },
   {
     to: "/settings/billing",
-    label: "Billing & Plan",
+    label: t("Billing & Plan"),
     icon: BillingIcon,
     permission: "billing.view",
   },
@@ -180,15 +183,15 @@ export function SettingsLayout() {
   const workspaceItems = visible(WORKSPACE_ITEMS);
 
   return (
-    <div className="-mt-8 -mr-10 -mb-24 flex h-screen">
+    <div className="-mt-8 -me-10 -mb-24 flex h-screen">
       <nav
         data-tour="settings-nav"
-        className="-ml-10 flex w-[240px] flex-none flex-col gap-6 overflow-y-auto border-r border-tn-border bg-white py-8"
+        className="-ms-10 flex w-[240px] flex-none flex-col gap-6 overflow-y-auto border-e border-tn-border bg-white py-8"
       >
-        <p className="m-0 px-4 font-sans text-[20px] font-semibold text-tn-ink">Settings</p>
+        <p className="m-0 px-4 font-sans text-[20px] font-semibold text-tn-ink">{t("Settings")}</p>
         <div>
           <p className="m-0 mb-2 px-4 font-sans text-[12px] font-semibold tracking-[0.04em] text-tn-faint">
-            GENERAL
+            {t("GENERAL")}
           </p>
           <div className="flex flex-col gap-0.5">
             {generalItems.map((item) => (
@@ -208,7 +211,7 @@ export function SettingsLayout() {
         {workspaceItems.length > 0 && (
           <div>
             <p className="m-0 mb-2 px-4 font-sans text-[12px] font-semibold tracking-[0.04em] text-tn-faint">
-              WORKSPACE SETTINGS
+              {t("WORKSPACE SETTINGS")}
             </p>
             <div className="flex flex-col gap-0.5">
               {workspaceItems.map((item) => (
@@ -231,7 +234,7 @@ export function SettingsLayout() {
         )}
       </nav>
 
-      <div className="min-w-0 flex-1 overflow-y-auto pt-8 pr-10 pb-24 pl-10">
+      <div className="min-w-0 flex-1 overflow-y-auto pt-8 pe-10 pb-24 ps-10">
         <Outlet />
       </div>
     </div>

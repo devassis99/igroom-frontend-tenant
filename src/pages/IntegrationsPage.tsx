@@ -5,6 +5,7 @@ import { integrationKeys } from "@/lib/integrations-api";
 import { CategoryIcon, CategoryNav, CATEGORIES } from "@/components/integrations/CategoryNav";
 import { IntegrationCardGrid } from "@/components/integrations/IntegrationCardGrid";
 import { useIntegrationsFilter } from "@/components/integrations/useIntegrationsFilter";
+import { t } from "@/i18n";
 
 /**
  * Matches the mockup's T12f Integrations page, reached via Settings >
@@ -67,12 +68,12 @@ export function IntegrationsPage() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="m-0 flex items-center gap-2.5 font-sans text-[20px] font-semibold text-tn-ink">
             <CategoryIcon shape={activeShape} active />
-            {category}
+            {t(category)}
           </h1>
           <input
             data-tour="integrations-search"
             type="text"
-            placeholder="Search integrations"
+            placeholder={t("Search integrations")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-[220px] rounded-xl border border-tn-input-border px-4 py-2.5 font-sans text-[14px] text-tn-ink outline-none focus:border-2 focus:border-tn-gold"
@@ -82,20 +83,20 @@ export function IntegrationsPage() {
         {status === "error" && (
           <div className="flex flex-col gap-2 rounded-xl border border-tn-danger/40 bg-tn-danger-bg px-4 py-3">
             <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">
-              Couldn&rsquo;t load your integrations
+              {t("Couldn’t load your integrations")}
             </p>
             {/* The server's own words, not a friendly paraphrase. This is
                 an owner's admin screen, and the message is usually the
                 whole diagnosis — a missing table says so by name. */}
             <p className="m-0 font-mono text-[12px] leading-relaxed break-words text-tn-ink-soft">
-              {error?.message ?? "Unknown error"}
+              {error?.message ?? t("Unknown error")}
             </p>
             <button
               type="button"
               onClick={retry}
               className="w-fit cursor-pointer rounded-lg border border-tn-input-border bg-tn-surface px-3 py-1.5 font-sans text-xs font-semibold text-tn-ink transition-colors duration-200 hover:bg-tn-page"
             >
-              Try again
+              {t("Try again")}
             </button>
           </div>
         )}
@@ -103,25 +104,30 @@ export function IntegrationsPage() {
         {arrival.outcome === "connected" && (
           <div className="tn-rise-in rounded-xl border border-tn-success/40 bg-tn-success-bg px-4 py-3">
             <p className="m-0 font-sans text-[14px] leading-relaxed text-tn-ink">
-              <strong className="font-semibold">Google Calendar connected.</strong>{" "}
+              <strong className="font-semibold">{t("Google Calendar connected.")}</strong>{" "}
               {arrival.blocked === 0
-                ? "Nothing on it is blocking time yet — anything you add will be, within minutes."
-                : `${arrival.blocked} ${arrival.blocked === 1 ? "event is" : "events are"} now blocking time on your calendar here.`}
+                ? t(
+                    "Nothing on it is blocking time yet — anything you add will be, within minutes.",
+                  )
+                : t("{{blocked}} {{value}} now blocking time on your calendar here.", {
+                    blocked: arrival.blocked,
+                    value: arrival.blocked === 1 ? t("event is") : t("events are"),
+                  })}
             </p>
           </div>
         )}
         {arrival.outcome === "failed" && (
           <div className="tn-rise-in rounded-xl border border-tn-danger/40 bg-tn-danger-bg px-4 py-3">
             <p className="m-0 font-sans text-[14px] leading-relaxed text-tn-ink">
-              <strong className="font-semibold">Couldn&rsquo;t finish connecting.</strong>{" "}
-              {arrival.reason ?? "Try again, and tell us if it keeps happening."}
+              <strong className="font-semibold">{t("Couldn’t finish connecting.")}</strong>{" "}
+              {arrival.reason ?? t("Try again, and tell us if it keeps happening.")}
             </p>
           </div>
         )}
         {arrival.outcome === "cancelled" && (
           <div className="tn-rise-in rounded-xl border border-tn-border bg-tn-page px-4 py-3">
             <p className="m-0 font-sans text-[14px] text-tn-muted-1">
-              Nothing was connected — you can start again whenever you like.
+              {t("Nothing was connected — you can start again whenever you like.")}
             </p>
           </div>
         )}
@@ -131,7 +137,7 @@ export function IntegrationsPage() {
             className={`h-1.5 w-1.5 rounded-full ${connectedCount > 0 ? "bg-tn-success" : "bg-tn-border"}`}
           />
           <span className="font-sans text-sm font-semibold text-tn-ink">
-            Connected integrations: {connectedCount}
+            {t("Connected integrations: {{connectedCount}}", { connectedCount })}
           </span>
         </div>
 

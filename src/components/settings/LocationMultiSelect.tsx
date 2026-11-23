@@ -1,4 +1,5 @@
 import type { AccountLocation } from "@/lib/locations-api";
+import { t } from "@/i18n";
 
 /**
  * Which shops a staff member works at.
@@ -48,7 +49,7 @@ export function LocationMultiSelect({
   }
 
   if (loading && locations.length === 0) {
-    return <p className="m-0 font-sans text-sm text-tn-muted-5">Loading locations…</p>;
+    return <p className="m-0 font-sans text-sm text-tn-muted-5">{t("Loading locations…")}</p>;
   }
   if (error !== undefined) {
     return <p className="m-0 font-sans text-sm text-tn-danger">{error}</p>;
@@ -56,7 +57,7 @@ export function LocationMultiSelect({
   if (locations.length === 0) {
     return (
       <p className="m-0 font-sans text-sm text-tn-muted-5">
-        No locations yet — add one before assigning staff.
+        {t("No locations yet — add one before assigning staff.")}
       </p>
     );
   }
@@ -93,8 +94,8 @@ export function LocationMultiSelect({
               <span className="truncate font-sans text-[14px] font-medium text-tn-ink">
                 {loc.name}
                 {loc.isPrimary && (
-                  <span className="ml-2 rounded-full bg-tn-gold-bg px-1.5 py-0.5 font-sans text-[11px] font-semibold tracking-[0.02em] text-tn-gold">
-                    PRIMARY
+                  <span className="ms-2 rounded-full bg-tn-gold-bg px-1.5 py-0.5 font-sans text-[11px] font-semibold tracking-[0.02em] text-tn-gold">
+                    {t("PRIMARY")}
                   </span>
                 )}
               </span>

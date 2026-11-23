@@ -2,12 +2,16 @@ import { useAuthStore } from "@/auth/auth-store";
 import { env } from "./env";
 import { navigateTo } from "./navigation";
 
+import { t } from "@/i18n";
 export class ApiError extends Error {
   readonly status: number;
   readonly body: unknown;
 
   constructor(status: number, message: string, body?: unknown) {
-    super(message);
+    // Translated here, once, so every screen that shows an API error shows
+    // it in the visitor's language when the dictionary knows the message
+    // (src/i18n/api-messages.json lists the ones the backend sends).
+    super(t(message));
     this.name = "ApiError";
     this.status = status;
     this.body = body;

@@ -54,6 +54,7 @@ import {
   zonedTimeToUtc,
   zonedHourMinute,
 } from "@/lib/calendar-dates";
+import { t } from "@/i18n";
 
 type View = "day" | "week" | "month" | "list";
 type BookingModalMode = "detail" | "reschedule" | "cancel";
@@ -83,7 +84,7 @@ function formatShiftClock(hhmm: string): string {
 
 /** Backs the Day view column header's shift-hours line. */
 function formatShiftSummary(shift: StaffShift | undefined): string {
-  if (!shift || shift.isOff || shift.ranges.length === 0) return "Not working today";
+  if (!shift || shift.isOff || shift.ranges.length === 0) return t("Not working today");
   return shift.ranges
     .map((r) => `${formatShiftClock(r.startTime)}–${formatShiftClock(r.endTime)}`)
     .join(", ");
@@ -131,7 +132,7 @@ const DAY_GUTTER_WIDTH_PX = 74;
 // staff there's room for every column to grow toward the ceiling, past that
 // columns hold at the floor and the grid scrolls horizontally instead of
 // squeezing every column unreadably thin.
-const DAY_COLUMN_WIDTH = "minmax(200px, 320px)";
+const DAY_COLUMN_WIDTH = t("minmax(200px, 320px)");
 
 // The trailing "Invite staff" column — unlike the fixed-ceiling staff
 // columns above, this one is a genuine `1fr` track so it soaks up
@@ -141,7 +142,7 @@ const DAY_COLUMN_WIDTH = "minmax(200px, 320px)";
 // 320px-wide one). Once staff columns fill the container this shrinks to
 // its own 240px floor and sits past the horizontal scroll, same as any
 // other column would.
-const DAY_INVITE_COLUMN_WIDTH = "minmax(240px, 1fr)";
+const DAY_INVITE_COLUMN_WIDTH = t("minmax(240px, 1fr)");
 
 interface AddBookingRequest {
   defaultDate: Date;
@@ -780,7 +781,15 @@ export function CalendarPage() {
   // The trailing invite track only exists for someone who can actually
   // invite anyone — without staff.manage there's nothing to click, so no
   // point reserving the space.
-  const dayGridColumns = `${DAY_GUTTER_WIDTH_PX}px repeat(${Math.max(dayColumns.length, 1)}, ${DAY_COLUMN_WIDTH})${canManageStaff ? ` ${DAY_INVITE_COLUMN_WIDTH}` : ""}`;
+  const dayGridColumns = t(
+    "{{DAY_GUTTER_WIDTH_PX}}px repeat({{length}}, {{DAY_COLUMN_WIDTH}}){{value}}",
+    {
+      DAY_GUTTER_WIDTH_PX,
+      length: Math.max(dayColumns.length, 1),
+      DAY_COLUMN_WIDTH,
+      value: canManageStaff ? ` ${DAY_INVITE_COLUMN_WIDTH}` : "",
+    },
+  );
 
   /**
    * `staffId__HH:mm` -> that row split into appointment bands and gaps.
@@ -1246,15 +1255,22 @@ export function CalendarPage() {
     return (
       // White components on the cream page — see .tn-white-components (index.css).
       <div className="tn-white-components flex flex-col gap-7">
-        <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Calendar</h1>
+        <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">{t("Calendar")}</h1>
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-tn-input-border bg-tn-page px-8 py-16 text-center">
           <span className="font-sans text-[16px] font-semibold text-tn-ink">
-            {failed ? "Couldn\u2019t load your locations" : "No shop to show yet"}
+            {failed ? t("Couldn’t load your locations") : t("No shop to show yet")}
           </span>
           <span className="max-w-[380px] font-sans text-[14px] text-tn-muted-5">
             {failed
-              ? `${locationsQuery.error instanceof Error ? locationsQuery.error.message : "Unknown error"} \u2014 refresh to try again.`
-              : "The calendar shows one shop at a time. Once you\u2019re assigned to a location, its day, week and month views appear here."}
+              ? t("{{value}} — refresh to try again.", {
+                  value:
+                    locationsQuery.error instanceof Error
+                      ? locationsQuery.error.message
+                      : t("Unknown error"),
+                })
+              : t(
+                  "The calendar shows one shop at a time. Once you’re assigned to a location, its day, week and month views appear here.",
+                )}
           </span>
         </div>
       </div>
@@ -1266,13 +1282,13 @@ export function CalendarPage() {
     <div className="tn-white-components flex flex-col gap-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3.5" data-tour="calendar-location">
-          <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Calendar</h1>
+          <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">{t("Calendar")}</h1>
           {locations.length > 1 && (
             <LocationFilterPopover
               locations={locations}
               value={selectedLocationId}
               onChange={handleLocationChange}
-              label="Filter by location"
+              label={t("Filter by location")}
               includeAllOption={false}
             />
           )}
@@ -1285,13 +1301,13 @@ export function CalendarPage() {
                 onClick={goToday}
                 className="cursor-pointer rounded-lg border border-tn-input-border bg-tn-surface px-2.5 py-1.5 font-sans text-xs font-semibold text-tn-ink-soft hover:bg-tn-page/60"
               >
-                Today
+                {t("Today")}
               </button>
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={goPrev}
-                  aria-label="Previous"
+                  aria-label={t("Previous")}
                   className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-lg border border-tn-input-border bg-tn-surface text-tn-muted-4 hover:bg-tn-page/60"
                 >
                   ‹
@@ -1302,7 +1318,7 @@ export function CalendarPage() {
                 <button
                   type="button"
                   onClick={goNext}
-                  aria-label="Next"
+                  aria-label={t("Next")}
                   className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-lg border border-tn-input-border bg-tn-surface text-tn-muted-4 hover:bg-tn-page/60"
                 >
                   ›
@@ -1314,29 +1330,35 @@ export function CalendarPage() {
             value={view}
             onChange={handleViewChange}
             options={[
-              { value: "day", label: "Day" },
-              { value: "week", label: "Week" },
-              { value: "month", label: "Month" },
-              { value: "list", label: "List" },
+              { value: "day", label: t("Day") },
+              { value: "week", label: t("Week") },
+              { value: "month", label: t("Month") },
+              { value: "list", label: t("List") },
             ]}
           />
-          <Button onClick={() => setAddRequest({ defaultDate: cursorDate })}>+ Add Booking</Button>
+          <Button onClick={() => setAddRequest({ defaultDate: cursorDate })}>
+            {t("+ Add Booking")}
+          </Button>
         </div>
       </div>
 
       {staffQuery.isError && (
         <p className="m-0 font-sans text-sm text-tn-danger">
-          Couldn&rsquo;t load staff right now (
-          {staffQuery.error instanceof Error ? staffQuery.error.message : "unknown error"}) —
-          refresh to try again.
+          {t("Couldn’t load staff right now ({{value}}) — refresh to try again.", {
+            value:
+              staffQuery.error instanceof Error ? staffQuery.error.message : t("unknown error"),
+          })}
         </p>
       )}
 
       {view !== "list" && bookingsQuery.isError && (
         <p className="m-0 font-sans text-sm text-tn-danger">
-          Couldn&rsquo;t load bookings right now (
-          {bookingsQuery.error instanceof Error ? bookingsQuery.error.message : "unknown error"}) —
-          refresh to try again.
+          {t("Couldn’t load bookings right now ({{value}}) — refresh to try again.", {
+            value:
+              bookingsQuery.error instanceof Error
+                ? bookingsQuery.error.message
+                : t("unknown error"),
+          })}
         </p>
       )}
 
@@ -1360,17 +1382,18 @@ export function CalendarPage() {
              whole card rather than rendering an empty grid with a message buried in its header. */
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-tn-input-border bg-tn-page px-8 py-16 text-center">
             <span className="font-sans text-[16px] font-semibold text-tn-ink">
-              No staff at this location yet
+              {t("No staff at this location yet")}
             </span>
             <span className="max-w-[380px] font-sans text-[14px] text-tn-muted-5">
-              Add your first staff member and their working hours — once they&rsquo;re on the
-              roster, their column shows up here automatically.
+              {t(
+                "Add your first staff member and their working hours — once they’re on the roster, their column shows up here automatically.",
+              )}
             </span>
             <Link
               to="/staff"
               className="mt-1 cursor-pointer rounded-lg border-none bg-tn-dark-gradient px-4 py-2.5 font-sans text-[14px] font-semibold text-tn-on-dark no-underline"
             >
-              Add staff
+              {t("Add staff")}
             </Link>
           </div>
         )}
@@ -1441,17 +1464,19 @@ export function CalendarPage() {
                       every row's own gutter cell below) scrolls sideways underneath it. Needs its own
                       opaque background (matching the header row's) since sticky positioning takes it out of
                       the row's normal paint order. */}
-                      <div className="sticky left-0 z-10 flex items-center justify-center bg-tn-table-head p-2 text-center font-sans text-[12px] font-medium text-tn-muted-5">
+                      <div className="sticky start-0 z-10 flex items-center justify-center bg-tn-table-head p-2 text-center font-sans text-[12px] font-medium text-tn-muted-5">
                         {formatUtcOffset(timezone)}
                       </div>
                       {staffQuery.isPending && (
-                        <div className="border-l border-tn-border-soft p-3 font-sans text-[14px] text-tn-muted-5">
-                          Loading staff…
+                        <div className="border-s border-tn-border-soft p-3 font-sans text-[14px] text-tn-muted-5">
+                          {t("Loading staff…")}
                         </div>
                       )}
                       {!staffQuery.isPending && dayColumns.length === 0 && (
-                        <div className="border-l border-tn-border-soft p-3 font-sans text-[14px] text-tn-muted-5">
-                          No staff selected — use the Staff picker above to choose who to show.
+                        <div className="border-s border-tn-border-soft p-3 font-sans text-[14px] text-tn-muted-5">
+                          {t(
+                            "No staff selected — use the Staff picker above to choose who to show.",
+                          )}
                         </div>
                       )}
                       {dayColumns.map((member) => {
@@ -1460,7 +1485,7 @@ export function CalendarPage() {
                         return (
                           <div
                             key={member.id}
-                            className="flex min-w-0 items-center gap-2.5 border-l border-tn-border-soft p-3"
+                            className="flex min-w-0 items-center gap-2.5 border-s border-tn-border-soft p-3"
                           >
                             <span
                               className="h-8 w-8 shrink-0 rounded-full"
@@ -1472,7 +1497,9 @@ export function CalendarPage() {
                               </span>
                               <span className="truncate font-sans text-[11px] text-tn-muted-5">
                                 {formatShiftSummary(shift)}
-                                {bookingCount > 0 ? ` · ${bookingCount} booked` : ""}
+                                {bookingCount > 0
+                                  ? t(" · {{bookingCount}} booked", { bookingCount })
+                                  : ""}
                               </span>
                             </span>
                           </div>
@@ -1481,12 +1508,12 @@ export function CalendarPage() {
                       {canManageStaff && (
                         <Link
                           to="/staff"
-                          className="flex items-center gap-2 border-l border-dashed border-tn-input-border p-3 font-sans text-[14px] font-semibold text-tn-blue no-underline hover:bg-tn-page"
+                          className="flex items-center gap-2 border-s border-dashed border-tn-input-border p-3 font-sans text-[14px] font-semibold text-tn-blue no-underline hover:bg-tn-page"
                         >
                           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-dashed border-tn-blue text-xs">
                             +
                           </span>
-                          Add team member
+                          {t("Add team member")}
                         </Link>
                       )}
                     </div>
@@ -1545,7 +1572,7 @@ export function CalendarPage() {
                             style={{ gridColumn: columnIndex + 2 }}
                           >
                             <span className="block px-2 pt-1 font-sans text-[11px] font-semibold tracking-wide text-tn-muted-5 uppercase">
-                              Busy
+                              {t("Busy")}
                             </span>
                           </div>
                         </div>
@@ -1576,7 +1603,7 @@ export function CalendarPage() {
                               // The focus ring is drawn inside its own edge — see
                               // the note in index.css — since a block flush to the
                               // row below would otherwise have it clipped.
-                              className={`pointer-events-auto mx-2 h-full overflow-hidden rounded-md text-left font-sans font-medium text-tn-ink-soft focus-visible:[outline-offset:-2px] ${
+                              className={`pointer-events-auto mx-2 h-full overflow-hidden rounded-md text-start font-sans font-medium text-tn-ink-soft focus-visible:[outline-offset:-2px] ${
                                 isShort ? "px-2 py-0.5 text-[12px] leading-tight" : "p-2 text-xs"
                               } ${BOOKING_STATUS_BLOCK[booking.status]}`}
                             >
@@ -1655,18 +1682,18 @@ export function CalendarPage() {
                               style={{ gridColumn: Math.max(dayColumns.length, 1) + 2 }}
                             >
                               <span className="font-sans text-[14px] font-semibold text-tn-ink">
-                                One column per team member
+                                {t("One column per team member")}
                               </span>
                               <span className="max-w-[260px] font-sans text-xs text-tn-muted-5">
-                                Invite your barbers and each gets a 200px column here. Past five,
-                                columns hold their width and the grid scrolls — the staff picker
-                                above chooses who&rsquo;s in view.
+                                {t(
+                                  "Invite your barbers and each gets a 200px column here. Past five, columns hold their width and the grid scrolls — the staff picker above chooses who’s in view.",
+                                )}
                               </span>
                               <Link
                                 to="/staff"
                                 className="mt-1 cursor-pointer rounded-lg border-none bg-tn-dark-gradient px-4 py-2.5 font-sans text-[14px] font-semibold text-tn-on-dark no-underline"
                               >
-                                Invite staff
+                                {t("Invite staff")}
                               </Link>
                             </div>
                           </div>
@@ -1722,10 +1749,15 @@ export function CalendarPage() {
                               aria-pressed={isRowSelected}
                               aria-label={
                                 isPastSlot
-                                  ? `${formatTimeLabel(slot, timezone)} has already passed — row selection isn't available for past times`
-                                  : `Select the ${formatTimeLabel(slot, timezone)} row`
+                                  ? t(
+                                      "{{slot}} has already passed — row selection isn't available for past times",
+                                      { slot: formatTimeLabel(slot, timezone) },
+                                    )
+                                  : t("Select the {{slot}} row", {
+                                      slot: formatTimeLabel(slot, timezone),
+                                    })
                               }
-                              className={`sticky left-0 z-[4] select-none border-none ${rowBg} p-2.5 text-left font-sans text-xs font-medium text-tn-muted-5 ${isRowSelected ? "text-tn-blue" : isPastSlot ? "cursor-not-allowed text-tn-faint-2" : ""} ${rowIndex < daySlots.length - 1 ? "border-b border-tn-border-soft" : ""}`}
+                              className={`sticky start-0 z-[4] select-none border-none ${rowBg} p-2.5 text-start font-sans text-xs font-medium text-tn-muted-5 ${isRowSelected ? "text-tn-blue" : isPastSlot ? "cursor-not-allowed text-tn-faint-2" : ""} ${rowIndex < daySlots.length - 1 ? "border-b border-tn-border-soft" : ""}`}
                             >
                               {formatTimeLabel(slot, timezone)}
                             </button>
@@ -1758,7 +1790,7 @@ export function CalendarPage() {
                                   // No vertical padding: the bands inside are placed as
                                   // a share of the row, and padding would make that
                                   // share stand for slightly fewer minutes than it says.
-                                  className={`relative border-l border-tn-border-soft px-2 ${
+                                  className={`relative border-s border-tn-border-soft px-2 ${
                                     rowIndex < daySlots.length - 1 && !joinsBelow
                                       ? "border-b border-tn-border-soft"
                                       : ""
@@ -1810,8 +1842,14 @@ export function CalendarPage() {
                                         className="absolute inset-x-2 cursor-pointer rounded-md border border-dashed border-transparent text-transparent hover:border-tn-input-border hover:text-tn-faint-2"
                                         aria-label={
                                           outsideShift
-                                            ? `Add booking for ${member.name} at ${label} (outside their shift)`
-                                            : `Add booking for ${member.name} at ${label}`
+                                            ? t(
+                                                "Add booking for {{name}} at {{label}} (outside their shift)",
+                                                { name: member.name, label },
+                                              )
+                                            : t("Add booking for {{name}} at {{label}}", {
+                                                name: member.name,
+                                                label,
+                                              })
                                         }
                                       >
                                         +
@@ -1837,7 +1875,7 @@ export function CalendarPage() {
                               // hour dividers just read as a broken/half-finished grid;
                               // it reads cleaner as one continuous blank strip.
                               <div
-                                className="border-l border-tn-border-soft bg-tn-surface"
+                                className="border-s border-tn-border-soft bg-tn-surface"
                                 style={{ gridColumn: Math.max(dayColumns.length, 1) + 2 }}
                               />
                             )}
@@ -1850,7 +1888,7 @@ export function CalendarPage() {
                   {/* Right-edge fade cueing "there's more to scroll to" — fades out once the grid's
                   scrolled all the way, so it never sits there implying overflow that's gone. */}
                   {dayHasOverflow && dayScrollProgress < 0.98 && (
-                    <div className="pointer-events-none absolute inset-y-0 right-0 z-[6] w-10 bg-gradient-to-l from-tn-surface to-transparent" />
+                    <div className="pointer-events-none absolute inset-y-0 end-0 z-[6] w-10 bg-gradient-to-l from-tn-surface to-transparent" />
                   )}
 
                   {dayHasOverflow && (
@@ -1862,7 +1900,10 @@ export function CalendarPage() {
                         />
                       </div>
                       <span className="shrink-0 font-sans text-[11px] text-tn-muted-5">
-                        {dayColumnsInView} of {dayColumns.length} columns in view
+                        {t("{{dayColumnsInView}} of {{length}} columns in view", {
+                          dayColumnsInView,
+                          length: dayColumns.length,
+                        })}
                       </span>
                     </div>
                   )}
@@ -1872,12 +1913,12 @@ export function CalendarPage() {
                   <button
                     type="button"
                     onClick={() => jumpDayColumns(1)}
-                    aria-label="Scroll to more staff columns"
+                    aria-label={t("Scroll to more staff columns")}
                     // right-[92px], not right-8: the help button (see
                     // src/tour/TourLauncher.tsx) sits in that corner on
                     // every screen, and two circles on top of each other
                     // means one of them can't be pressed.
-                    className="fixed bottom-8 right-[92px] z-20 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-none bg-tn-dark-gradient text-tn-on-dark shadow-[0_14px_30px_-10px_rgba(40,30,10,0.5)]"
+                    className="fixed bottom-8 end-[92px] z-20 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-none bg-tn-dark-gradient text-tn-on-dark shadow-[0_14px_30px_-10px_rgba(40,30,10,0.5)]"
                   >
                     ›
                   </button>
@@ -1967,7 +2008,7 @@ export function CalendarPage() {
                           setCursorDate(day);
                           setView("day");
                         }}
-                        className={`flex min-h-[132px] cursor-pointer flex-col items-start gap-2 border-l border-t border-tn-border-soft p-4 text-left ${
+                        className={`flex min-h-[132px] cursor-pointer flex-col items-start gap-2 border-s border-t border-tn-border-soft p-4 text-start ${
                           isToday
                             ? "border-t-2 border-t-tn-gold bg-tn-gold-bg-soft"
                             : isPastDay
@@ -1994,7 +2035,10 @@ export function CalendarPage() {
                               isBusy ? "bg-tn-gold-bg text-tn-gold" : "bg-tn-page text-tn-muted-3"
                             }`}
                           >
-                            {count} booking{count === 1 ? "" : "s"}
+                            {t("{{count}} booking{{value}}", {
+                              count,
+                              value: count === 1 ? "" : "s",
+                            })}
                           </span>
                         )}
                       </button>

@@ -11,6 +11,7 @@ import { findTourForPath } from "./find-tour";
 import { useTourStore } from "./tour-store";
 import { TOURS } from "./tours";
 import { Wordmark } from "@/components/brand/Logo";
+import { t } from "@/i18n";
 
 /**
  * The help button in the bottom-right corner, and the panel it opens.
@@ -187,7 +188,7 @@ export function TourLauncher() {
         <dialog
           ref={panelRef}
           open
-          aria-label="Help"
+          aria-label={t("Help")}
           /*
            * `left-auto` and `top-auto` undo the <dialog> user-agent rule
            * `inset-inline-start: 0`: with a width set, left:0 and
@@ -195,7 +196,7 @@ export function TourLauncher() {
            * and the panel parks itself against the left edge of the
            * window instead of the corner it was asked for.
            */
-          className="tn-rise-in fixed top-auto right-6 bottom-[86px] left-auto z-50 m-0 flex max-h-[min(620px,calc(100dvh-120px))] w-[min(380px,calc(100vw-32px))] flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface p-0 text-tn-ink shadow-[0_24px_70px_-20px_oklch(22%_0.02_50_/_0.5)]"
+          className="tn-rise-in fixed top-auto end-6 bottom-[86px] start-auto z-50 m-0 flex max-h-[min(620px,calc(100dvh-120px))] w-[min(380px,calc(100vw-32px))] flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface p-0 text-tn-ink shadow-[0_24px_70px_-20px_oklch(22%_0.02_50_/_0.5)]"
         >
           <header className="flex flex-col gap-1 bg-tn-plan-bg px-5 pt-5 pb-14">
             <div className="flex items-start justify-between gap-3">
@@ -203,16 +204,16 @@ export function TourLauncher() {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                aria-label="Close help"
-                className="-mt-1 -mr-1 cursor-pointer rounded-lg px-2 py-1 font-sans text-[16px] text-tn-on-dark/70 hover:bg-white/10 hover:text-tn-on-dark"
+                aria-label={t("Close help")}
+                className="-mt-1 -me-1 cursor-pointer rounded-lg px-2 py-1 font-sans text-[16px] text-tn-on-dark/70 hover:bg-white/10 hover:text-tn-on-dark"
               >
                 ✕
               </button>
             </div>
             <p className="m-0 mt-3 font-sans text-[20px] leading-snug font-semibold text-tn-on-dark">
-              {firstName ? `Hi ${firstName} 👋` : "Hi there 👋"}
+              {firstName ? t("Hi {{firstName}} 👋", { firstName }) : t("Hi there 👋")}
               <br />
-              How can we help?
+              {t("How can we help?")}
             </p>
           </header>
 
@@ -233,18 +234,21 @@ export function TourLauncher() {
               <button
                 type="button"
                 onClick={() => runHere(0)}
-                className="flex cursor-pointer items-center gap-3 rounded-xl border border-tn-border bg-tn-surface px-4 py-3.5 text-left shadow-[0_10px_30px_-18px_oklch(22%_0.02_50_/_0.6)] transition-colors hover:border-tn-gold"
+                className="flex cursor-pointer items-center gap-3 rounded-xl border border-tn-border bg-tn-surface px-4 py-3.5 text-start shadow-[0_10px_30px_-18px_oklch(22%_0.02_50_/_0.6)] transition-colors hover:border-tn-gold"
               >
                 <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-tn-gold-bg font-sans text-[14px] font-semibold text-tn-gold">
                   ▸
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block font-sans text-[14px] font-semibold text-tn-ink">
-                    Show me around this page
+                    {t("Show me around this page")}
                   </span>
                   <span className="block font-sans text-[13px] text-tn-muted-5">
-                    {tour.title} · {tour.steps.length} step
-                    {tour.steps.length === 1 ? "" : "s"}
+                    {t("{{title}} · {{length}} step{{value}}", {
+                      title: tour.title,
+                      length: tour.steps.length,
+                      value: tour.steps.length === 1 ? "" : "s",
+                    })}
                   </span>
                 </span>
                 <ChevronRight />
@@ -258,12 +262,12 @@ export function TourLauncher() {
                 walkthrough answers it better than an article would. */}
 
             <label className="flex items-center gap-2 rounded-xl border border-tn-input-border bg-tn-page px-3.5 py-2.5">
-              <span className="sr-only">Search for help</span>
+              <span className="sr-only">{t("Search for help")}</span>
               <input
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search for help"
+                placeholder={t("Search for help")}
                 className="w-full bg-transparent font-sans text-[14px] text-tn-ink outline-none placeholder:text-tn-placeholder"
               />
               <svg
@@ -285,11 +289,18 @@ export function TourLauncher() {
             {query.trim().length >= 2 ? (
               hits.length === 0 ? (
                 <p className="m-0 px-1 py-6 text-center font-sans text-[14px] text-tn-muted-5">
-                  Nothing matched “{query.trim()}”. Try the name of a screen — calendar, tips,
-                  payouts.
+                  {t(
+                    "Nothing matched “{{trim}}”. Try the name of a screen — calendar, tips, payouts.",
+                    { trim: query.trim() },
+                  )}
                 </p>
               ) : (
-                <Group label={`${hits.length} result${hits.length === 1 ? "" : "s"}`}>
+                <Group
+                  label={t("{{length}} result{{value}}", {
+                    length: hits.length,
+                    value: hits.length === 1 ? "" : "s",
+                  })}
+                >
                   {hits.map((hit) => (
                     <Row
                       key={`${hit.tourId}:${hit.stepIndex}`}
@@ -303,7 +314,7 @@ export function TourLauncher() {
             ) : (
               <>
                 {tour ? (
-                  <Group label="On this page">
+                  <Group label={t("On this page")}>
                     {tour.steps.map((step, index) => (
                       <Row
                         key={step.title}
@@ -315,12 +326,15 @@ export function TourLauncher() {
                   </Group>
                 ) : null}
 
-                <Group label="Other screens">
+                <Group label={t("Other screens")}>
                   {others.map((other) => (
                     <Row
                       key={other.id}
                       title={other.title}
-                      hint={`${other.steps.length} step${other.steps.length === 1 ? "" : "s"}`}
+                      hint={t("{{length}} step{{value}}", {
+                        length: other.steps.length,
+                        value: other.steps.length === 1 ? "" : "s",
+                      })}
                       onClick={() =>
                         runThere({
                           tourId: other.id,
@@ -340,14 +354,14 @@ export function TourLauncher() {
 
           <footer className="flex flex-none items-center justify-between gap-3 border-t border-tn-border-soft px-4 py-3">
             <span className="font-sans text-[13px] text-tn-muted-5">
-              {autoplay ? "Tips open on a screen's first visit" : "Tips only open from here"}
+              {autoplay ? t("Tips open on a screen's first visit") : t("Tips only open from here")}
             </span>
             <button
               type="button"
               onClick={() => setAutoplay(!autoplay)}
               className="cursor-pointer rounded-lg border border-tn-input-border px-2.5 py-1.5 font-sans text-[13px] font-semibold text-tn-ink-soft transition-colors hover:bg-tn-page"
             >
-              {autoplay ? "Turn off" : "Turn on"}
+              {autoplay ? t("Turn off") : t("Turn on")}
             </button>
           </footer>
         </dialog>
@@ -359,9 +373,9 @@ export function TourLauncher() {
         data-tour="nav-help"
         onClick={() => setOpen(!panelOpen)}
         aria-expanded={panelOpen}
-        aria-label={panelOpen ? "Close help" : "Help"}
-        title="Help"
-        className="fixed right-6 bottom-6 z-50 flex h-[52px] w-[52px] cursor-pointer items-center justify-center rounded-full border-none bg-tn-plan-bg text-tn-on-dark shadow-[0_16px_34px_-12px_oklch(22%_0.02_50_/_0.6)] transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97]"
+        aria-label={panelOpen ? t("Close help") : t("Help")}
+        title={t("Help")}
+        className="fixed end-6 bottom-6 z-50 flex h-[52px] w-[52px] cursor-pointer items-center justify-center rounded-full border-none bg-tn-plan-bg text-tn-on-dark shadow-[0_16px_34px_-12px_oklch(22%_0.02_50_/_0.6)] transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97]"
       >
         <span aria-hidden className="font-sans text-[20px] leading-none">
           {panelOpen ? "⌄" : "?"}
@@ -389,7 +403,7 @@ function Row({ title, hint, onClick }: { title: string; hint: string; onClick: (
     <button
       type="button"
       onClick={onClick}
-      className="flex cursor-pointer items-center gap-3 border-b border-tn-border-soft px-3.5 py-3 text-left last:border-b-0 hover:bg-tn-page"
+      className="flex cursor-pointer items-center gap-3 border-b border-tn-border-soft px-3.5 py-3 text-start last:border-b-0 hover:bg-tn-page"
     >
       <span className="min-w-0 flex-1">
         <span className="block truncate font-sans text-[14px] font-medium text-tn-ink-soft">

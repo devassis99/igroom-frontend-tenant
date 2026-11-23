@@ -8,6 +8,7 @@ import {
   type AccountLocation,
   type LocationCatalogueEntry,
 } from "@/lib/locations-api";
+import { t } from "@/i18n";
 
 /** Cents in the API, dollars in the field — the same split ServiceModal.tsx uses. */
 function centsToInput(cents: number | null): string {
@@ -41,7 +42,7 @@ function draftFrom(entries: LocationCatalogueEntry[]): Draft {
   return draft;
 }
 
-const UNCATEGORISED = "Uncategorised";
+const UNCATEGORISED = t("Uncategorised");
 
 /**
  * Which of the business's services this shop actually sells, and what it
@@ -117,7 +118,7 @@ export function LocationServicesTab({
       void queryClient.invalidateQueries({ queryKey: ["locations"] });
     },
     onError: (err: unknown) =>
-      setError(err instanceof Error ? err.message : "Couldn't save this location's menu"),
+      setError(err instanceof Error ? err.message : t("Couldn't save this location's menu")),
   });
 
   function update(serviceId: string, patch: Partial<DraftRow>) {
@@ -131,10 +132,10 @@ export function LocationServicesTab({
   }
 
   if (catalogueQuery.isPending || draft === null) {
-    return <p className="m-0 font-sans text-sm text-tn-muted-5">Loading the menu…</p>;
+    return <p className="m-0 font-sans text-sm text-tn-muted-5">{t("Loading the menu…")}</p>;
   }
   if (catalogueQuery.isError) {
-    return <p className="m-0 font-sans text-sm text-tn-danger">Couldn&rsquo;t load the menu.</p>;
+    return <p className="m-0 font-sans text-sm text-tn-danger">{t("Couldn’t load the menu.")}</p>;
   }
 
   const offeredCount = Object.values(draft).filter((row) => row.offered).length;
@@ -143,17 +144,21 @@ export function LocationServicesTab({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
         <p className="m-0 font-sans text-sm font-semibold text-tn-ink">
-          Offering {offeredCount} of {entries.length} services
+          {t("Offering {{offeredCount}} of {{length}} services", {
+            offeredCount,
+            length: entries.length,
+          })}
         </p>
         <p className="m-0 font-sans text-xs text-tn-muted-5">
-          Tick what this shop does. Leave price and duration blank to use the catalogue&rsquo;s
-          figures — fill one in only where this location genuinely differs.
+          {t(
+            "Tick what this shop does. Leave price and duration blank to use the catalogue’s figures — fill one in only where this location genuinely differs.",
+          )}
         </p>
       </div>
 
       {entries.length === 0 && (
         <p className="m-0 rounded-2xl border border-dashed border-tn-border px-4 py-6 text-center font-sans text-sm text-tn-muted-5">
-          Your catalogue is empty — add services on the Services page first.
+          {t("Your catalogue is empty — add services on the Services page first.")}
         </p>
       )}
 
@@ -190,9 +195,11 @@ export function LocationServicesTab({
                         {entry.name}
                       </span>
                       <span className="truncate font-sans text-[12px] text-tn-muted-5">
-                        Catalogue: ${(entry.cataloguePriceCents / 100).toFixed(2)} ·{" "}
-                        {entry.catalogueDurationMinutes} min
-                        {entry.isEnabled ? "" : " · disabled account-wide"}
+                        {t("Catalogue: ${{fixed}} · {{catalogueDurationMinutes}} min{{value}}", {
+                          fixed: (entry.cataloguePriceCents / 100).toFixed(2),
+                          catalogueDurationMinutes: entry.catalogueDurationMinutes,
+                          value: entry.isEnabled ? "" : t(" · disabled account-wide"),
+                        })}
                       </span>
                     </span>
                   </label>
@@ -207,7 +214,10 @@ export function LocationServicesTab({
                         disabled={!canManage}
                         onChange={(e) => update(entry.serviceId, { price: e.target.value })}
                         placeholder={(entry.cataloguePriceCents / 100).toFixed(2)}
-                        aria-label={`Price for ${entry.name} at ${location.name}`}
+                        aria-label={t("Price for {{name}} at {{name2}}", {
+                          name: entry.name,
+                          name2: location.name,
+                        })}
                         className="w-20 rounded-lg border border-tn-input-border bg-tn-surface px-2 py-1.5 font-sans text-[14px] text-tn-ink outline-none focus:border-tn-gold placeholder:text-tn-placeholder"
                       />
                       <input
@@ -217,10 +227,13 @@ export function LocationServicesTab({
                         disabled={!canManage}
                         onChange={(e) => update(entry.serviceId, { duration: e.target.value })}
                         placeholder={String(entry.catalogueDurationMinutes)}
-                        aria-label={`Duration in minutes for ${entry.name} at ${location.name}`}
+                        aria-label={t("Duration in minutes for {{name}} at {{name2}}", {
+                          name: entry.name,
+                          name2: location.name,
+                        })}
                         className="w-16 rounded-lg border border-tn-input-border bg-tn-surface px-2 py-1.5 font-sans text-[14px] text-tn-ink outline-none focus:border-tn-gold placeholder:text-tn-placeholder"
                       />
-                      <span className="font-sans text-xs text-tn-muted-5">min</span>
+                      <span className="font-sans text-xs text-tn-muted-5">{t("min")}</span>
                     </div>
                   )}
                 </div>
@@ -235,7 +248,7 @@ export function LocationServicesTab({
       {canManage && entries.length > 0 && (
         <div className="flex justify-end">
           <Button onClick={() => save.mutate()} disabled={save.isPending}>
-            {save.isPending ? "Saving…" : "Save menu"}
+            {save.isPending ? t("Saving…") : t("Save menu")}
           </Button>
         </div>
       )}

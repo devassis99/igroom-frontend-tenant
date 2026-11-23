@@ -1,6 +1,7 @@
 import { request } from "./http";
 import type { BillingInterval } from "./billing-api";
 
+import { intlLocale } from "@/i18n";
 /**
  * igroom-backend's account-billing module — the Billing & Plan page's
  * real data: the plan, the live Stripe subscription, usage against the
@@ -62,7 +63,7 @@ export function getInvoicePdfUrl(accessToken: string, invoiceId: string): Promis
 }
 
 export function formatMoney(cents: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat(intlLocale(), {
     style: "currency",
     currency: currency.toUpperCase(),
   }).format(cents / 100);
@@ -70,7 +71,7 @@ export function formatMoney(cents: number, currency: string): string {
 
 export function formatBillingDate(iso: string | null): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-US", {
+  return new Date(iso).toLocaleDateString(intlLocale(), {
     month: "short",
     day: "numeric",
     year: "numeric",

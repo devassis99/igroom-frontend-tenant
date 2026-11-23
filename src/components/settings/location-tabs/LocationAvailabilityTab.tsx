@@ -11,6 +11,7 @@ import {
   type AccountLocation,
   type LocationStaffMember,
 } from "@/lib/locations-api";
+import { t } from "@/i18n";
 
 // Same deterministic id->color hash as StaffPage.tsx/StaffManagementPage.tsx
 // /StaffFilterPopover.tsx, so a given member keeps landing on the same
@@ -60,12 +61,12 @@ function MemberIdentity({ member, isSelf }: { member: LocationStaffMember; isSel
           <span className="truncate">{member.name}</span>
           {isSelf && (
             <span className="flex-none rounded-full bg-tn-neutral-bg px-1.5 py-0.5 font-sans text-[11px] font-semibold text-tn-muted-5">
-              You
+              {t("You")}
             </span>
           )}
           {!member.hasHours && (
             <span className="flex-none rounded-full bg-tn-gold-bg px-1.5 py-0.5 font-sans text-[11px] font-semibold text-tn-gold">
-              No hours set
+              {t("No hours set")}
             </span>
           )}
         </span>
@@ -151,12 +152,12 @@ export function LocationAvailabilityTab({ location }: { location: AccountLocatio
   }, [viewableStaff, selectedStaffUserId, staffUser]);
 
   if (staffQuery.isPending || permissionsLoading) {
-    return <p className="m-0 font-sans text-sm text-tn-muted-5">Loading availability…</p>;
+    return <p className="m-0 font-sans text-sm text-tn-muted-5">{t("Loading availability…")}</p>;
   }
   if (staffQuery.isError) {
     return (
       <p className="m-0 font-sans text-sm text-tn-danger">
-        Couldn&rsquo;t load this location&rsquo;s availability.
+        {t("Couldn’t load this location’s availability.")}
       </p>
     );
   }
@@ -167,13 +168,22 @@ export function LocationAvailabilityTab({ location }: { location: AccountLocatio
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <p className="m-0 font-sans text-sm font-semibold text-tn-ink">Staff availability</p>
+        <p className="m-0 font-sans text-sm font-semibold text-tn-ink">{t("Staff availability")}</p>
         <p className="m-0 font-sans text-xs text-tn-muted-5">
-          When the people who work here can be booked. This is what the booking page offers
-          customers — {withHours} of {schedulable.length}{" "}
-          {schedulable.length === 1 ? "person has" : "people have"} hours set.
-          {invited.length > 0 &&
-            ` ${invited.length} more ${invited.length === 1 ? "hasn't" : "haven't"} signed in yet and can't be scheduled.`}
+          {t(
+            "When the people who work here can be booked. This is what the booking page offers customers — {{withHours}} of {{length}} {{value}} hours set.{{value2}}",
+            {
+              withHours,
+              length: schedulable.length,
+              value: schedulable.length === 1 ? t("person has") : t("people have"),
+              value2:
+                invited.length > 0 &&
+                t(" {{length}} more {{value}} signed in yet and can't be scheduled.", {
+                  length: invited.length,
+                  value: invited.length === 1 ? t("hasn't") : t("haven't"),
+                }),
+            },
+          )}
         </p>
       </div>
 
@@ -181,27 +191,33 @@ export function LocationAvailabilityTab({ location }: { location: AccountLocatio
         <p className="m-0 rounded-2xl border border-dashed border-tn-border bg-tn-surface px-4 py-6 text-center font-sans text-sm text-tn-muted-5">
           {invited.length > 0 ? (
             <>
-              {invited.length === 1
-                ? `${invited[0]!.name} hasn't signed in yet`
-                : `${invited.length} people here haven't signed in yet`}
-              , so there&rsquo;s no schedule to set. Hours can be added once they&rsquo;ve claimed
-              their invite.
+              {t(
+                "{{value}}, so there’s no schedule to set. Hours can be added once they’ve claimed their invite.",
+                {
+                  value:
+                    invited.length === 1
+                      ? t("{{name}} hasn't signed in yet", { name: invited[0]!.name })
+                      : t("{{length}} people here haven't signed in yet", {
+                          length: invited.length,
+                        }),
+                },
+              )}
             </>
           ) : (
             <>
-              Nobody works here yet — assign someone in{" "}
+              {t("Nobody works here yet — assign someone in")}{" "}
               <Link to="/staff" className="font-semibold text-tn-ink">
-                Staff Management
+                {t("Staff Management")}
               </Link>{" "}
-              and their hours will show up here.
+              {t("and their hours will show up here.")}
             </>
           )}
         </p>
       ) : viewableStaff.length === 0 ? (
         <p className="m-0 rounded-2xl border border-dashed border-tn-border bg-tn-surface px-4 py-6 text-center font-sans text-sm text-tn-muted-5">
-          Only a manager can see other people&rsquo;s schedules. Yours is in{" "}
+          {t("Only a manager can see other people’s schedules. Yours is in")}{" "}
           <Link to="/settings/hours" className="font-semibold text-tn-ink">
-            Settings › Availability
+            {t("Settings › Availability")}
           </Link>
           .
         </p>
@@ -221,14 +237,14 @@ export function LocationAvailabilityTab({ location }: { location: AccountLocatio
               {viewableStaff.length > 1 && (
                 <div className="flex items-center gap-2">
                   <span className="font-sans text-[12px] text-tn-muted-5">
-                    {viewableStaff.length} people on this roster
+                    {t("{{length}} people on this roster", { length: viewableStaff.length })}
                   </span>
                   <StaffFilterPopover
                     staff={viewableStaff}
                     value={selectedStaffUserId}
                     onChange={setSelectedStaffUserId}
                     selfId={staffUser?.id}
-                    label="Switch member"
+                    label={t("Switch member")}
                   />
                 </div>
               )}
@@ -245,7 +261,7 @@ export function LocationAvailabilityTab({ location }: { location: AccountLocatio
               // that's how "Wednesday belongs to Soho" gets said here
               // without handing anyone Soho's editor from Valencia's tab.
               locationId={location.id}
-              heading={`Weekly hours at ${location.name}`}
+              heading={t("Weekly hours at {{name}}", { name: location.name })}
             />
           </>
         )

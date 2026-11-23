@@ -10,6 +10,7 @@ import { createBooking, type BookingsStaffMember } from "@/lib/bookings-api";
 import { ApiError } from "@/lib/http";
 import { listServices } from "@/lib/services-api";
 import { zonedTimeToUtc } from "@/lib/calendar-dates";
+import { t } from "@/i18n";
 
 interface AddBookingModalProps {
   open: boolean;
@@ -194,7 +195,9 @@ export function AddBookingModal({
         setTravelWarning(err.message);
         return;
       }
-      setFormError(err instanceof Error ? err.message : "Couldn't create the booking — try again.");
+      setFormError(
+        err instanceof Error ? err.message : t("Couldn't create the booking — try again."),
+      );
     },
   });
 
@@ -205,19 +208,19 @@ export function AddBookingModal({
    */
   function handleSubmit() {
     if (!customerName.trim()) {
-      setFormError("Add the customer's name.");
+      setFormError(t("Add the customer's name."));
       return;
     }
     if (!isPhoneValid(customerPhone)) {
-      setFormError("That phone number doesn't look right for the selected country.");
+      setFormError(t("That phone number doesn't look right for the selected country."));
       return;
     }
     if (selectedServiceIds.size === 0) {
-      setFormError("Pick at least one service.");
+      setFormError(t("Pick at least one service."));
       return;
     }
     if (!staffUserId || !dateValue || !timeValue) {
-      setFormError("Pick a staff member, date, and time.");
+      setFormError(t("Pick a staff member, date, and time."));
       return;
     }
 
@@ -234,11 +237,11 @@ export function AddBookingModal({
     // behind, so the slot being booked into is still on screen.
     <Modal open={open} onClose={onClose} width={520} variant="sheet">
       <div className="flex items-center justify-between px-6 pt-6">
-        <h2 className="m-0 font-sans text-[18px] font-semibold text-tn-ink">Add Booking</h2>
+        <h2 className="m-0 font-sans text-[18px] font-semibold text-tn-ink">{t("Add Booking")}</h2>
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t("Close")}
           className="cursor-pointer border-none bg-transparent font-sans text-xl text-tn-muted-6"
         >
           &times;
@@ -247,20 +250,20 @@ export function AddBookingModal({
 
       <div className="flex flex-col gap-5 px-6 pb-6 pt-4">
         <div className="flex flex-col gap-[18px]">
-          <Field label="CUSTOMER NAME">
+          <Field label={t("CUSTOMER NAME")}>
             <input
               className={formInputClass}
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="Jordan Rivera"
+              placeholder={t("Jordan Rivera")}
             />
           </Field>
 
-          <Field label="PHONE (OPTIONAL)">
+          <Field label={t("PHONE (OPTIONAL)")}>
             <PhoneInput value={customerPhone} onChange={setCustomerPhone} />
           </Field>
 
-          <Field label="EMAIL (OPTIONAL)">
+          <Field label={t("EMAIL (OPTIONAL)")}>
             <input
               type="email"
               className={formInputClass}
@@ -273,25 +276,25 @@ export function AddBookingModal({
 
         <div className="flex flex-col gap-3 border-t border-tn-border-soft pt-5">
           <p className="m-0 font-sans text-xs font-semibold tracking-[0.04em] text-tn-muted-5">
-            SERVICE (SELECT ONE OR MORE)
+            {t("SERVICE (SELECT ONE OR MORE)")}
           </p>
 
           {servicesQuery.isPending && (
-            <p className="m-0 font-sans text-[14px] text-tn-muted-5">Loading services…</p>
+            <p className="m-0 font-sans text-[14px] text-tn-muted-5">{t("Loading services…")}</p>
           )}
           {!servicesQuery.isPending && services.length === 0 && (
             <p className="m-0 font-sans text-[14px] text-tn-muted-5">
-              No services set up yet — add one on the Services page first.
+              {t("No services set up yet — add one on the Services page first.")}
             </p>
           )}
 
           {services.length > 0 && (
             <div className="flex max-h-72 flex-col overflow-y-auto rounded-xl border border-tn-border">
               <div className="grid grid-cols-[2fr_1fr_1fr_0.8fr] bg-tn-table-head px-4 py-2.5 font-sans text-xs font-semibold text-tn-muted-5">
-                <span>SERVICE</span>
-                <span>PRICE</span>
-                <span>DURATION</span>
-                <span>SELECT</span>
+                <span>{t("SERVICE")}</span>
+                <span>{t("PRICE")}</span>
+                <span>{t("DURATION")}</span>
+                <span>{t("SELECT")}</span>
               </div>
               {services.map((s, i) => (
                 <label
@@ -303,7 +306,7 @@ export function AddBookingModal({
                   <span className="font-sans text-[14px] text-tn-ink">
                     {s.name}
                     {s.categoryName && (
-                      <span className="ml-1.5 font-sans text-xs text-tn-muted-5">
+                      <span className="ms-1.5 font-sans text-xs text-tn-muted-5">
                         {s.categoryName}
                       </span>
                     )}
@@ -312,7 +315,7 @@ export function AddBookingModal({
                     ${(s.priceCents / 100).toFixed(2)}
                   </span>
                   <span className="font-sans text-[14px] text-tn-muted-3">
-                    {s.durationMinutes} min
+                    {t("{{durationMinutes}} min", { durationMinutes: s.durationMinutes })}
                   </span>
                   <input
                     type="checkbox"
@@ -327,20 +330,23 @@ export function AddBookingModal({
 
           {selectedServices.length > 0 && (
             <p className="m-0 font-sans text-xs text-tn-muted-5">
-              {selectedServices.length} selected · {combinedDurationMinutes} min total · $
-              {(combinedPriceCents / 100).toFixed(2)}
+              {t("{{length}} selected · {{combinedDurationMinutes}} min total · ${{fixed}}", {
+                length: selectedServices.length,
+                combinedDurationMinutes,
+                fixed: (combinedPriceCents / 100).toFixed(2),
+              })}
             </p>
           )}
         </div>
 
         <div className="flex flex-col gap-[18px] border-t border-tn-border-soft pt-5">
-          <Field label="STAFF">
+          <Field label={t("STAFF")}>
             <select
               className={formSelectClass}
               value={staffUserId}
               onChange={(e) => setStaffUserId(e.target.value)}
             >
-              {staff.length === 0 && <option value="">No staff available</option>}
+              {staff.length === 0 && <option value="">{t("No staff available")}</option>}
               {staff.map((member) => (
                 <option key={member.id} value={member.id}>
                   {member.name}
@@ -350,12 +356,12 @@ export function AddBookingModal({
           </Field>
 
           <div className="grid grid-cols-2 gap-4">
-            <Field label="DATE">
-              <DatePicker value={dateValue} onChange={setDateValue} label="Date" />
+            <Field label={t("DATE")}>
+              <DatePicker value={dateValue} onChange={setDateValue} label={t("Date")} />
             </Field>
 
-            <Field label="TIME">
-              <TimePicker value={timeValue} onChange={setTimeValue} label="Time" />
+            <Field label={t("TIME")}>
+              <TimePicker value={timeValue} onChange={setTimeValue} label={t("Time")} />
             </Field>
           </div>
 
@@ -366,7 +372,7 @@ export function AddBookingModal({
               onChange={(e) => setIsWalkIn(e.target.checked)}
               className="accent-tn-gold"
             />
-            Walk-in (no online booking record)
+            {t("Walk-in (no online booking record)")}
           </label>
         </div>
 
@@ -375,12 +381,12 @@ export function AddBookingModal({
             screen everything it repeated is a few centimetres above, so
             only the field it wrapped survives. */}
         <div className="border-t border-tn-border-soft pt-5">
-          <Field label="NOTES (OPTIONAL)">
+          <Field label={t("NOTES (OPTIONAL)")}>
             <input
               className={formInputClass}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Anything the barber should know"
+              placeholder={t("Anything the barber should know")}
             />
           </Field>
         </div>
@@ -398,7 +404,7 @@ export function AddBookingModal({
                 onClick={() => setOutsideShiftWarning(null)}
                 disabled={mutation.isPending}
               >
-                Pick another time
+                {t("Pick another time")}
               </Button>
               <Button
                 type="button"
@@ -409,7 +415,7 @@ export function AddBookingModal({
                 }}
                 disabled={mutation.isPending}
               >
-                Book anyway
+                {t("Book anyway")}
               </Button>
             </div>
           </div>
@@ -426,7 +432,7 @@ export function AddBookingModal({
                 onClick={() => setTravelWarning(null)}
                 disabled={mutation.isPending}
               >
-                Pick another time
+                {t("Pick another time")}
               </Button>
               <Button
                 type="button"
@@ -437,7 +443,7 @@ export function AddBookingModal({
                 }}
                 disabled={mutation.isPending}
               >
-                Book anyway
+                {t("Book anyway")}
               </Button>
             </div>
           </div>
@@ -451,7 +457,7 @@ export function AddBookingModal({
             onClick={onClose}
             disabled={mutation.isPending}
           >
-            Cancel
+            {t("Cancel")}
           </Button>
           <Button
             type="button"
@@ -459,7 +465,7 @@ export function AddBookingModal({
             onClick={handleSubmit}
             disabled={mutation.isPending}
           >
-            {mutation.isPending ? "Booking…" : "Add Booking"}
+            {mutation.isPending ? t("Booking…") : t("Add Booking")}
           </Button>
         </div>
       </div>

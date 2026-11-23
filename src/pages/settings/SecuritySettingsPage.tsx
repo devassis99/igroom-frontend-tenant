@@ -6,6 +6,7 @@ import { SetPasswordModal } from "@/components/settings/SetPasswordModal";
 import { TwoFactorSetupModal } from "@/components/settings/TwoFactorSetupModal";
 import { ActiveSessionsModal } from "@/components/settings/ActiveSessionsModal";
 import { SuccessToast } from "@/components/ui/Toast";
+import { t } from "@/i18n";
 
 /**
  * Matches the mockup's T12c Security page. The "Change password" row's
@@ -40,21 +41,21 @@ export function SecuritySettingsPage() {
 
   const rows = [
     {
-      label: hasPassword ? "Change password" : "Set password",
-      detail: hasPassword ? null : "No password set — you sign in with Google",
+      label: hasPassword ? t("Change password") : t("Set password"),
+      detail: hasPassword ? null : t("No password set — you sign in with Google"),
       onClick: () => setModalOpen(true),
     },
     {
-      label: "Two-factor authentication",
-      detail: mfaEnabled ? "Enabled" : "Not enabled",
+      label: t("Two-factor authentication"),
+      detail: mfaEnabled ? t("Enabled") : t("Not enabled"),
       onClick: () => setMfaModalOpen(true),
     },
-    { label: "Active sessions", detail: null, onClick: () => setSessionsModalOpen(true) },
+    { label: t("Active sessions"), detail: null, onClick: () => setSessionsModalOpen(true) },
   ];
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="m-0 font-sans text-2xl font-semibold text-tn-ink">Security</h1>
+      <h1 className="m-0 font-sans text-2xl font-semibold text-tn-ink">{t("Security")}</h1>
 
       <div
         data-tour="security-rows"
@@ -66,7 +67,7 @@ export function SecuritySettingsPage() {
             type="button"
             onClick={row.onClick}
             disabled={!row.onClick}
-            className={`flex items-center justify-between px-5 py-4 text-left disabled:cursor-default ${
+            className={`flex items-center justify-between px-5 py-4 text-start disabled:cursor-default ${
               i < rows.length - 1 ? "border-b border-tn-border-soft" : ""
             }`}
           >
@@ -96,7 +97,7 @@ export function SecuritySettingsPage() {
             // without this a first-time Set password would still say
             // "Set password" until the next full page load.
             queryClient.invalidateQueries({ queryKey: ["me", "permissions"] });
-            setToast("Password updated — we've emailed you a confirmation.");
+            setToast(t("Password updated — we've emailed you a confirmation."));
           }}
         />
       )}
@@ -113,8 +114,8 @@ export function SecuritySettingsPage() {
             queryClient.invalidateQueries({ queryKey: ["me", "permissions"] });
             setToast(
               justEnabled
-                ? "Two-factor authentication enabled — we've emailed you a confirmation."
-                : "Two-factor authentication turned off — we've emailed you a confirmation.",
+                ? t("Two-factor authentication enabled — we've emailed you a confirmation.")
+                : t("Two-factor authentication turned off — we've emailed you a confirmation."),
             );
           }}
         />

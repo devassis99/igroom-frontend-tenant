@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { Booking } from "@/lib/bookings-api";
 import { formatTimeLabel } from "@/lib/calendar-dates";
 import { staffAvatarColorStrong } from "@/lib/staff-avatar-color";
+import { t, intlLocale } from "@/i18n";
 
 /**
  * The week's shape in three numbers, and the one hour worth looking at.
@@ -72,27 +73,41 @@ export function WeekActivityRail({
     <aside className="flex w-[260px] flex-none flex-col gap-5 rounded-2xl border border-tn-border bg-tn-surface p-4">
       <div className="flex flex-col gap-1.5">
         <span className="font-sans text-[11px] font-semibold tracking-[0.08em] text-tn-faint">
-          ACTIVITY
+          {t("ACTIVITY")}
         </span>
         <p className="m-0 font-sans text-[14px] leading-relaxed text-tn-ink">
-          Week of {weekLabel} · {liveCount} booking{liveCount === 1 ? "" : "s"} · {staffOnRota}{" "}
-          barber{staffOnRota === 1 ? "" : "s"} on rota
+          {t(
+            "Week of {{weekLabel}} · {{liveCount}} booking{{value}} · {{staffOnRota}} barber{{value2}} on rota",
+            {
+              weekLabel,
+              liveCount,
+              value: liveCount === 1 ? "" : "s",
+              staffOnRota,
+              value2: staffOnRota === 1 ? "" : "s",
+            },
+          )}
         </p>
       </div>
 
       <div className="flex flex-col gap-1.5">
         <span className="font-sans text-[11px] font-semibold tracking-[0.08em] text-tn-faint">
-          BUSIEST OVERLAP
+          {t("BUSIEST OVERLAP")}
         </span>
         {busiest === null ? (
           <p className="m-0 font-sans text-[13px] leading-relaxed text-tn-muted-5">
-            Nothing doubles up this week — every appointment has the shop to itself.
+            {t("Nothing doubles up this week — every appointment has the shop to itself.")}
           </p>
         ) : (
           <div className="flex flex-col gap-2 rounded-xl border border-tn-border-soft bg-tn-page p-3">
             <span className="font-sans text-[13px] font-semibold text-tn-ink">
-              {busiest.start.toLocaleDateString(undefined, { weekday: "short", day: "numeric" })} ·{" "}
-              {formatTimeLabel(busiest.start, timezone)} · {busiest.bookings.length} chairs
+              {t("{{undefined}} · {{start}} · {{length}} chairs", {
+                undefined: busiest.start.toLocaleDateString(intlLocale(), {
+                  weekday: "short",
+                  day: "numeric",
+                }),
+                start: formatTimeLabel(busiest.start, timezone),
+                length: busiest.bookings.length,
+              })}
             </span>
             <ul className="m-0 flex list-none flex-col gap-1 p-0">
               {/* Barber above client rather than beside it. Side by side,
@@ -125,8 +140,10 @@ export function WeekActivityRail({
             <p className="m-0 font-sans text-[11px] leading-relaxed text-tn-faint">
               {new Set(busiest.bookings.map((booking) => booking.staffUserId)).size ===
               busiest.bookings.length
-                ? "Different staff, so not a clash — the column stacks and the count shows the rest."
-                : "Some of these share a barber — worth opening the day."}
+                ? t(
+                    "Different staff, so not a clash — the column stacks and the count shows the rest.",
+                  )
+                : t("Some of these share a barber — worth opening the day.")}
             </p>
           </div>
         )}

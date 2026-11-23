@@ -10,6 +10,7 @@ import { renderGoogleButton } from "@/lib/google-identity";
 import { getMe, loginWithGoogle, confirmMfaLoginChallenge } from "@/lib/accounts-api";
 import { env } from "@/lib/env";
 import { ApiError } from "@/lib/http";
+import { t } from "@/i18n";
 
 /**
  * Matches the mockup's T2 "Create your owner account" frame — step 1 of
@@ -41,7 +42,7 @@ export function CreateAccountPage() {
       owner: {
         fullName: me.staffUser.name,
         workEmail: me.staffUser.email,
-        businessName: (me.account?.name as string | undefined) ?? "Your shop",
+        businessName: (me.account?.name as string | undefined) ?? t("Your shop"),
         category: (me.account?.category as string | undefined) ?? "",
         address: (me.account?.address as string | undefined) ?? "",
         phone: (me.account?.phone as string | undefined) ?? "",
@@ -74,7 +75,7 @@ export function CreateAccountPage() {
       const message =
         err instanceof ApiError || err instanceof Error
           ? err.message
-          : "Something went wrong verifying your code. Try again.";
+          : t("Something went wrong verifying your code. Try again.");
       setError(message);
       setMfaCode("");
     } finally {
@@ -133,7 +134,7 @@ export function CreateAccountPage() {
         const message =
           err instanceof ApiError || err instanceof Error
             ? err.message
-            : "Google sign-up failed. Try again.";
+            : t("Google sign-up failed. Try again.");
         setError(message);
       } finally {
         setGoogleProcessing(false);
@@ -147,7 +148,7 @@ export function CreateAccountPage() {
       const message =
         err instanceof ApiError || err instanceof Error
           ? err.message
-          : "Couldn't load Google sign-up right now.";
+          : t("Couldn't load Google sign-up right now.");
       setError(message);
     });
     // Intentionally runs once — navigate/loginWithSession/onboarding
@@ -158,7 +159,7 @@ export function CreateAccountPage() {
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!fullName.trim() || !workEmail.trim() || !password) {
-      setError("Fill in your name, work email, and a password to continue.");
+      setError(t("Fill in your name, work email, and a password to continue."));
       return;
     }
     navigate("/signup/plan");
@@ -170,11 +171,12 @@ export function CreateAccountPage() {
         <div className="flex w-[380px] flex-col gap-6">
           <div className="flex flex-col items-center gap-1.5 text-center">
             <p className="m-0 font-sans text-2xl font-semibold text-tn-ink">
-              Enter verification code
+              {t("Enter verification code")}
             </p>
             <p className="m-0 font-sans text-[14px] text-tn-muted-3">
-              This Google account already has an iGroom shop — open your authenticator app and enter
-              the current code.
+              {t(
+                "This Google account already has an iGroom shop — open your authenticator app and enter the current code.",
+              )}
             </p>
           </div>
 
@@ -190,7 +192,7 @@ export function CreateAccountPage() {
               onClick={() => submitMfaCode(mfaCode)}
               disabled={mfaSubmitting || mfaCode.length !== 6}
             >
-              {mfaSubmitting ? "Verifying…" : "Verify & sign in"}
+              {mfaSubmitting ? t("Verifying…") : t("Verify & sign in")}
             </Button>
           </div>
 
@@ -209,7 +211,7 @@ export function CreateAccountPage() {
             }}
             className="cursor-pointer self-center border-none bg-transparent p-0 font-sans text-[14px] font-medium text-tn-muted-5"
           >
-            Back
+            {t("Back")}
           </button>
         </div>
       </div>
@@ -221,9 +223,11 @@ export function CreateAccountPage() {
       <form onSubmit={handleSubmit} className="flex w-[420px] flex-col gap-6">
         <div>
           <h1 className="m-0 mb-1.5 font-sans text-[24px] font-semibold text-tn-ink">
-            Create your owner account
+            {t("Create your owner account")}
           </h1>
-          <p className="m-0 font-sans text-[14px] text-tn-muted-5">Step 1 of {totalSteps}</p>
+          <p className="m-0 font-sans text-[14px] text-tn-muted-5">
+            {t("Step 1 of {{totalSteps}}", { totalSteps })}
+          </p>
         </div>
 
         <StepProgress step={1} total={totalSteps} />
@@ -234,27 +238,27 @@ export function CreateAccountPage() {
         <div ref={googleButtonRef} className="flex justify-center" />
         {googleProcessing && (
           <p className="m-0 -mt-3 text-center font-sans text-xs text-tn-muted-5">
-            Finishing Google sign-up…
+            {t("Finishing Google sign-up…")}
           </p>
         )}
 
         <div className="flex items-center gap-3">
           <div className="h-px flex-1 bg-tn-border" />
-          <span className="font-sans text-xs text-tn-muted-6">or</span>
+          <span className="font-sans text-xs text-tn-muted-6">{t("or")}</span>
           <div className="h-px flex-1 bg-tn-border" />
         </div>
 
         <div className="flex flex-col gap-3.5">
-          <Field label="FULL NAME">
+          <Field label={t("FULL NAME")}>
             <input
               type="text"
-              placeholder="Sam Whitfield"
+              placeholder={t("Sam Whitfield")}
               value={fullName}
               onChange={(e) => setAccountDetails({ fullName: e.target.value })}
               className={formInputClass}
             />
           </Field>
-          <Field label="WORK EMAIL">
+          <Field label={t("WORK EMAIL")}>
             <input
               type="email"
               placeholder="you@yourshop.com"
@@ -263,7 +267,7 @@ export function CreateAccountPage() {
               className={formInputClass}
             />
           </Field>
-          <Field label="PASSWORD">
+          <Field label={t("PASSWORD")}>
             <input
               type="password"
               placeholder="••••••••"
@@ -277,7 +281,7 @@ export function CreateAccountPage() {
         {error && <p className="m-0 font-sans text-xs text-tn-danger">{error}</p>}
 
         <Button type="submit" size="lg">
-          Continue
+          {t("Continue")}
         </Button>
       </form>
     </div>

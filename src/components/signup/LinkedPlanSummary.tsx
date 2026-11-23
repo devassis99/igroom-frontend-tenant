@@ -1,5 +1,6 @@
 import { BILLING_CYCLE_LABEL } from "@/lib/sample-data";
 import { formatPlanAmount, type SignupLink } from "@/lib/billing-api";
+import { t } from "@/i18n";
 
 const PER_CYCLE: Record<SignupLink["billingCycle"], string> = {
   monthly: "/ month",
@@ -18,8 +19,10 @@ export function LinkedPlanSummary({ link }: { link: SignupLink }) {
   const discount =
     link.discountType && link.discountValue
       ? link.discountType === "percent"
-        ? `${link.discountValue}% off`
-        : `${formatPlanAmount(link.discountValue, link.currency)} off`
+        ? t("{{discountValue}}% off", { discountValue: link.discountValue })
+        : t("{{discountValue}} off", {
+            discountValue: formatPlanAmount(link.discountValue, link.currency),
+          })
       : null;
 
   return (
@@ -27,16 +30,16 @@ export function LinkedPlanSummary({ link }: { link: SignupLink }) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="m-0 font-sans text-[12px] font-semibold tracking-[0.06em] text-tn-muted-5">
-            YOUR PLAN
+            {t("YOUR PLAN")}
           </p>
           <p className="m-0 mt-1 font-sans text-[20px] font-semibold text-tn-ink">
             {link.plan.name}
           </p>
           <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
-            {BILLING_CYCLE_LABEL[link.billingCycle]} billing
+            {t("{{value}} billing", { value: BILLING_CYCLE_LABEL[link.billingCycle] })}
           </p>
         </div>
-        <div className="text-right">
+        <div className="text-end">
           <p className="m-0 font-sans text-[20px] font-semibold text-tn-ink">
             {formatPlanAmount(link.unitAmount, link.currency)}
           </p>

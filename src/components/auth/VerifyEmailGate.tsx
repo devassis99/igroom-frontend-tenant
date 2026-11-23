@@ -14,16 +14,17 @@ import {
   type MeResponse,
 } from "@/lib/accounts-api";
 import { ApiError } from "@/lib/http";
+import { t, intlLocale } from "@/i18n";
 
 const STATUS_KEY = ["email-verification"] as const;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function messageOf(err: unknown, fallback: string): string {
-  return err instanceof ApiError || err instanceof Error ? err.message : fallback;
+  return err instanceof ApiError || err instanceof Error ? t(err.message) : fallback;
 }
 
 function clockTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString(intlLocale(), { hour: "numeric", minute: "2-digit" });
 }
 
 function countdown(ms: number): string {
@@ -94,11 +95,11 @@ export function VerifyEmailGate() {
       queryClient.setQueryData(STATUS_KEY, next);
       setCode("");
       setError(null);
-      setNotice(`Code sent to ${next.email}.`);
+      setNotice(t("Code sent to {{email}}.", { email: next.email }));
     },
     onError: (err) => {
       setNotice(null);
-      setError(messageOf(err, "Couldn't send a code — try again."));
+      setError(messageOf(err, t("Couldn't send a code — try again.")));
       void refetchStatus();
     },
   });
@@ -109,7 +110,7 @@ export function VerifyEmailGate() {
     onError: (err) => {
       setNotice(null);
       setCode("");
-      setError(messageOf(err, "Couldn't check that code — try again."));
+      setError(messageOf(err, t("Couldn't check that code — try again.")));
       // Attempts left, or a code that's now locked, come from the server.
       void refetchStatus();
     },
@@ -127,9 +128,9 @@ export function VerifyEmailGate() {
       setNewEmail("");
       setCode("");
       setError(null);
-      setNotice(`Email changed — we sent a code to ${next.email}.`);
+      setNotice(t("Email changed — we sent a code to {{email}}.", { email: next.email }));
     },
-    onError: (err) => setError(messageOf(err, "Couldn't change your email — try again.")),
+    onError: (err) => setError(messageOf(err, t("Couldn't change your email — try again."))),
   });
 
   // The first time through, nothing has been sent yet: send it, once.
@@ -172,7 +173,7 @@ export function VerifyEmailGate() {
     e.preventDefault();
     const email = newEmail.trim();
     if (!EMAIL_PATTERN.test(email)) {
-      setError("That doesn't look like an email address.");
+      setError(t("That doesn't look like an email address."));
       return;
     }
     setError(null);
@@ -224,24 +225,25 @@ export function VerifyEmailGate() {
               id="verify-email-title"
               className="m-0 font-sans text-[20px] font-semibold text-tn-ink"
             >
-              {stage === "code" ? "Verify your email" : "Change your email"}
+              {stage === "code" ? t("Verify your email") : t("Change your email")}
             </h2>
             {stage === "code" ? (
               <p className="m-0 font-sans text-[14px] leading-relaxed text-tn-muted-5">
                 {current ? (
                   <>
-                    Enter the 6-digit code we sent to{" "}
-                    <span className="font-semibold text-tn-ink">{current.email}</span>. iGroom opens
-                    up as soon as it&rsquo;s verified.
+                    {t("Enter the 6-digit code we sent to")}{" "}
+                    <span className="font-semibold text-tn-ink">{current.email}</span>
+                    {t(". iGroom opens up as soon as it’s verified.")}
                   </>
                 ) : (
-                  "Checking your account…"
+                  t("Checking your account…")
                 )}
               </p>
             ) : (
               <p className="m-0 font-sans text-[14px] leading-relaxed text-tn-muted-5">
-                We&rsquo;ll send a new code to the new address, and you&rsquo;ll sign in with it
-                from now on.
+                {t(
+                  "We’ll send a new code to the new address, and you’ll sign in with it from now on.",
+                )}
               </p>
             )}
           </div>
@@ -267,13 +269,16 @@ export function VerifyEmailGate() {
               <p className="m-0 text-center font-sans text-[13px] text-tn-success">{notice}</p>
             ) : current?.code && codeUsable && current.code.attemptsLeft < 5 ? (
               <p className="m-0 text-center font-sans text-[13px] text-tn-muted-5">
-                {current.code.attemptsLeft}{" "}
-                {current.code.attemptsLeft === 1 ? "attempt" : "attempts"} left for this code
+                {t("{{attemptsLeft}} {{value}} left for this code", {
+                  attemptsLeft: current.code.attemptsLeft,
+                  value: current.code.attemptsLeft === 1 ? t("attempt") : t("attempts"),
+                })}
               </p>
             ) : current && !codeUsable && !send.isPending ? (
               <p className="m-0 text-center font-sans text-[13px] text-tn-muted-5">
-                {current.code ? "That code has expired." : "There's no active code."} Send a new one
-                below.
+                {t("{{value}} Send a new one below.", {
+                  value: current.code ? t("That code has expired.") : t("There's no active code."),
+                })}
               </p>
             ) : null}
 
@@ -283,18 +288,20 @@ export function VerifyEmailGate() {
               onClick={() => submitCode()}
               disabled={!codeUsable || code.length !== 6 || verify.isPending}
             >
-              {verify.isPending ? "Checking…" : "Verify email"}
+              {verify.isPending ? t("Checking…") : t("Verify email")}
             </Button>
 
             <div className="flex flex-col items-center gap-1 font-sans text-[13px] text-tn-muted-5">
               {outOfSends && current?.nextSendAt ? (
                 <span className="text-center">
-                  You&rsquo;ve asked for 5 codes in the last hour. You can ask for another at{" "}
-                  {clockTime(current.nextSendAt)}.
+                  {t(
+                    "You’ve asked for 5 codes in the last hour. You can ask for another at {{nextSendAt}}.",
+                    { nextSendAt: clockTime(current.nextSendAt) },
+                  )}
                 </span>
               ) : (
                 <span>
-                  Didn&rsquo;t get it? Check spam, or{" "}
+                  {t("Didn’t get it? Check spam, or")}{" "}
                   <button
                     type="button"
                     onClick={() => {
@@ -305,16 +312,16 @@ export function VerifyEmailGate() {
                     className="cursor-pointer border-none bg-transparent p-0 font-sans text-[13px] font-semibold text-tn-ink underline disabled:cursor-not-allowed disabled:text-tn-faint disabled:no-underline"
                   >
                     {send.isPending
-                      ? "sending…"
+                      ? t("sending…")
                       : waitMs > 0
-                        ? `send a new code in ${countdown(waitMs)}`
-                        : "send a new code"}
+                        ? t("send a new code in {{waitMs}}", { waitMs: countdown(waitMs) })
+                        : t("send a new code")}
                   </button>
                 </span>
               )}
               {current && current.emailChangesLeft > 0 ? (
                 <span>
-                  Wrong address?{" "}
+                  {t("Wrong address?")}{" "}
                   <button
                     type="button"
                     onClick={() => {
@@ -324,20 +331,22 @@ export function VerifyEmailGate() {
                     }}
                     className="cursor-pointer border-none bg-transparent p-0 font-sans text-[13px] font-semibold text-tn-ink underline"
                   >
-                    Change your email
+                    {t("Change your email")}
                   </button>
                 </span>
               ) : current?.nextEmailChangeAt ? (
                 <span className="text-center">
-                  You&rsquo;ve changed your email 3 times today — you can change it again after{" "}
-                  {clockTime(current.nextEmailChangeAt)}.
+                  {t(
+                    "You’ve changed your email 3 times today — you can change it again after {{nextEmailChangeAt}}.",
+                    { nextEmailChangeAt: clockTime(current.nextEmailChangeAt) },
+                  )}
                 </span>
               ) : null}
             </div>
           </div>
         ) : (
           <form onSubmit={submitEmail} className="flex flex-col gap-4">
-            <Field label="NEW EMAIL">
+            <Field label={t("NEW EMAIL")}>
               <input
                 type="email"
                 value={newEmail}
@@ -356,8 +365,14 @@ export function VerifyEmailGate() {
               </p>
             ) : current ? (
               <p className="m-0 font-sans text-[13px] text-tn-muted-5">
-                Currently {current.email}. You can change it {current.emailChangesLeft} more{" "}
-                {current.emailChangesLeft === 1 ? "time" : "times"} today.
+                {t(
+                  "Currently {{email}}. You can change it {{emailChangesLeft}} more {{value}} today.",
+                  {
+                    email: current.email,
+                    emailChangesLeft: current.emailChangesLeft,
+                    value: current.emailChangesLeft === 1 ? t("time") : t("times"),
+                  },
+                )}
               </p>
             ) : null}
             <div className="flex gap-2.5">
@@ -370,14 +385,14 @@ export function VerifyEmailGate() {
                 }}
                 disabled={change.isPending}
               >
-                Cancel
+                {t("Cancel")}
               </Button>
               <Button
                 type="submit"
                 className="flex-1"
                 disabled={change.isPending || !newEmail.trim()}
               >
-                {change.isPending ? "Sending…" : "Send code"}
+                {change.isPending ? t("Sending…") : t("Send code")}
               </Button>
             </div>
           </form>
@@ -389,7 +404,7 @@ export function VerifyEmailGate() {
             onClick={handleLogOut}
             className="cursor-pointer border-none bg-transparent p-0 font-sans text-[13px] font-medium text-tn-muted-5 hover:text-tn-ink"
           >
-            Log out
+            {t("Log out")}
           </button>
         </div>
       </div>

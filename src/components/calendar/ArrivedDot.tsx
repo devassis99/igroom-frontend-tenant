@@ -1,3 +1,4 @@
+import { t, intlLocale } from "@/i18n";
 /**
  * "This client is in the building."
  *
@@ -10,14 +11,16 @@
  */
 export function ArrivedDot({ checkedInAt }: { checkedInAt: string | null }) {
   if (!checkedInAt) return null;
-  const label = `Arrived ${new Date(checkedInAt).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  })}`;
+  const label = t("Arrived {{localeTimeString}}", {
+    localeTimeString: new Date(checkedInAt).toLocaleTimeString(intlLocale(), {
+      hour: "numeric",
+      minute: "2-digit",
+    }),
+  });
   return (
     <span
       title={label}
-      className="mr-1 inline-block h-[7px] w-[7px] shrink-0 rounded-full bg-tn-success align-middle"
+      className="me-1 inline-block h-[7px] w-[7px] shrink-0 rounded-full bg-tn-success align-middle"
     >
       <span className="sr-only">{label}</span>
     </span>

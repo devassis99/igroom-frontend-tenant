@@ -4,6 +4,7 @@ import { useAnchoredPanel } from "@/components/ui/use-anchored-panel";
 // Shared with the availability editor's shop tabs, so a zone is labelled
 // the same wherever it's shown.
 import { utcOffsetLabel } from "@/lib/timezones";
+import { t, intlLocale } from "@/i18n";
 
 interface TimezonePickerProps {
   value: string;
@@ -44,7 +45,7 @@ function friendlyLabel(zone: string): string {
 
 function currentTimeIn(zone: string): string {
   try {
-    return new Intl.DateTimeFormat(undefined, {
+    return new Intl.DateTimeFormat(intlLocale(), {
       timeZone: zone,
       hour: "numeric",
       minute: "2-digit",
@@ -149,8 +150,8 @@ function CheckIcon() {
 export function TimezonePicker({
   value,
   onChange,
-  label = "Timezone",
-  placeholder = "Not set",
+  label = t("Timezone"),
+  placeholder = t("Not set"),
   className = "",
 }: TimezonePickerProps) {
   const [open, setOpen] = useState(false);
@@ -270,7 +271,7 @@ export function TimezonePicker({
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search"
+                  placeholder={t("Search")}
                   className="w-full border-none bg-transparent font-sans text-[14px] text-tn-ink outline-none placeholder:text-tn-muted-5"
                 />
               </div>
@@ -282,7 +283,7 @@ export function TimezonePicker({
                   key={zone}
                   type="button"
                   onClick={() => select(zone)}
-                  className="flex w-full cursor-pointer items-center justify-between gap-3 border-none bg-transparent px-4 py-2.5 text-left font-sans text-[14px] font-medium text-tn-ink-soft hover:bg-tn-page"
+                  className="flex w-full cursor-pointer items-center justify-between gap-3 border-none bg-transparent px-4 py-2.5 text-start font-sans text-[14px] font-medium text-tn-ink-soft hover:bg-tn-page"
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block truncate">
@@ -300,14 +301,15 @@ export function TimezonePicker({
 
               {filteredZones.shown.length === 0 && (
                 <p className="m-0 px-4 py-3 font-sans text-[14px] text-tn-muted-5">
-                  No timezones match "{query}"
+                  {t('No timezones match "{{query}}"', { query })}
                 </p>
               )}
 
               {filteredZones.total > filteredZones.shown.length && (
                 <p className="m-0 px-4 py-2 font-sans text-xs text-tn-muted-5">
-                  {filteredZones.total - filteredZones.shown.length} more — keep typing to narrow it
-                  down
+                  {t("{{value}} more — keep typing to narrow it down", {
+                    value: filteredZones.total - filteredZones.shown.length,
+                  })}
                 </p>
               )}
             </div>

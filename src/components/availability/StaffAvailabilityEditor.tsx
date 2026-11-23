@@ -46,17 +46,26 @@ import {
   type LocationSchedule,
   type UpsertOverrideInput,
 } from "@/lib/availability-api";
+import { t, intlLocale } from "@/i18n";
 
 export const DAY_LABELS = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
+  t("Sunday"),
+  t("Monday"),
+  t("Tuesday"),
+  t("Wednesday"),
+  t("Thursday"),
+  t("Friday"),
+  t("Saturday"),
 ];
-export const SHORT_DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+export const SHORT_DAY_LABELS = [
+  t("Sun"),
+  t("Mon"),
+  t("Tue"),
+  t("Wed"),
+  t("Thu"),
+  t("Fri"),
+  t("Sat"),
+];
 
 /**
  * Whether the "Cross-shop view" panel under the Save row is rendered.
@@ -199,7 +208,7 @@ function sameWeek(a: WeeklyState, b: WeeklyState): boolean {
 /** iso is "YYYY-MM-DD" — parsed as local calendar fields, not through Date's UTC-based ISO parsing, so it never off-by-one's across a timezone boundary. */
 function formatOverrideDate(iso: string): string {
   const [y = 1970, m = 1, d = 1] = iso.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+  return new Date(y, m - 1, d).toLocaleDateString(intlLocale(), {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -348,7 +357,7 @@ function groupByDay(groups: ClashGroup[], locationId: string | null): Map<number
 function clashWeekday(collision: Collision, locationId: string | null): string {
   const here = sideAt(collision, locationId) ?? collision.sides[0];
   const iso = here?.localDate ?? collision.date;
-  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", {
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString(intlLocale(), {
     weekday: "long",
     timeZone: "UTC",
   });
@@ -371,29 +380,50 @@ function blockerSummary(collision: Collision, locationId: string | null): string
   const there = otherSideOf(collision, locationId);
   if (!here) {
     const [a, b] = collision.sides;
-    return `${day}, ${size} between ${a?.locationName ?? "one shop"} and ${b?.locationName ?? "another"} — not on this tab`;
+    return t("{{day}}, {{size}} between {{value}} and {{value2}} — not on this tab", {
+      day,
+      size,
+      value: a?.locationName ?? t("one shop"),
+      value2: b?.locationName ?? "another",
+    });
   }
-  return `${day}, ${size} with ${there?.locationName ?? "another shop"}`;
+  return t("{{day}}, {{size}} with {{value}}", {
+    day,
+    size,
+    value: there?.locationName ?? t("another shop"),
+  });
 }
 
 /** "save Valencia first — Monday is fixed there but not saved". The way out is a tab, not another fix. */
 function needsOtherSaveSummary(collision: Collision, locationId: string | null): string {
   const there = otherSideOf(collision, locationId);
-  return `save ${there?.locationName ?? "the other shop"} first — ${clashWeekday(collision, locationId)} is fixed there but not saved`;
+  return t("save {{value}} first — {{collision}} is fixed there but not saved", {
+    value: there?.locationName ?? t("the other shop"),
+    collision: clashWeekday(collision, locationId),
+  });
 }
 
 /** "Chauburji has unsaved hours that clash with Monday here" — names the tab that will refuse, not this one. */
 function unsavedClashSummary(collision: Collision, locationId: string | null): string {
   const there = otherSideOf(collision, locationId);
-  return `${there?.locationName ?? "Another shop"} has unsaved hours that clash with ${clashWeekday(collision, locationId)} here`;
+  return t("{{value}} has unsaved hours that clash with {{collision}} here", {
+    value: there?.locationName ?? t("Another shop"),
+    collision: clashWeekday(collision, locationId),
+  });
 }
 
 /** The amber second line: says it is tight, and says in the same breath that it won't stop the save. */
 function warningSummary(collision: Collision, locationId: string | null): string {
   const there = otherSideOf(collision, locationId);
   const gap =
-    collision.gapMinutes === 0 ? "no gap" : `only ${hoursAndMinutes(collision.gapMinutes)}`;
-  return `${clashWeekday(collision, locationId)} leaves ${gap} to reach ${there?.locationName ?? "the other shop"} — a warning, not a blocker`;
+    collision.gapMinutes === 0
+      ? t("no gap")
+      : t("only {{gapMinutes}}", { gapMinutes: hoursAndMinutes(collision.gapMinutes) });
+  return t("{{collision}} leaves {{gap}} to reach {{value}} — a warning, not a blocker", {
+    collision: clashWeekday(collision, locationId),
+    gap,
+    value: there?.locationName ?? t("the other shop"),
+  });
 }
 
 /**
@@ -465,7 +495,7 @@ function scrollWithin(el: HTMLElement) {
  */
 export function StaffAvailabilityEditor({
   staffUserId,
-  heading = "Set your availability",
+  heading = t("Set your availability"),
   locationId,
   initialLocationId,
 }: StaffAvailabilityEditorProps) {
@@ -944,7 +974,7 @@ export function StaffAvailabilityEditor({
     if (hasConflicts) {
       return {
         count: 1,
-        summary: "overlapping or consecutive slots in this week",
+        summary: t("overlapping or consecutive slots in this week"),
       };
     }
     const first = blockerGroups[0];
@@ -1234,7 +1264,11 @@ export function StaffAvailabilityEditor({
       // somebody who just pressed it is looking. The toast stays for the
       // case the bar can't cover: a save made from a tab that then
       // scrolled away under a long week.
-      setToast(savedShopName ? `${savedShopName} availability saved` : "Availability saved");
+      setToast(
+        savedShopName
+          ? t("{{savedShopName}} availability saved", { savedShopName })
+          : t("Availability saved"),
+      );
     },
     onError: (err) => {
       const collision = collisionRefusal(err);
@@ -1254,7 +1288,7 @@ export function StaffAvailabilityEditor({
         return;
       }
       setRefusal(null);
-      setSaveError(err instanceof Error ? err.message : "Couldn't save — try again.");
+      setSaveError(err instanceof Error ? err.message : t("Couldn't save — try again."));
     },
   });
 
@@ -1440,7 +1474,10 @@ export function StaffAvailabilityEditor({
     const dayOfWeek = new Date(`${trim.localDate}T00:00:00Z`).getUTCDay();
     setUndoFix({
       dayOfWeek,
-      label: `${keep.locationName} keeps ${DAY_LABELS[dayOfWeek]}`,
+      label: t("{{locationName}} keeps {{value}}", {
+        locationName: keep.locationName,
+        value: DAY_LABELS[dayOfWeek],
+      }),
       // Just the shop being cut, not the whole map: putting the whole
       // map back would also undo anything the background refetch
       // re-seeded in the meantime, and drop a shop the member has been
@@ -1473,20 +1510,21 @@ export function StaffAvailabilityEditor({
   if (availabilityQuery.isError) {
     return (
       <p className="m-0 font-sans text-sm text-tn-danger">
-        Couldn&rsquo;t load this schedule — try again.
+        {t("Couldn’t load this schedule — try again.")}
       </p>
     );
   }
 
   if (availabilityQuery.isPending) {
-    return <p className="m-0 font-sans text-sm text-tn-muted-5">Loading availability…</p>;
+    return <p className="m-0 font-sans text-sm text-tn-muted-5">{t("Loading availability…")}</p>;
   }
 
   if (editableSchedules.length === 0) {
     return (
       <p className="m-0 rounded-2xl border border-dashed border-tn-border bg-tn-surface px-4 py-6 text-center font-sans text-sm text-tn-muted-5">
-        This member isn&rsquo;t assigned to a location yet, so there&rsquo;s nowhere to set hours.
-        Add them to one in Staff Management first.
+        {t(
+          "This member isn’t assigned to a location yet, so there’s nowhere to set hours. Add them to one in Staff Management first.",
+        )}
       </p>
     );
   }
@@ -1508,36 +1546,44 @@ export function StaffAvailabilityEditor({
         <section className="rounded-2xl border border-tn-danger/40 bg-tn-danger-bg px-4 py-3.5">
           <p className="m-0 font-sans text-xs font-semibold text-tn-danger">
             {findings.length === 1
-              ? "A collision is already booked into this schedule"
-              : `${findings.length} collisions are already booked into this schedule`}
+              ? t("A collision is already booked into this schedule")
+              : t("{{length}} collisions are already booked into this schedule", {
+                  length: findings.length,
+                })}
           </p>
           <p className="m-0 mt-1 font-sans text-xs leading-relaxed text-tn-muted-5">
-            Found by the nightly check rather than by anything anyone did — a clock change moving
-            hours that were fine when they were set, a shop's timezone corrected, or somebody added
-            to a second shop.
+            {t(
+              "Found by the nightly check rather than by anything anyone did — a clock change moving hours that were fine when they were set, a shop's timezone corrected, or somebody added to a second shop.",
+            )}
           </p>
           <ul className="m-0 mt-2 flex list-none flex-col gap-1 p-0">
             {findings.slice(0, 4).map((finding) => (
               <li key={finding.id} className="font-sans text-xs text-tn-ink-soft">
                 <span className="font-semibold">
-                  {new Date(finding.occursAt).toLocaleDateString("en-US", {
+                  {new Date(finding.occursAt).toLocaleDateString(intlLocale(), {
                     weekday: "short",
                     month: "short",
                     day: "numeric",
                     timeZone: "UTC",
                   })}
                 </span>{" "}
-                — {finding.locationAName} and {finding.locationBName}
-                {finding.kind === "overlap"
-                  ? ` overlap by ${finding.minutes} min`
-                  : ` are ${finding.minutes} min apart, and travel needs ${finding.requiredGapMinutes}`}
-                .
+                {t("— {{locationAName}} and {{locationBName}}{{value}}.", {
+                  locationAName: finding.locationAName,
+                  locationBName: finding.locationBName,
+                  value:
+                    finding.kind === "overlap"
+                      ? t(" overlap by {{minutes}} min", { minutes: finding.minutes })
+                      : t(" are {{minutes}} min apart, and travel needs {{requiredGapMinutes}}", {
+                          minutes: finding.minutes,
+                          requiredGapMinutes: finding.requiredGapMinutes,
+                        }),
+                })}
               </li>
             ))}
           </ul>
           {findings.length > 4 && (
             <p className="m-0 mt-1.5 font-sans text-xs text-tn-muted-5">
-              …and {findings.length - 4} more.
+              {t("…and {{value}} more.", { value: findings.length - 4 })}
             </p>
           )}
           {/* A finding names two shops, and a location's tab can only
@@ -1547,7 +1593,7 @@ export function StaffAvailabilityEditor({
               to={`/settings/hours?staff=${staffUserId}&shop=${locationId}`}
               className="mt-2.5 inline-block rounded-lg border border-tn-input-border bg-tn-surface px-3 py-1.5 font-sans text-[13px] font-semibold text-tn-ink no-underline hover:bg-tn-neutral-bg"
             >
-              Open this member&rsquo;s shops in Settings › Availability
+              {t("Open this member’s shops in Settings › Availability")}
             </Link>
           )}
         </section>
@@ -1584,10 +1630,10 @@ export function StaffAvailabilityEditor({
             const other = refusal.collisions[0]?.sides.find(
               (side) => side.locationId !== activeLocationId,
             );
-            const name = other?.locationName ?? "Another shop";
+            const name = other?.locationName ?? t("Another shop");
             return other && dirtyLocationIds.includes(other.locationId)
-              ? `${name}’s hours haven’t been saved yet`
-              : `${name} changed while you were editing`;
+              ? t("{{name}}’s hours haven’t been saved yet", { name })
+              : t("{{name}} changed while you were editing", { name });
           })()}
           onTrim={(keep, trim, collision) => trimAgainst(keep, trim, collision)}
           onSaveAnyway={() => saveMutation.mutate(true)}
@@ -1602,8 +1648,8 @@ export function StaffAvailabilityEditor({
             <p className="m-0 font-sans text-sm font-semibold text-tn-ink">{heading}</p>
             <p className="m-0 mt-1 font-sans text-xs text-tn-muted-5">
               {editableSchedules.length > 1
-                ? "Set hours per shop. Each shop keeps its own clock."
-                : "Hours are set per shop, in that shop's own clock."}
+                ? t("Set hours per shop. Each shop keeps its own clock.")
+                : t("Hours are set per shop, in that shop's own clock.")}
             </p>
           </div>
 
@@ -1629,7 +1675,7 @@ export function StaffAvailabilityEditor({
                     }`}
                   >
                     {schedule.location.name}
-                    <span className="ml-1.5 font-normal text-tn-muted-6">
+                    <span className="ms-1.5 font-normal text-tn-muted-6">
                       · {utcOffsetLabel(schedule.location.timezone)}
                     </span>
                     {/* Unsaved work on a tab you're not looking at, said
@@ -1638,9 +1684,9 @@ export function StaffAvailabilityEditor({
                         than something the next click will pick up. */}
                     {isDirty && (
                       <span
-                        aria-label="Unsaved changes — open this tab to save them"
-                        title="Unsaved changes — open this tab to save them"
-                        className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-tn-gold align-middle"
+                        aria-label={t("Unsaved changes — open this tab to save them")}
+                        title={t("Unsaved changes — open this tab to save them")}
+                        className="ms-1.5 inline-block h-1.5 w-1.5 rounded-full bg-tn-gold align-middle"
                       />
                     )}
                     {/* A clash refuses the save from whichever tab it is
@@ -1657,9 +1703,9 @@ export function StaffAvailabilityEditor({
                         somewhere you aren't looking. */}
                     {!isActive && (blockersByLocation.get(schedule.location.id) ?? 0) > 0 && (
                       <span
-                        aria-label="This shop is part of a clash that blocks saving"
-                        title="This shop is part of a clash that blocks saving"
-                        className="tn-pop-in ml-1.5 inline-block min-w-4 rounded-full bg-tn-danger-strong px-1 text-center align-middle font-sans text-[11px] leading-4 font-semibold text-tn-on-dark"
+                        aria-label={t("This shop is part of a clash that blocks saving")}
+                        title={t("This shop is part of a clash that blocks saving")}
+                        className="tn-pop-in ms-1.5 inline-block min-w-4 rounded-full bg-tn-danger-strong px-1 text-center align-middle font-sans text-[11px] leading-4 font-semibold text-tn-on-dark"
                       >
                         {blockersByLocation.get(schedule.location.id)}
                       </span>
@@ -1684,11 +1730,12 @@ export function StaffAvailabilityEditor({
             {/* Which clock the fields below are in, said once, rather than
                 left to be inferred from the tab's offset. */}
             <p className="m-0 mb-3 rounded-xl bg-tn-neutral-bg px-3.5 py-2.5 font-sans text-xs leading-relaxed text-tn-muted-5">
-              All times below are{" "}
-              <span className="font-semibold text-tn-ink-soft">{activeZone ?? "UTC"}</span>, the
-              zone set on {activeSchedule?.location.name ?? "this location"}
-              {activeZone ? "" : " (no zone set — bookings read in UTC)"}. Change it in Location ›
-              Details.
+              {t("All times below are")}{" "}
+              <span className="font-semibold text-tn-ink-soft">{activeZone ?? t("UTC")}</span>
+              {t(", the zone set on {{value}}{{value2}}. Change it in Location › Details.", {
+                value: activeSchedule?.location.name ?? t("this location"),
+                value2: activeZone ? "" : t(" (no zone set — bookings read in UTC)"),
+              })}
             </p>
 
             {DISPLAY_ORDER.map((dayOfWeek, i) => {
@@ -1724,7 +1771,7 @@ export function StaffAvailabilityEditor({
                         type="button"
                         role="switch"
                         aria-checked={isOn}
-                        aria-label={`Toggle ${DAY_LABELS[dayOfWeek]}`}
+                        aria-label={t("Toggle {{value}}", { value: DAY_LABELS[dayOfWeek] })}
                         onClick={() => toggleDay(dayOfWeek)}
                         // Matches ui/Toggle.tsx — see the colour note there.
                         className={`relative h-[22px] w-9 flex-none cursor-pointer rounded-full border-none transition-colors ${
@@ -1733,7 +1780,7 @@ export function StaffAvailabilityEditor({
                       >
                         {/* See ui/Toggle.tsx on why `left-0.5` matters here. */}
                         <span
-                          className={`absolute top-0.5 left-0.5 h-[18px] w-[18px] rounded-full bg-tn-surface transition-transform ${
+                          className={`absolute top-0.5 start-0.5 h-[18px] w-[18px] rounded-full bg-tn-surface transition-transform ${
                             isOn ? "translate-x-[14px]" : "translate-x-0"
                           }`}
                         />
@@ -1759,7 +1806,10 @@ export function StaffAvailabilityEditor({
                             <div key={index} className="flex flex-col gap-1">
                               <div className={`flex items-center gap-1.5 ${ROW_LINE}`}>
                                 <TimePicker
-                                  label={`${DAY_LABELS[dayOfWeek]} range ${index + 1} start`}
+                                  label={t("{{value}} range {{value2}} start", {
+                                    value: DAY_LABELS[dayOfWeek],
+                                    value2: index + 1,
+                                  })}
                                   value={range.startTime}
                                   onChange={(next) =>
                                     updateRange(dayOfWeek, index, "startTime", next)
@@ -1775,7 +1825,10 @@ export function StaffAvailabilityEditor({
                                 />
                                 <span className="font-sans text-xs text-tn-muted-6">-</span>
                                 <TimePicker
-                                  label={`${DAY_LABELS[dayOfWeek]} range ${index + 1} end`}
+                                  label={t("{{value}} range {{value2}} end", {
+                                    value: DAY_LABELS[dayOfWeek],
+                                    value2: index + 1,
+                                  })}
                                   value={range.endTime}
                                   onChange={(next) =>
                                     updateRange(dayOfWeek, index, "endTime", next)
@@ -1786,7 +1839,7 @@ export function StaffAvailabilityEditor({
                                     so a row states its clock even when the tab
                                     strip has scrolled out of view. */}
                                 {index === 0 && (
-                                  <span className="ml-1 font-sans text-[12px] text-tn-faint-2">
+                                  <span className="ms-1 font-sans text-[12px] text-tn-faint-2">
                                     {zoneAbbreviation(activeZone)}
                                   </span>
                                 )}
@@ -1794,8 +1847,10 @@ export function StaffAvailabilityEditor({
                                   <button
                                     type="button"
                                     onClick={() => addRange(dayOfWeek)}
-                                    title="Add another range"
-                                    aria-label={`Add another time range to ${DAY_LABELS[dayOfWeek]}`}
+                                    title={t("Add another range")}
+                                    aria-label={t("Add another time range to {{value}}", {
+                                      value: DAY_LABELS[dayOfWeek],
+                                    })}
                                     className="cursor-pointer rounded-md border-none bg-transparent px-1 font-sans text-base leading-none text-tn-muted-5 hover:text-tn-ink"
                                   >
                                     +
@@ -1805,8 +1860,11 @@ export function StaffAvailabilityEditor({
                                   <button
                                     type="button"
                                     onClick={() => removeRange(dayOfWeek, index)}
-                                    title="Remove this range"
-                                    aria-label={`Remove time range ${index + 1} from ${DAY_LABELS[dayOfWeek]}`}
+                                    title={t("Remove this range")}
+                                    aria-label={t("Remove time range {{value}} from {{value2}}", {
+                                      value: index + 1,
+                                      value2: DAY_LABELS[dayOfWeek],
+                                    })}
                                     className="cursor-pointer rounded-md border-none bg-transparent px-1 font-sans text-base leading-none text-tn-muted-5 hover:text-tn-danger"
                                   >
                                     ×
@@ -1824,8 +1882,8 @@ export function StaffAvailabilityEditor({
                               {conflicts && (
                                 <span className="font-sans text-xs text-tn-danger">
                                   {toMinutes(range.startTime) >= toMinutes(range.endTime)
-                                    ? "This range has to start before it ends"
-                                    : "Overlapping or consecutive slots aren’t permitted"}
+                                    ? t("This range has to start before it ends")
+                                    : t("Overlapping or consecutive slots aren’t permitted")}
                                 </span>
                               )}
                             </div>
@@ -1839,7 +1897,9 @@ export function StaffAvailabilityEditor({
                       <span
                         className={`flex flex-1 items-center font-sans text-[14px] text-tn-faint-2 ${ROW_LINE}`}
                       >
-                        {elsewhere ? `Not at this shop — ${elsewhere.join(", ")}` : "Unavailable"}
+                        {elsewhere
+                          ? t("Not at this shop — {{join}}", { join: elsewhere.join(", ") })
+                          : t("Unavailable")}
                       </span>
                     )}
                   </div>
@@ -1891,7 +1951,7 @@ export function StaffAvailabilityEditor({
                             onClick={undoLastFix}
                             className="cursor-pointer rounded-md border-none bg-transparent p-0 font-sans text-xs font-semibold text-tn-gold hover:underline"
                           >
-                            Undo
+                            {t("Undo")}
                           </button>
                         </Collapsible>
                       )}
@@ -1905,12 +1965,13 @@ export function StaffAvailabilityEditor({
 
         <section className="flex h-fit flex-col gap-3 rounded-2xl border border-tn-border bg-tn-surface p-5">
           <p className="m-0 font-sans text-sm font-semibold text-tn-ink">
-            Date-specific availability
+            {t("Date-specific availability")}
           </p>
           <p className="m-0 font-sans text-xs leading-relaxed text-tn-muted-5">
-            Dates when {activeSchedule?.location.name ?? "this shop"}&rsquo;s hours differ from the
-            regular schedule, or when this member isn&rsquo;t here at all. Overrides belong to this
-            shop — a day off everywhere is one per tab.
+            {t(
+              "Dates when {{value}}’s hours differ from the regular schedule, or when this member isn’t here at all. Overrides belong to this shop — a day off everywhere is one per tab.",
+              { value: activeSchedule?.location.name ?? t("this shop") },
+            )}
           </p>
 
           {overrides.length > 0 && (
@@ -1926,14 +1987,14 @@ export function StaffAvailabilityEditor({
                     </span>
                     <span className="font-sans text-xs text-tn-muted-5">
                       {override.isUnavailable
-                        ? "Unavailable"
+                        ? t("Unavailable")
                         : `${override.startTime} - ${override.endTime}`}
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setOverrideToDelete(override)}
-                    aria-label={`Remove override for ${override.date}`}
+                    aria-label={t("Remove override for {{date}}", { date: override.date })}
                     className="cursor-pointer rounded-md border-none bg-transparent px-1 font-sans text-base leading-none text-tn-muted-5 hover:text-tn-danger"
                   >
                     ×
@@ -1949,7 +2010,7 @@ export function StaffAvailabilityEditor({
             className="w-fit"
             onClick={() => setOverrideModalOpen(true)}
           >
-            + Add a date override
+            {t("+ Add a date override")}
           </Button>
         </section>
       </div>
@@ -1980,11 +2041,12 @@ export function StaffAvailabilityEditor({
           // to: two lines about the same other tab, one of them vaguer,
           // is how a screen teaches people to skim.
           blocked === null && otherDirtyLocations.length > 0
-            ? `${otherDirtyLocations.map((schedule) => schedule.location.name).join(", ")} ${
-                otherDirtyLocations.length === 1 ? "has" : "have"
-              } unsaved changes too — open ${
-                otherDirtyLocations.length === 1 ? "that tab" : "each tab"
-              } to save ${otherDirtyLocations.length === 1 ? "it" : "them"}.`
+            ? t("{{join}} {{value}} unsaved changes too — open {{value2}} to save {{value3}}.", {
+                join: otherDirtyLocations.map((schedule) => schedule.location.name).join(", "),
+                value: otherDirtyLocations.length === 1 ? "has" : "have",
+                value2: otherDirtyLocations.length === 1 ? t("that tab") : t("each tab"),
+                value3: otherDirtyLocations.length === 1 ? "it" : "them",
+              })
             : null
         }
         saving={saveMutation.isPending}
@@ -2021,28 +2083,35 @@ export function StaffAvailabilityEditor({
           action, not in front of it. */}
       {SHOW_CROSS_SHOP_VIEW && crossShopLines.length > 0 && (
         <section className="rounded-2xl border border-dashed border-tn-gold-soft bg-tn-gold-bg-soft px-4 py-3.5">
-          <p className="m-0 font-sans text-xs font-semibold text-tn-gold">Cross-shop view</p>
+          <p className="m-0 font-sans text-xs font-semibold text-tn-gold">{t("Cross-shop view")}</p>
           <p className="m-0 mt-1 font-sans text-xs leading-relaxed text-tn-muted-5">
-            What&rsquo;s set at this member&rsquo;s other shops, read on{" "}
-            {friendlyZoneLabel(activeZone)} time.
+            {t("What’s set at this member’s other shops, read on {{activeZone}} time.", {
+              activeZone: friendlyZoneLabel(activeZone),
+            })}
           </p>
           <ul className="m-0 mt-2 flex list-none flex-col gap-1.5 p-0">
             {crossShopLines.map((line, i) => (
               <li key={i} className="font-sans text-xs leading-relaxed text-tn-ink-soft">
                 <span className="font-semibold">{SHORT_DAY_LABELS[line.dayOfWeek]}</span>{" "}
-                {line.thereStart}–{line.thereEnd} is set at{" "}
-                <span className="font-semibold">{line.shopName}</span>. In{" "}
-                {friendlyZoneLabel(activeZone)} time that is {to12Hour(line.hereStart)}–
-                {to12Hour(line.hereEnd)}
-                {line.dayShift !== 0 &&
-                  ` (${line.dayShift > 0 ? "the next day" : "the day before"}, ${SHORT_DAY_LABELS[(line.dayOfWeek + line.dayShift + 7) % 7]})`}
-                .{" "}
+                {t("{{thereStart}}–{{thereEnd}} is set at", {
+                  thereStart: line.thereStart,
+                  thereEnd: line.thereEnd,
+                })}{" "}
+                <span className="font-semibold">{line.shopName}</span>
+                {t(". In {{activeZone}} time that is {{hereStart}}–{{hereEnd}}{{value}}.", {
+                  activeZone: friendlyZoneLabel(activeZone),
+                  hereStart: to12Hour(line.hereStart),
+                  hereEnd: to12Hour(line.hereEnd),
+                  value:
+                    line.dayShift !== 0 &&
+                    ` (${line.dayShift > 0 ? t("the next day") : t("the day before")}, ${SHORT_DAY_LABELS[(line.dayOfWeek + line.dayShift + 7) % 7]})`,
+                })}{" "}
                 {line.clashes ? (
                   <span className="font-semibold text-tn-danger">
-                    That collides with the hours set here.
+                    {t("That collides with the hours set here.")}
                   </span>
                 ) : (
-                  <span className="text-tn-muted-5">Nothing set here then.</span>
+                  <span className="text-tn-muted-5">{t("Nothing set here then.")}</span>
                 )}
               </li>
             ))}
@@ -2062,13 +2131,16 @@ export function StaffAvailabilityEditor({
         open={overrideToDelete !== null}
         onClose={() => setOverrideToDelete(null)}
         onConfirm={() => overrideToDelete && removeOverrideMutation.mutate(overrideToDelete.id)}
-        title="Remove this date override?"
+        title={t("Remove this date override?")}
         body={
           overrideToDelete
-            ? `${formatOverrideDate(overrideToDelete.date)} will go back to ${activeSchedule?.location.name ?? "this shop"}'s regular weekly schedule.`
+            ? t("{{date}} will go back to {{value}}'s regular weekly schedule.", {
+                date: formatOverrideDate(overrideToDelete.date),
+                value: activeSchedule?.location.name ?? t("this shop"),
+              })
             : undefined
         }
-        confirmLabel="Remove"
+        confirmLabel={t("Remove")}
         confirming={removeOverrideMutation.isPending}
       />
 

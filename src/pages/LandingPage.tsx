@@ -4,19 +4,20 @@ import { useOnboardingStore } from "@/auth/onboarding-store";
 import { Button } from "@/components/ui/Button";
 import { LoadingScreen } from "@/components/layout/LoadingScreen";
 import { Wordmark } from "@/components/brand/Logo";
+import { t } from "@/i18n";
 
 const FEATURES = [
   {
-    title: "Get discovered",
-    body: "Show up in search and nearby listings for local clients.",
+    title: t("Get discovered"),
+    body: t("Show up in search and nearby listings for local clients."),
   },
   {
-    title: "Manage bookings & walk-ins",
-    body: "One queue for scheduled appointments and walk-ins.",
+    title: t("Manage bookings & walk-ins"),
+    body: t("One queue for scheduled appointments and walk-ins."),
   },
   {
-    title: "Get paid faster",
-    body: "Accept deposits and full payments right in the app.",
+    title: t("Get paid faster"),
+    body: t("Accept deposits and full payments right in the app."),
   },
 ];
 
@@ -52,34 +53,36 @@ export function LandingPage() {
       <header className="flex items-center justify-between px-16 py-6">
         <span className="flex items-baseline gap-2">
           <Wordmark className="text-[28px]" />
-          <span className="font-sans text-[14px] font-medium text-tn-muted-5">for Business</span>
+          <span className="font-sans text-[14px] font-medium text-tn-muted-5">
+            {t("for Business")}
+          </span>
         </span>
         <nav className="flex items-center gap-7 font-sans text-sm font-medium text-tn-muted-2">
-          <span className="hidden sm:inline">Features</span>
-          <span className="hidden sm:inline">Pricing</span>
-          <span className="hidden sm:inline">Support</span>
+          <span className="hidden sm:inline">{t("Features")}</span>
+          <span className="hidden sm:inline">{t("Pricing")}</span>
+          <span className="hidden sm:inline">{t("Support")}</span>
           <button
             type="button"
             onClick={() => navigate("/login")}
             className="cursor-pointer border-none bg-transparent p-0 font-sans text-sm font-medium text-tn-gold"
           >
-            Log in
+            {t("Log in")}
           </button>
-          <Button onClick={startSignup}>Get Started</Button>
+          <Button onClick={startSignup}>{t("Get Started")}</Button>
         </nav>
       </header>
 
       {hasSignupInProgress && (
         <div className="flex items-center justify-center gap-2 bg-tn-gold-bg-soft px-4 py-2.5 text-center">
           <p className="m-0 font-sans text-xs text-tn-ink">
-            Looks like you started setting up your shop.
+            {t("Looks like you started setting up your shop.")}
           </p>
           <button
             type="button"
             onClick={resumeSignup}
             className="cursor-pointer border-none bg-transparent p-0 font-sans text-xs font-semibold text-tn-gold underline"
           >
-            Continue where you left off →
+            {t("Continue where you left off →")}
           </button>
         </div>
       )}
@@ -87,17 +90,17 @@ export function LandingPage() {
       <section className="flex items-center gap-16 px-16 pb-14 pt-10">
         <div className="flex flex-1 flex-col gap-5">
           <h1 className="m-0 font-sans text-5xl font-semibold leading-tight text-tn-ink">
-            List your shop on iGroom
+            {t("List your shop on iGroom")}
           </h1>
           <p className="m-0 max-w-md font-sans text-lg leading-relaxed text-tn-muted-4">
-            Reach new clients, manage bookings and walk-ins, and get paid — all in one place.
+            {t("Reach new clients, manage bookings and walk-ins, and get paid — all in one place.")}
           </p>
           <div className="mt-2 flex gap-3.5">
             <Button size="lg" onClick={startSignup}>
-              Get Started
+              {t("Get Started")}
             </Button>
             <Button size="lg" variant="secondary">
-              Watch Demo
+              {t("Watch Demo")}
             </Button>
           </div>
         </div>
@@ -108,7 +111,7 @@ export function LandingPage() {
               "repeating-linear-gradient(45deg, oklch(90% 0.015 65), oklch(90% 0.015 65) 8px, oklch(94% 0.01 70) 8px, oklch(94% 0.01 70) 16px)",
           }}
         >
-          dashboard preview
+          {t("dashboard preview")}
         </div>
       </section>
 

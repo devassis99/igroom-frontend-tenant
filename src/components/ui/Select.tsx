@@ -267,7 +267,7 @@ export function Select<T extends string | number>({
         onBlur={() => {
           if (open) closeList();
         }}
-        className={`flex min-h-[46px] w-full cursor-pointer items-center justify-between gap-2 rounded-xl bg-tn-surface px-3.5 py-3 text-left font-sans text-sm text-tn-ink disabled:cursor-not-allowed disabled:opacity-60 ${
+        className={`flex min-h-[46px] w-full cursor-pointer items-center justify-between gap-2 rounded-xl bg-tn-surface px-3.5 py-3 text-start font-sans text-sm text-tn-ink disabled:cursor-not-allowed disabled:opacity-60 ${
           open ? "border-2 border-tn-gold" : "border border-tn-input-border"
         } ${className}`}
         // Closed, keyboard focus gets the app's gold ring (index.css). Open,

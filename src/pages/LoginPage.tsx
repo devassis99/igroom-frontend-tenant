@@ -8,7 +8,9 @@ import { renderGoogleButton } from "@/lib/google-identity";
 import { getMe, login, loginWithGoogle, confirmMfaLoginChallenge } from "@/lib/accounts-api";
 import { env } from "@/lib/env";
 import { ApiError } from "@/lib/http";
+import { t } from "@/i18n";
 
+import { LanguageSelect } from "@/components/LanguageMenu";
 /**
  * The public "/login" entry point for a *returning* owner — separate from
  * CreateAccountPage's "/signup" wizard, which is only step 1 of a new
@@ -44,7 +46,7 @@ export function LoginPage() {
       owner: {
         fullName: me.staffUser.name,
         workEmail: me.staffUser.email,
-        businessName: (me.account?.name as string | undefined) ?? "Your shop",
+        businessName: (me.account?.name as string | undefined) ?? t("Your shop"),
         category: (me.account?.category as string | undefined) ?? "",
         address: (me.account?.address as string | undefined) ?? "",
         phone: (me.account?.phone as string | undefined) ?? "",
@@ -69,7 +71,7 @@ export function LoginPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!email.trim() || !password) {
-      setError("Enter your email and password to log in.");
+      setError(t("Enter your email and password to log in."));
       return;
     }
     setError(null);
@@ -88,7 +90,7 @@ export function LoginPage() {
       const message =
         err instanceof ApiError || err instanceof Error
           ? err.message
-          : "Something went wrong logging in. Try again.";
+          : t("Something went wrong logging in. Try again.");
       setError(message);
     } finally {
       setSubmitting(false);
@@ -113,7 +115,7 @@ export function LoginPage() {
       const message =
         err instanceof ApiError || err instanceof Error
           ? err.message
-          : "Something went wrong verifying your code. Try again.";
+          : t("Something went wrong verifying your code. Try again.");
       setError(message);
       setMfaCode("");
     } finally {
@@ -149,12 +151,12 @@ export function LoginPage() {
         // No staff account matches this Google identity — this is the
         // login page, not the signup wizard, so send the visitor to sign
         // up rather than silently starting the funnel here.
-        setError("No iGroom account found for this Google sign-in yet.");
+        setError(t("No iGroom account found for this Google sign-in yet."));
       } catch (err) {
         const message =
           err instanceof ApiError || err instanceof Error
             ? err.message
-            : "Google sign-in failed. Try again.";
+            : t("Google sign-in failed. Try again.");
         setError(message);
       } finally {
         setGoogleProcessing(false);
@@ -168,7 +170,7 @@ export function LoginPage() {
       const message =
         err instanceof ApiError || err instanceof Error
           ? err.message
-          : "Couldn't load Google sign-in right now.";
+          : t("Couldn't load Google sign-in right now.");
       setError(message);
     });
     // Intentionally runs once — navigate/loginWithSession are stable
@@ -182,10 +184,10 @@ export function LoginPage() {
         <div className="flex w-[380px] flex-col gap-6">
           <div className="flex flex-col items-center gap-1.5 text-center">
             <p className="m-0 font-sans text-2xl font-semibold text-tn-ink">
-              Enter verification code
+              {t("Enter verification code")}
             </p>
             <p className="m-0 font-sans text-[14px] text-tn-muted-3">
-              Open your authenticator app and enter the current code.
+              {t("Open your authenticator app and enter the current code.")}
             </p>
           </div>
 
@@ -201,7 +203,7 @@ export function LoginPage() {
               onClick={() => submitMfaCode(mfaCode)}
               disabled={mfaSubmitting || mfaCode.length !== 6}
             >
-              {mfaSubmitting ? "Verifying…" : "Verify & sign in"}
+              {mfaSubmitting ? t("Verifying…") : t("Verify & sign in")}
             </Button>
           </div>
 
@@ -220,7 +222,7 @@ export function LoginPage() {
             }}
             className="cursor-pointer self-center border-none bg-transparent p-0 font-sans text-[14px] font-medium text-tn-muted-5"
           >
-            Back to log in
+            {t("Back to log in")}
           </button>
         </div>
       </div>
@@ -232,10 +234,10 @@ export function LoginPage() {
       <form onSubmit={handleSubmit} className="flex w-[420px] flex-col gap-6">
         <div>
           <h1 className="m-0 mb-1.5 font-sans text-[24px] font-semibold text-tn-ink">
-            Log in to iGroom
+            {t("Log in to iGroom")}
           </h1>
           <p className="m-0 font-sans text-[14px] text-tn-muted-5">
-            Welcome back — sign in to manage your shop.
+            {t("Welcome back — sign in to manage your shop.")}
           </p>
         </div>
 
@@ -245,18 +247,18 @@ export function LoginPage() {
         <div ref={googleButtonRef} className="flex justify-center" />
         {googleProcessing && (
           <p className="m-0 -mt-3 text-center font-sans text-xs text-tn-muted-5">
-            Finishing Google sign-in…
+            {t("Finishing Google sign-in…")}
           </p>
         )}
 
         <div className="flex items-center gap-3">
           <div className="h-px flex-1 bg-tn-border" />
-          <span className="font-sans text-xs text-tn-muted-6">or</span>
+          <span className="font-sans text-xs text-tn-muted-6">{t("or")}</span>
           <div className="h-px flex-1 bg-tn-border" />
         </div>
 
         <div className="flex flex-col gap-3.5">
-          <Field label="WORK EMAIL">
+          <Field label={t("WORK EMAIL")}>
             <input
               type="email"
               placeholder="you@yourshop.com"
@@ -265,7 +267,7 @@ export function LoginPage() {
               className={formInputClass}
             />
           </Field>
-          <Field label="PASSWORD">
+          <Field label={t("PASSWORD")}>
             <input
               type="password"
               placeholder="••••••••"
@@ -279,15 +281,19 @@ export function LoginPage() {
         {error && <p className="m-0 font-sans text-xs text-tn-danger">{error}</p>}
 
         <Button type="submit" size="lg" disabled={submitting}>
-          {submitting ? "Logging in…" : "Log in"}
+          {submitting ? t("Logging in…") : t("Log in")}
         </Button>
 
         <p className="m-0 text-center font-sans text-[14px] text-tn-muted-5">
-          Don't have a shop on iGroom yet?{" "}
+          {t("Don't have a shop on iGroom yet?")}{" "}
           <Link to="/signup" className="font-medium text-tn-gold">
-            Sign up
+            {t("Sign up")}
           </Link>
         </p>
+
+        <div className="flex justify-center">
+          <LanguageSelect />
+        </div>
       </form>
     </div>
   );

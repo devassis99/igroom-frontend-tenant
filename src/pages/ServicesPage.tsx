@@ -20,6 +20,7 @@ import {
   type Service,
   type ServiceCategory,
 } from "@/lib/services-api";
+import { t } from "@/i18n";
 
 // Stable empty-array fallbacks — see CalendarPage.tsx's identical comment
 // on why a fresh `[]` literal per render would defeat useMemo below.
@@ -29,9 +30,9 @@ const EMPTY_CATEGORIES: ServiceCategory[] = [];
 function formatDuration(minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
-  if (h === 0) return `${m} min`;
-  if (m === 0) return `${h} hr`;
-  return `${h} hr ${m} min`;
+  if (h === 0) return t("{{m}} min", { m });
+  if (m === 0) return t("{{h}} hr", { h });
+  return t("{{h}} hr {{m}} min", { h, m });
 }
 
 function formatPrice(cents: number): string {
@@ -45,11 +46,11 @@ function formatPrice(cents: number): string {
  */
 function locationsLabel(service: Service, totalLocations: number): string {
   const count = service.locations.length;
-  if (count === 0) return "Nowhere";
+  if (count === 0) return t("Nowhere");
   if (totalLocations > 0 && count === totalLocations) {
     return totalLocations === 1
-      ? (service.locations[0]?.locationName ?? "1 location")
-      : "All locations";
+      ? (service.locations[0]?.locationName ?? t("1 location"))
+      : t("All locations");
   }
   if (count === 1) return service.locations[0]!.locationName;
   return `${service.locations[0]!.locationName} +${count - 1}`;
@@ -87,7 +88,7 @@ function downloadServicesCsv(rows: Service[]) {
   URL.revokeObjectURL(url);
 }
 
-const GRID_COLUMNS = "40px 1.7fr 0.9fr 0.8fr 1.2fr 0.9fr 1.1fr 0.9fr 40px";
+const GRID_COLUMNS = t("40px 1.7fr 0.9fr 0.8fr 1.2fr 0.9fr 1.1fr 0.9fr 40px");
 
 /** Matches the mockup's T9 Services table + T9b Add/Edit Service modal, now backed by real igroom-backend data (see services-api.ts) instead of a static list. */
 export function ServicesPage() {
@@ -193,18 +194,18 @@ export function ServicesPage() {
     // White components on the cream page — see .tn-white-components (index.css).
     <div className="tn-white-components flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Services</h1>
+        <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">{t("Services")}</h1>
         <div className="flex items-center gap-3">
           <input
             data-tour="services-search"
             type="text"
-            placeholder="Search"
+            placeholder={t("Search")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="rounded-xl border border-tn-input-border px-3.5 py-2.5 font-sans text-sm text-tn-ink outline-none focus:border-2 focus:border-tn-gold"
           />
           <Button data-tour="services-add" onClick={() => setModalService(null)}>
-            + Add Service
+            {t("+ Add Service")}
           </Button>
         </div>
       </div>
@@ -217,7 +218,7 @@ export function ServicesPage() {
           className="!bg-tn-surface hover:!bg-tn-page/60"
           onClick={() => setCategoriesOpen(true)}
         >
-          Categories
+          {t("Categories")}
         </Button>
         <Button
           variant="secondary"
@@ -226,7 +227,7 @@ export function ServicesPage() {
           onClick={resetServiceOrder}
           disabled={reorderMutation.isPending || services.length === 0}
         >
-          Reset service order
+          {t("Reset service order")}
         </Button>
         <div className="flex-1" />
         <Button
@@ -236,15 +237,18 @@ export function ServicesPage() {
           onClick={() => downloadServicesCsv(filtered)}
           disabled={filtered.length === 0}
         >
-          Export to CSV
+          {t("Export to CSV")}
         </Button>
       </div>
 
       {servicesQuery.isError && (
         <p className="m-0 font-sans text-sm text-tn-danger">
-          Couldn&rsquo;t load services right now (
-          {servicesQuery.error instanceof Error ? servicesQuery.error.message : "unknown error"}) —
-          refresh to try again.
+          {t("Couldn’t load services right now ({{value}}) — refresh to try again.", {
+            value:
+              servicesQuery.error instanceof Error
+                ? servicesQuery.error.message
+                : t("unknown error"),
+          })}
         </p>
       )}
 
@@ -258,23 +262,25 @@ export function ServicesPage() {
             className="grid bg-tn-table-head px-[18px] py-3 font-sans text-xs font-semibold text-tn-muted-5"
             style={{ gridTemplateColumns: GRID_COLUMNS }}
           >
-            <span>SORT</span>
-            <span>SERVICE NAME</span>
-            <span>DURATION</span>
-            <span>PRICE</span>
-            <span>TAX</span>
-            <span>CATEGORY</span>
-            <span>LOCATIONS</span>
-            <span>STATUS</span>
+            <span>{t("SORT")}</span>
+            <span>{t("SERVICE NAME")}</span>
+            <span>{t("DURATION")}</span>
+            <span>{t("PRICE")}</span>
+            <span>{t("TAX")}</span>
+            <span>{t("CATEGORY")}</span>
+            <span>{t("LOCATIONS")}</span>
+            <span>{t("STATUS")}</span>
             <span />
           </div>
 
           {servicesQuery.isPending && (
-            <p className="m-0 p-[18px] font-sans text-sm text-tn-muted-5">Loading services…</p>
+            <p className="m-0 p-[18px] font-sans text-sm text-tn-muted-5">
+              {t("Loading services…")}
+            </p>
           )}
           {!servicesQuery.isPending && search && filtered.length === 0 && (
             <p className="m-0 p-[18px] font-sans text-sm text-tn-muted-5">
-              No services match &ldquo;{search}&rdquo;.
+              {t("No services match “{{search}}”.", { search })}
             </p>
           )}
 
@@ -293,7 +299,7 @@ export function ServicesPage() {
               onKeyDown={(e) => {
                 if (e.key === "Enter") setModalService(service);
               }}
-              className={`grid cursor-pointer items-center px-[18px] py-3.5 text-left ${
+              className={`grid cursor-pointer items-center px-[18px] py-3.5 text-start ${
                 i < filtered.length - 1 ? "border-b border-tn-border-soft" : ""
               } ${draggedId === service.id ? "opacity-40" : ""}`}
               style={{ gridTemplateColumns: GRID_COLUMNS }}
@@ -302,7 +308,7 @@ export function ServicesPage() {
                 className={
                   canReorder ? "cursor-grab text-tn-faint-2" : "text-tn-faint-2 opacity-40"
                 }
-                title={canReorder ? "Drag to reorder" : "Clear search to reorder"}
+                title={canReorder ? t("Drag to reorder") : t("Clear search to reorder")}
               >
                 &#8645;
               </span>
@@ -327,7 +333,7 @@ export function ServicesPage() {
                   e.stopPropagation();
                   setLocationsService(service);
                 }}
-                title="Choose which locations offer this"
+                title={t("Choose which locations offer this")}
                 className={`w-fit cursor-pointer rounded-full border px-2.5 py-1 font-sans text-[12px] font-medium ${
                   service.locations.length === 0
                     ? "border-tn-gold-soft bg-tn-gold-bg text-tn-gold"
@@ -344,10 +350,10 @@ export function ServicesPage() {
                 }}
                 disabled={toggleMutation.isPending}
                 className="w-fit"
-                title="Toggle enabled/disabled"
+                title={t("Toggle enabled/disabled")}
               >
                 <StatusPill tone={service.isEnabled ? "success" : "neutral"}>
-                  {service.isEnabled ? "Enabled" : "Disabled"}
+                  {service.isEnabled ? t("Enabled") : t("Disabled")}
                 </StatusPill>
               </button>
               <button
@@ -356,8 +362,8 @@ export function ServicesPage() {
                   e.stopPropagation();
                   setPendingDelete(service);
                 }}
-                aria-label={`Delete ${service.name}`}
-                title="Delete service"
+                aria-label={t("Delete {{name}}", { name: service.name })}
+                title={t("Delete service")}
                 className="cursor-pointer justify-self-end border-none bg-transparent font-sans text-base text-tn-muted-6 hover:text-tn-danger"
               >
                 &times;
@@ -392,9 +398,11 @@ export function ServicesPage() {
         open={pendingDelete !== null}
         onClose={() => setPendingDelete(null)}
         onConfirm={() => pendingDelete && deleteMutation.mutate(pendingDelete.id)}
-        title={`Delete “${pendingDelete?.name}”?`}
-        body="This removes it from the Services list. Past bookings that used this service keep their own record of what was done, unaffected."
-        confirmLabel="Delete service"
+        title={t("Delete “{{name}}”?", { name: pendingDelete?.name })}
+        body={t(
+          "This removes it from the Services list. Past bookings that used this service keep their own record of what was done, unaffected.",
+        )}
+        confirmLabel={t("Delete service")}
         confirming={deleteMutation.isPending}
       />
     </div>

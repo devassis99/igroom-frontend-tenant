@@ -1,4 +1,5 @@
 import { Wordmark } from "@/components/brand/Logo";
+import { t } from "@/i18n";
 
 /** Matches the mockup's T0 splash frame — shown for the brief tick while the persisted session rehydrates. */
 export function LoadingScreen() {
@@ -10,7 +11,7 @@ export function LoadingScreen() {
         style={{ animation: "tn-spin 0.9s linear infinite" }}
       />
       <p className="m-0 font-sans text-xs font-medium tracking-[0.04em] text-tn-page/80">
-        LOADING YOUR DASHBOARD
+        {t("LOADING YOUR DASHBOARD")}
       </p>
     </div>
   );

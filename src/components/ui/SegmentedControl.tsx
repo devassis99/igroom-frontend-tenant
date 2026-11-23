@@ -1,4 +1,5 @@
 import { useCallback, useLayoutEffect, useRef } from "react";
+import { t } from "@/i18n";
 
 interface Option<T extends string> {
   value: T;
@@ -49,8 +50,8 @@ export function SegmentedControl<T extends string>({
     const button = buttonsRef.current.get(value);
     const thumb = thumbRef.current;
     if (!button || !thumb) return;
-    thumb.style.transform = `translateX(${button.offsetLeft}px)`;
-    thumb.style.width = `${button.offsetWidth}px`;
+    thumb.style.transform = t("translateX({{offsetLeft}}px)", { offsetLeft: button.offsetLeft });
+    thumb.style.width = t("{{offsetWidth}}px", { offsetWidth: button.offsetWidth });
     if (!hasPositioned.current) {
       // Two frames: one for the style above to be committed, one for the
       // browser to have painted it, before the transition can attach to
@@ -92,7 +93,7 @@ export function SegmentedControl<T extends string>({
       <span
         ref={thumbRef}
         aria-hidden
-        className="pointer-events-none absolute top-[3px] bottom-[3px] left-0 rounded-full bg-tn-dark-gradient"
+        className="pointer-events-none absolute top-[3px] bottom-[3px] start-0 rounded-full bg-tn-dark-gradient"
       />
       {options.map((option) => (
         <button

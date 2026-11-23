@@ -15,6 +15,7 @@ import {
   type RegisterAppointment,
   type ServiceState,
 } from "@/lib/pos-api";
+import { t, intlLocale } from "@/i18n";
 
 /**
  * The register.
@@ -40,11 +41,11 @@ const POLL_MS = 20_000;
 function errorMessage(error: unknown): string | null {
   if (!error) return null;
   if (error instanceof ApiError) return error.message;
-  return "Something went wrong. Try again.";
+  return t("Something went wrong. Try again.");
 }
 
 function timeLabel(iso: string): string {
-  return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString(intlLocale(), { hour: "numeric", minute: "2-digit" });
 }
 
 /**
@@ -55,10 +56,10 @@ function timeLabel(iso: string): string {
  * one is noise.
  */
 const SERVICE_STATE_LABEL: Record<Exclude<ServiceState, "completed">, string> = {
-  not_arrived: "NOT ARRIVED",
+  not_arrived: t("NOT ARRIVED"),
   waiting: "WAITING",
-  in_service: "IN SERVICE",
-  unfinished: "NOT FINISHED",
+  in_service: t("IN SERVICE"),
+  unfinished: t("NOT FINISHED"),
 };
 
 function ServiceChip({ state }: { state: ServiceState }) {
@@ -90,28 +91,30 @@ function PaymentChip({ appointment }: { appointment: RegisterAppointment }) {
   if (appointment.ticketStatus === "paid") {
     return (
       <span className="rounded-full bg-tn-success-bg px-2.5 py-1 font-sans text-[12px] font-semibold text-tn-success">
-        PAID · #{appointment.ticketNumber}
+        {t("PAID · #{{ticketNumber}}", { ticketNumber: appointment.ticketNumber })}
       </span>
     );
   }
   if (appointment.ticketStatus === "open") {
     return (
       <span className="rounded-full bg-tn-gold-bg px-2.5 py-1 font-sans text-[12px] font-semibold text-tn-gold">
-        OPEN · #{appointment.ticketNumber}
+        {t("OPEN · #{{ticketNumber}}", { ticketNumber: appointment.ticketNumber })}
       </span>
     );
   }
   if (appointment.onlinePaymentType === "full") {
     return (
       <span className="rounded-full bg-tn-success-bg px-2.5 py-1 font-sans text-[12px] font-semibold text-tn-success">
-        PAID ONLINE
+        {t("PAID ONLINE")}
       </span>
     );
   }
   if (appointment.onlinePaymentType === "deposit") {
     return (
       <span className="rounded-full bg-tn-page px-2.5 py-1 font-sans text-[12px] font-semibold text-tn-muted-3">
-        {formatCents(appointment.paidOnlineCents)} DEP.
+        {t("{{paidOnlineCents}} DEP.", {
+          paidOnlineCents: formatCents(appointment.paidOnlineCents),
+        })}
       </span>
     );
   }
@@ -167,7 +170,9 @@ export function RegisterPage() {
     mutationFn: (appointment: RegisterAppointment | null) =>
       openTicket(accessToken ?? "", {
         locationId: selectedLocationId,
-        ...(appointment ? { bookingId: appointment.bookingId } : { customerName: "Counter sale" }),
+        ...(appointment
+          ? { bookingId: appointment.bookingId }
+          : { customerName: t("Counter sale") }),
       }),
     onSuccess: async (ticket) => {
       setActiveTicketId(ticket.id);
@@ -183,8 +188,8 @@ export function RegisterPage() {
       // White components on the cream page — see .tn-white-components (index.css).
       <div className="tn-white-components">
         <PermissionNotice
-          title="Register"
-          what="Ringing up sales needs the “Use the register” permission."
+          title={t("Register")}
+          what={t("Ringing up sales needs the “Use the register” permission.")}
         />
       </div>
     );
@@ -193,10 +198,11 @@ export function RegisterPage() {
   if (locationsQuery.isSuccess && locations.length === 0) {
     return (
       <div className="flex flex-col gap-3">
-        <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Register</h1>
+        <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">{t("Register")}</h1>
         <p className="m-0 max-w-[60ch] font-sans text-sm text-tn-muted-3">
-          You are not assigned to a branch yet, so there is no till to open. Ask an owner or manager
-          to add you to a location.
+          {t(
+            "You are not assigned to a branch yet, so there is no till to open. Ask an owner or manager to add you to a location.",
+          )}
         </p>
       </div>
     );
@@ -207,13 +213,13 @@ export function RegisterPage() {
     <div className="tn-white-components flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Register</h1>
+          <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">{t("Register")}</h1>
           {locations.length > 1 && (
             <LocationFilterPopover
               locations={locations.map((l) => ({ id: l.id, name: l.name }))}
               value={selectedLocationId}
               onChange={setChosenLocationId}
-              label="Choose a branch"
+              label={t("Choose a branch")}
               includeAllOption={false}
             />
           )}
@@ -227,7 +233,7 @@ export function RegisterPage() {
           onClick={() => open.mutate(null)}
           disabled={open.isPending}
         >
-          + Counter sale
+          {t("+ Counter sale")}
         </Button>
       </div>
 
@@ -241,11 +247,11 @@ export function RegisterPage() {
         <section className="flex flex-col gap-3" data-tour="register-queue">
           <div className="flex items-baseline justify-between">
             <p className="m-0 font-sans text-xs font-semibold tracking-[0.1em] text-tn-muted-5">
-              TODAY · {day?.shopName ?? "…"}
+              {t("TODAY · {{value}}", { value: day?.shopName ?? "…" })}
             </p>
             <span className="font-sans text-xs text-tn-muted-5">
               {day
-                ? new Date(`${day.businessDate}T12:00:00`).toLocaleDateString([], {
+                ? new Date(`${day.businessDate}T12:00:00`).toLocaleDateString(intlLocale(), {
                     weekday: "short",
                     day: "numeric",
                     month: "short",
@@ -255,16 +261,16 @@ export function RegisterPage() {
           </div>
 
           {dayQuery.isLoading && (
-            <p className="m-0 font-sans text-sm text-tn-muted-3">Loading the day…</p>
+            <p className="m-0 font-sans text-sm text-tn-muted-3">{t("Loading the day…")}</p>
           )}
 
           {day && day.appointments.length === 0 && (
             <div className="rounded-2xl border border-dashed border-tn-border bg-tn-surface px-5 py-10 text-center">
               <p className="m-0 font-sans text-sm font-semibold text-tn-ink">
-                Nothing booked today
+                {t("Nothing booked today")}
               </p>
               <p className="m-0 mt-1 font-sans text-[14px] text-tn-muted-3">
-                Start a counter sale for a walk-up, or seat someone from the waitlist first.
+                {t("Start a counter sale for a walk-up, or seat someone from the waitlist first.")}
               </p>
             </div>
           )}
@@ -291,8 +297,11 @@ export function RegisterPage() {
                       {appointment.customerName}
                     </p>
                     <p className="m-0 font-sans text-[12px] text-tn-muted-3">
-                      {appointment.serviceName} · {appointment.durationMinutes} min
-                      {appointment.staffName ? ` · ${appointment.staffName}` : ""}
+                      {t("{{serviceName}} · {{durationMinutes}} min{{value}}", {
+                        serviceName: appointment.serviceName,
+                        durationMinutes: appointment.durationMinutes,
+                        value: appointment.staffName ? ` · ${appointment.staffName}` : "",
+                      })}
                     </p>
                   </div>
                   <ServiceChip state={appointment.serviceState} />
@@ -322,7 +331,9 @@ export function RegisterPage() {
                           : (appointment.notPayableReason ?? undefined)
                       }
                     >
-                      {appointment.ticketStatus === "open" ? "Back to ticket" : "Finish & pay →"}
+                      {appointment.ticketStatus === "open"
+                        ? t("Back to ticket")
+                        : t("Finish & pay →")}
                     </Button>
                   )}
                   {!isDone && !appointment.payable && appointment.notPayableReason && (

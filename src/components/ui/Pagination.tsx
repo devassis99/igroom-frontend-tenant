@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { t } from "@/i18n";
 
 export const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -53,7 +54,7 @@ export function Pagination({
         key={n}
         type="button"
         onClick={() => onPageChange(n)}
-        aria-label={`Page ${n}`}
+        aria-label={t("Page {{n}}", { n })}
         aria-current={n === page ? "page" : undefined}
         className={`flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-lg font-sans text-xs font-semibold ${
           n === page
@@ -68,11 +69,11 @@ export function Pagination({
 
   return (
     <nav
-      aria-label="Pagination"
+      aria-label={t("Pagination")}
       className="flex flex-wrap items-center justify-between gap-3 border-t border-tn-border-soft pt-4"
     >
       <label className="flex items-center gap-1.5 font-sans text-[14px] text-tn-muted-5">
-        Rows per page
+        {t("Rows per page")}
         <select
           value={pageSize}
           onChange={(e) => onPageSizeChange(Number(e.target.value))}
@@ -90,7 +91,7 @@ export function Pagination({
           type="button"
           onClick={() => onPageChange(Math.max(1, page - 1))}
           disabled={page <= 1}
-          aria-label="Previous page"
+          aria-label={t("Previous page")}
           className={ARROW_CLASS}
         >
           ‹
@@ -100,7 +101,7 @@ export function Pagination({
           type="button"
           onClick={() => onPageChange(Math.min(totalPages, page + 1))}
           disabled={page >= totalPages}
-          aria-label="Next page"
+          aria-label={t("Next page")}
           className={ARROW_CLASS}
         >
           ›
@@ -131,11 +132,11 @@ export function PageRange({
   const rangeEnd = Math.min(page * pageSize, totalCount);
   return (
     <p className={`m-0 font-sans text-[14px] text-tn-muted-5 ${className}`}>
-      Showing{" "}
+      {t("Showing")}{" "}
       <span className="font-semibold text-tn-ink-soft">
         {rangeStart}–{rangeEnd}
       </span>{" "}
-      of <span className="font-semibold text-tn-ink-soft">{totalCount}</span> {noun}
+      {t("of")} <span className="font-semibold text-tn-ink-soft">{totalCount}</span> {noun}
     </p>
   );
 }

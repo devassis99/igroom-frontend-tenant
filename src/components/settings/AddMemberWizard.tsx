@@ -11,22 +11,23 @@ import { listLocations } from "@/lib/locations-api";
 import { listRoles } from "@/lib/roles-api";
 import { inviteStaff, type ServiceIdsByLocation } from "@/lib/staff-api";
 import { LocationServicesPicker } from "@/components/settings/LocationServicesPicker";
+import { t } from "@/i18n";
 
 interface AddMemberWizardProps {
   open: boolean;
   onClose: () => void;
 }
 
-const STEPS = ["Profile", "Services", "Schedule", "Role", "Options"];
+const STEPS = [t("Profile"), t("Services"), t("Schedule"), t("Role"), t("Options")];
 
 const WEEK = [
-  { day: "Sunday", enabled: false },
-  { day: "Monday", enabled: true },
-  { day: "Tuesday", enabled: true },
-  { day: "Wednesday", enabled: true },
-  { day: "Thursday", enabled: true },
-  { day: "Friday", enabled: true },
-  { day: "Saturday", enabled: true },
+  { day: t("Sunday"), enabled: false },
+  { day: t("Monday"), enabled: true },
+  { day: t("Tuesday"), enabled: true },
+  { day: t("Wednesday"), enabled: true },
+  { day: t("Thursday"), enabled: true },
+  { day: t("Friday"), enabled: true },
+  { day: t("Saturday"), enabled: true },
 ];
 
 /**
@@ -133,7 +134,7 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
       handleClose();
     },
     onError: (err) => {
-      setFormError(err instanceof Error ? err.message : "Couldn't send the invite — try again.");
+      setFormError(err instanceof Error ? err.message : t("Couldn't send the invite — try again."));
     },
   });
 
@@ -167,17 +168,17 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
     }
     if (!firstName.trim() || !email.trim()) {
       setStep(0);
-      setFormError("Add at least a first name and email before sending the invite.");
+      setFormError(t("Add at least a first name and email before sending the invite."));
       return;
     }
     if (!locationId) {
       setStep(0);
-      setFormError("Pick a location for this member.");
+      setFormError(t("Pick a location for this member."));
       return;
     }
     if (!roleId) {
       setStep(3);
-      setFormError("Pick a role for this member.");
+      setFormError(t("Pick a role for this member."));
       return;
     }
     setFormError(null);
@@ -192,11 +193,11 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
     // already on the team while adding someone to it.
     <Modal open={open} onClose={handleClose} width={560} variant="sheet">
       <div className="flex items-center justify-between px-6 pt-6">
-        <h2 className="m-0 font-sans text-lg font-semibold text-tn-ink">Add New Member</h2>
+        <h2 className="m-0 font-sans text-lg font-semibold text-tn-ink">{t("Add New Member")}</h2>
         <button
           type="button"
           onClick={handleClose}
-          aria-label="Close"
+          aria-label={t("Close")}
           className="cursor-pointer border-none bg-transparent font-sans text-xl text-tn-muted-6"
         >
           &times;
@@ -213,37 +214,37 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
                 👤
               </div>
               <span className="font-sans text-[14px] font-medium text-tn-gold">
-                Add member&rsquo;s photo
+                {t("Add member’s photo")}
               </span>
             </div>
             <label className="flex items-center gap-2 font-sans text-[14px] text-tn-muted-1">
               <input type="checkbox" defaultChecked className="accent-tn-gold" />
-              Visible Online
+              {t("Visible Online")}
             </label>
             <div className="grid grid-cols-2 gap-3.5">
-              <Field label="FIRST NAME">
+              <Field label={t("FIRST NAME")}>
                 <input
                   type="text"
-                  placeholder="Jordan"
+                  placeholder={t("Jordan")}
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   className={formInputClass}
                 />
               </Field>
-              <Field label="LAST NAME">
+              <Field label={t("LAST NAME")}>
                 <input
                   type="text"
-                  placeholder="Rivera"
+                  placeholder={t("Rivera")}
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   className={formInputClass}
                 />
               </Field>
             </div>
-            <Field label="PHONE">
+            <Field label={t("PHONE")}>
               <PhoneInput value={phone} onChange={setPhone} />
             </Field>
-            <Field label="EMAIL">
+            <Field label={t("EMAIL")}>
               <input
                 type="email"
                 placeholder="jordan@thegentry.com"
@@ -252,13 +253,13 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
                 className={formInputClass}
               />
             </Field>
-            <Field label="LOCATION">
+            <Field label={t("LOCATION")}>
               <select
                 value={locationId}
                 onChange={(e) => handleLocationChange(e.target.value)}
                 className={formSelectClass}
               >
-                {locations.length === 0 && <option value="">Loading locations…</option>}
+                {locations.length === 0 && <option value="">{t("Loading locations…")}</option>}
                 {locations.map((loc) => (
                   <option key={loc.id} value={loc.id}>
                     {loc.name}
@@ -267,14 +268,17 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
               </select>
             </Field>
             <p className="m-0 font-sans text-xs text-tn-muted-5">
-              Where this member works. You can add more shops later from their profile — as long as
-              those shops keep the same time as this one.
+              {t(
+                "Where this member works. You can add more shops later from their profile — as long as those shops keep the same time as this one.",
+              )}
             </p>
             <p className="m-0 font-sans text-xs text-tn-muted-5">
-              No email gets sent — tell {firstName || "them"} out-of-band to sign in with Google
-              using this exact address once you&rsquo;ve sent the invite.
+              {t(
+                "No email gets sent — tell {{value}} out-of-band to sign in with Google using this exact address once you’ve sent the invite.",
+                { value: firstName || t("them") },
+              )}
             </p>
-            <Field label="APPOINTMENT COLOR">
+            <Field label={t("APPOINTMENT COLOR")}>
               <div className="flex items-center gap-2.5">
                 <span className="h-6 w-6 rounded-full bg-[#e8b23d]" />
                 <span className="font-sans text-xs text-tn-muted-4">#e8b23d</span>
@@ -294,11 +298,11 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
         {step === 2 && (
           <>
             <div className="grid grid-cols-2 gap-3.5">
-              <Field label="STARTING DATE">
+              <Field label={t("STARTING DATE")}>
                 <input type="text" defaultValue="12/28/2025" className={formInputClass} />
               </Field>
-              <Field label="ENDING DATE">
-                <input type="text" placeholder="No end date" className={formInputClass} />
+              <Field label={t("ENDING DATE")}>
+                <input type="text" placeholder={t("No end date")} className={formInputClass} />
               </Field>
             </div>
             <div className="flex flex-col gap-2">
@@ -315,9 +319,11 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
                   </span>
                   <span className="w-24 font-sans text-[14px] text-tn-ink-soft">{w.day}</span>
                   {w.enabled ? (
-                    <span className="font-sans text-[14px] text-tn-muted-3">9:00 am – 6:00 pm</span>
+                    <span className="font-sans text-[14px] text-tn-muted-3">
+                      {t("9:00 am – 6:00 pm")}
+                    </span>
                   ) : (
-                    <span className="font-sans text-[14px] text-tn-faint-2">Off</span>
+                    <span className="font-sans text-[14px] text-tn-faint-2">{t("Off")}</span>
                   )}
                 </div>
               ))}
@@ -328,10 +334,10 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
         {step === 3 && (
           <>
             <p className="m-0 font-sans text-[14px] text-tn-muted-4">
-              Pick a role to set what this member can access.
+              {t("Pick a role to set what this member can access.")}
             </p>
             {rolesQuery.isPending && (
-              <p className="m-0 font-sans text-[14px] text-tn-muted-5">Loading roles…</p>
+              <p className="m-0 font-sans text-[14px] text-tn-muted-5">{t("Loading roles…")}</p>
             )}
             <div className="flex flex-col gap-2.5">
               {roles.map((r) => (
@@ -369,32 +375,33 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
               <Toggle
                 checked={allowNoPayment}
                 onChange={setAllowNoPayment}
-                label="Allow booking without payment"
+                label={t("Allow booking without payment")}
               />
               <Toggle
                 checked={allowMultiService}
                 onChange={setAllowMultiService}
-                label="Allow multiple services per booking"
+                label={t("Allow multiple services per booking")}
               />
               <Toggle
                 checked={trackHours}
                 onChange={setTrackHours}
-                label="Track hours for payroll"
+                label={t("Track hours for payroll")}
               />
             </div>
             <div className="grid grid-cols-2 gap-3.5">
-              <Field label="BOOKING INTERVAL (CLIENT)">
-                <div className={formInputClass}>30 mins</div>
+              <Field label={t("BOOKING INTERVAL (CLIENT)")}>
+                <div className={formInputClass}>{t("30 mins")}</div>
               </Field>
-              <Field label="DAYS TO BOOK IN ADVANCE">
+              <Field label={t("DAYS TO BOOK IN ADVANCE")}>
                 <div className={formInputClass}>60</div>
               </Field>
             </div>
             <div className="flex items-start gap-2 rounded-xl bg-tn-page p-3.5">
               <span aria-hidden>ℹ</span>
               <p className="m-0 font-sans text-xs text-tn-muted-4">
-                Adding this member will use your last available seat, or add a prorated seat to your
-                Business plan.
+                {t(
+                  "Adding this member will use your last available seat, or add a prorated seat to your Business plan.",
+                )}
               </p>
             </div>
           </>
@@ -409,14 +416,14 @@ export function AddMemberWizard({ open, onClose }: AddMemberWizardProps) {
             onClick={() => (step === 0 ? handleClose() : setStep(step - 1))}
             disabled={inviteMutation.isPending}
           >
-            {step === 0 ? "Cancel" : "← Back"}
+            {step === 0 ? t("Cancel") : t("← Back")}
           </Button>
           <Button className="flex-1" onClick={goNext} disabled={inviteMutation.isPending}>
             {step === STEPS.length - 1
               ? inviteMutation.isPending
-                ? "Sending…"
-                : "Send Invite"
-              : `Next: ${STEPS[step + 1]} →`}
+                ? t("Sending…")
+                : t("Send Invite")
+              : t("Next: {{value}} →", { value: STEPS[step + 1] })}
           </Button>
         </div>
       </div>

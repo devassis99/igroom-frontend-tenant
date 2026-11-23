@@ -11,6 +11,7 @@ import { Field, formInputClass } from "@/components/ui/FormField";
 import { StepProgress } from "@/components/ui/StepProgress";
 import { PhoneInput, isPhoneValid } from "@/components/ui/PhoneInput";
 import { previewSlug, publicBookingUrl } from "@/lib/public-link";
+import { t } from "@/i18n";
 
 const CATEGORIES = ["Barbershop", "Hair Salon", "Nails", "Spa"];
 
@@ -64,11 +65,11 @@ export function BusinessDetailsPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!businessName.trim() || !locationName.trim() || !phone.trim()) {
-      setError("Fill in your business name, location name and phone to continue.");
+      setError(t("Fill in your business name, location name and phone to continue."));
       return;
     }
     if (!isPhoneValid(phone)) {
-      setError("That phone number doesn't look right for the selected country.");
+      setError(t("That phone number doesn't look right for the selected country."));
       return;
     }
     setError(null);
@@ -98,7 +99,7 @@ export function BusinessDetailsPage() {
       setError(
         err instanceof ApiError || err instanceof Error
           ? err.message
-          : "Couldn't save your business details — try again.",
+          : t("Couldn't save your business details — try again."),
       );
     } finally {
       setSaving(false);
@@ -115,19 +116,19 @@ export function BusinessDetailsPage() {
       <form onSubmit={handleSubmit} className="flex w-[460px] flex-col gap-[22px]">
         <div>
           <h1 className="m-0 mb-1.5 font-sans text-[24px] font-semibold text-tn-ink">
-            Tell us about your business
+            {t("Tell us about your business")}
           </h1>
           <p className="m-0 font-sans text-[14px] text-tn-muted-5">
-            Step {step.number} of {step.total}
+            {t("Step {{number}} of {{total}}", { number: step.number, total: step.total })}
           </p>
         </div>
 
         <StepProgress step={step.number} total={step.total} />
 
-        <Field label="BUSINESS NAME">
+        <Field label={t("BUSINESS NAME")}>
           <input
             type="text"
-            placeholder="The Gentry Barbershop"
+            placeholder={t("The Gentry Barbershop")}
             value={businessName}
             onChange={(e) => setBusinessDetails({ businessName: e.target.value })}
             className={formInputClass}
@@ -135,22 +136,23 @@ export function BusinessDetailsPage() {
         </Field>
 
         <div className="flex flex-col gap-1.5">
-          <Field label="LOCATION NAME">
+          <Field label={t("LOCATION NAME")}>
             <input
               type="text"
-              placeholder="Downtown"
+              placeholder={t("Downtown")}
               value={locationName}
               onChange={(e) => setBusinessDetails({ locationName: e.target.value })}
               className={formInputClass}
             />
           </Field>
           <p className="m-0 font-sans text-xs text-tn-muted-5">
-            Your first shop — usually its area or street, like “Downtown” or “South Congress”. You
-            can add more locations later.
+            {t(
+              "Your first shop — usually its area or street, like “Downtown” or “South Congress”. You can add more locations later.",
+            )}
             {linkPreview && (
               <>
                 {" "}
-                Your booking link will look like{" "}
+                {t("Your booking link will look like")}{" "}
                 <span className="font-mono text-tn-ink">{linkPreview}</span>
               </>
             )}
@@ -159,7 +161,7 @@ export function BusinessDetailsPage() {
 
         <div className="flex flex-col gap-2">
           <span className="font-sans text-xs font-medium tracking-[0.02em] text-tn-muted-1">
-            CATEGORY
+            {t("CATEGORY")}
           </span>
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((c) => (
@@ -177,14 +179,14 @@ export function BusinessDetailsPage() {
           </div>
         </div>
 
-        <Field label="BUSINESS PHONE">
+        <Field label={t("BUSINESS PHONE")}>
           <PhoneInput value={phone} onChange={(next) => setBusinessDetails({ phone: next })} />
         </Field>
 
         {error && <p className="m-0 font-sans text-xs text-tn-danger">{error}</p>}
 
         <Button type="submit" size="lg" disabled={saving}>
-          {saving ? "Saving…" : "Continue"}
+          {saving ? t("Saving…") : t("Continue")}
         </Button>
       </form>
     </div>

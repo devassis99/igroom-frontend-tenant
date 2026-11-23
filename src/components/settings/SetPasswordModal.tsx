@@ -5,6 +5,7 @@ import { Field, formInputClass } from "@/components/ui/FormField";
 import { OtpInput } from "@/components/ui/OtpInput";
 import { ApiError } from "@/lib/http";
 import { requestPasswordResetCode, confirmSetPassword } from "@/lib/accounts-api";
+import { t } from "@/i18n";
 
 /** Matches the backend's staffPasswordResetCodes cooldown (security.service.ts's RESET_CODE_RESEND_COOLDOWN_MS) — purely cosmetic here, the backend is the real enforcement. */
 const RESEND_COOLDOWN_S = 60;
@@ -59,7 +60,9 @@ export function SetPasswordModal({
     requestPasswordResetCode(accessToken)
       .then(() => setCooldown(RESEND_COOLDOWN_S))
       .catch((err) => {
-        setCodeError(err instanceof ApiError ? err.message : "Couldn't send the code — try again.");
+        setCodeError(
+          err instanceof ApiError ? err.message : t("Couldn't send the code — try again."),
+        );
       })
       .finally(() => setSendingCode(false));
   }
@@ -114,7 +117,7 @@ export function SetPasswordModal({
       })
       .catch((err) => {
         setSubmitError(
-          err instanceof ApiError ? err.message : "Couldn't update your password — try again.",
+          err instanceof ApiError ? err.message : t("Couldn't update your password — try again."),
         );
       })
       .finally(() => setSubmitting(false));
@@ -124,16 +127,16 @@ export function SetPasswordModal({
     <Modal open={open} onClose={onClose} width={420}>
       <div className="flex flex-col gap-5 p-6">
         <p className="m-0 font-sans text-lg font-semibold text-tn-ink">
-          {hasPassword ? "Change password" : "Set password"}
+          {hasPassword ? t("Change password") : t("Set password")}
         </p>
 
         {mfaEnabled ? (
-          <Field label="AUTHENTICATOR CODE">
+          <Field label={t("AUTHENTICATOR CODE")}>
             <OtpInput value={totpCode} onChange={setTotpCode} disabled={submitting} />
           </Field>
         ) : (
           <div className="flex flex-col gap-1.5">
-            <Field label="VERIFICATION CODE">
+            <Field label={t("VERIFICATION CODE")}>
               <input
                 type="text"
                 inputMode="numeric"
@@ -141,13 +144,13 @@ export function SetPasswordModal({
                 maxLength={6}
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                placeholder={sendingCode ? "Sending…" : "6-digit code"}
+                placeholder={sendingCode ? t("Sending…") : "6-digit code"}
                 className={formInputClass}
               />
             </Field>
             <div className="flex items-center justify-between font-sans text-xs">
               <span className="text-tn-muted-5">
-                {codeError ?? "We emailed a code to confirm it's really you."}
+                {codeError ?? t("We emailed a code to confirm it's really you.")}
               </span>
               <button
                 type="button"
@@ -155,24 +158,24 @@ export function SetPasswordModal({
                 disabled={sendingCode || cooldown > 0}
                 className="cursor-pointer border-none bg-transparent p-0 font-sans text-xs font-semibold text-tn-blue disabled:cursor-not-allowed disabled:text-tn-faint-2"
               >
-                {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}
+                {cooldown > 0 ? t("Resend in {{cooldown}}s", { cooldown }) : t("Resend code")}
               </button>
             </div>
           </div>
         )}
 
-        <Field label="NEW PASSWORD">
+        <Field label={t("NEW PASSWORD")}>
           <input
             type="password"
             autoComplete="new-password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="At least 8 characters"
+            placeholder={t("At least 8 characters")}
             className={formInputClass}
           />
         </Field>
 
-        <Field label="CONFIRM NEW PASSWORD">
+        <Field label={t("CONFIRM NEW PASSWORD")}>
           <input
             type="password"
             autoComplete="new-password"
@@ -182,7 +185,7 @@ export function SetPasswordModal({
           />
         </Field>
         {confirmPassword.length > 0 && !passwordsMatch && (
-          <p className="m-0 -mt-3 font-sans text-xs text-tn-danger">Passwords don&rsquo;t match</p>
+          <p className="m-0 -mt-3 font-sans text-xs text-tn-danger">{t("Passwords don’t match")}</p>
         )}
 
         {submitError && (
@@ -193,10 +196,10 @@ export function SetPasswordModal({
 
         <div className="flex gap-2.5">
           <Button variant="secondary" className="flex-1" onClick={onClose} disabled={submitting}>
-            Cancel
+            {t("Cancel")}
           </Button>
           <Button className="flex-1" onClick={handleSubmit} disabled={!canSubmit || submitting}>
-            {submitting ? "Saving…" : hasPassword ? "Change password" : "Set password"}
+            {submitting ? t("Saving…") : hasPassword ? t("Change password") : t("Set password")}
           </Button>
         </div>
       </div>

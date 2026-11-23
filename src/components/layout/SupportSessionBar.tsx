@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useAuthStore } from "@/auth/auth-store";
 import { endSupportSession } from "@/lib/support-session-api";
+import { t } from "@/i18n";
 
 function formatRemaining(ms: number): string {
   if (ms <= 0) return "0:00";
@@ -75,17 +76,17 @@ export function SupportSessionBar() {
       <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-tn-border bg-tn-dark px-4 py-2 shadow-lg">
         <span className="flex h-2 w-2 shrink-0 rounded-full bg-tn-gold-soft" aria-hidden />
         <span className="font-sans text-xs font-semibold text-tn-on-dark">
-          Read-only support session
+          {t("Read-only support session")}
         </span>
         <span className="font-sans text-[12px] text-tn-on-dark/70">
           {support.shopName}
-          {owner?.fullName ? ` · as ${owner.fullName}` : ""}
+          {owner?.fullName ? t(" · as {{fullName}}", { fullName: owner.fullName }) : ""}
         </span>
         <span
           className="font-mono text-[12px] tabular-nums text-tn-on-dark/70"
-          title="Time left before this session expires"
+          title={t("Time left before this session expires")}
         >
-          {expired ? "expired" : formatRemaining(remaining)}
+          {expired ? t("expired") : formatRemaining(remaining)}
         </span>
         <button
           type="button"
@@ -93,7 +94,7 @@ export function SupportSessionBar() {
           disabled={ending}
           className="rounded-full bg-tn-on-dark/15 px-3 py-1 font-sans text-[12px] font-semibold text-tn-on-dark disabled:opacity-50"
         >
-          {ending ? "Ending…" : "End session"}
+          {ending ? t("Ending…") : t("End session")}
         </button>
       </div>
     </div>

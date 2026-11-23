@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAnchoredPanel } from "@/components/ui/use-anchored-panel";
 import { Avatar } from "@/components/ui/Avatar";
+import { t } from "@/i18n";
 
 interface StaffOption {
   id: string;
@@ -134,8 +135,8 @@ export function StaffFilterPopover({
   value,
   onChange,
   selfId,
-  label = "Filter by member",
-  emptyLabel = "No members to show",
+  label = t("Filter by member"),
+  emptyLabel = t("No members to show"),
 }: StaffFilterPopoverProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -188,9 +189,9 @@ export function StaffFilterPopover({
   const selected = staff.find((s) => s.id === value);
   const selectedName = selected
     ? selected.id === selfId
-      ? `${selected.name} (me)`
+      ? t("{{name}} (me)", { name: selected.name })
       : selected.name
-    : "Select member";
+    : t("Select member");
 
   function select(next: string) {
     onChange(next);
@@ -251,7 +252,7 @@ export function StaffFilterPopover({
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search"
+                  placeholder={t("Search")}
                   className="w-full border-none bg-transparent font-sans text-[14px] text-tn-ink outline-none placeholder:text-tn-muted-5"
                 />
               </div>
@@ -263,7 +264,7 @@ export function StaffFilterPopover({
                   key={member.id}
                   type="button"
                   onClick={() => select(member.id)}
-                  className="flex w-full cursor-pointer items-center gap-2.5 border-none bg-transparent px-4 py-2 text-left font-sans text-[14px] font-medium text-tn-ink-soft hover:bg-tn-page"
+                  className="flex w-full cursor-pointer items-center gap-2.5 border-none bg-transparent px-4 py-2 text-start font-sans text-[14px] font-medium text-tn-ink-soft hover:bg-tn-page"
                 >
                   <Avatar
                     initials={initialsFor(member.name)}
@@ -272,7 +273,7 @@ export function StaffFilterPopover({
                   />
                   <span className="min-w-0 flex-1 truncate">
                     {member.name}
-                    {member.id === selfId && " (me)"}
+                    {member.id === selfId && t(" (me)")}
                   </span>
                   {value === member.id && (
                     <span className="shrink-0 text-tn-gold">
@@ -287,7 +288,7 @@ export function StaffFilterPopover({
                   {/* An empty roster and a search that matched nothing are
                       different problems, and "No members match" with an
                       empty query reads as a bug. */}
-                  {query.trim() ? `No members match "${query}"` : emptyLabel}
+                  {query.trim() ? t('No members match "{{query}}"', { query }) : emptyLabel}
                 </p>
               )}
             </div>

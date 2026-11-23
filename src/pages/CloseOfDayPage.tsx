@@ -18,6 +18,7 @@ import {
   type DayCloseStaffRow,
   type StaffCompModel,
 } from "@/lib/pos-api";
+import { t, intlLocale } from "@/i18n";
 
 /**
  * Close of day.
@@ -39,19 +40,20 @@ import {
 function errorMessage(error: unknown): string | null {
   if (!error) return null;
   if (error instanceof ApiError) return error.message;
-  return "Something went wrong. Try again.";
+  return t("Something went wrong. Try again.");
 }
 
 const COMP_LABEL: Record<StaffCompModel, string> = {
   commission: "commission",
-  hourly: "Hourly + tips",
-  chair_rent: "Chair rent",
+  hourly: t("Hourly + tips"),
+  chair_rent: t("Chair rent"),
 };
 
 function compDescription(row: DayCloseStaffRow): string {
-  if (row.compModel === "commission") return `${row.commissionRate ?? 0}% commission`;
+  if (row.compModel === "commission")
+    return t("{{value}}% commission", { value: row.commissionRate ?? 0 });
   if (row.compModel === "hourly") return COMP_LABEL.hourly;
-  return `Chair rent · ${formatCents(row.chairRentCents ?? 0)}/wk`;
+  return t("Chair rent · {{cents}}/wk", { cents: formatCents(row.chairRentCents ?? 0) });
 }
 
 export function CloseOfDayPage() {
@@ -125,8 +127,10 @@ export function CloseOfDayPage() {
       // White components on the cream page — see .tn-white-components (index.css).
       <div className="tn-white-components">
         <PermissionNotice
-          title="Close of day"
-          what="Counting the drawer and seeing what each chair took home needs the “Close the day” permission."
+          title={t("Close of day")}
+          what={t(
+            "Counting the drawer and seeing what each chair took home needs the “Close the day” permission.",
+          )}
         />
       </div>
     );
@@ -135,9 +139,9 @@ export function CloseOfDayPage() {
   if (locationsQuery.isSuccess && locations.length === 0) {
     return (
       <div className="flex flex-col gap-3">
-        <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Close of day</h1>
+        <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">{t("Close of day")}</h1>
         <p className="m-0 max-w-[60ch] font-sans text-sm text-tn-muted-3">
-          You are not assigned to a branch yet, so there is no day to close.
+          {t("You are not assigned to a branch yet, so there is no day to close.")}
         </p>
       </div>
     );
@@ -148,7 +152,9 @@ export function CloseOfDayPage() {
     <div className="tn-white-components flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Close of day</h1>
+          <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">
+            {t("Close of day")}
+          </h1>
           {locations.length > 1 && (
             <LocationFilterPopover
               locations={locations.map((l) => ({ id: l.id, name: l.name }))}
@@ -159,7 +165,7 @@ export function CloseOfDayPage() {
                 // another's.
                 setCountedDraft(null);
               }}
-              label="Choose a branch"
+              label={t("Choose a branch")}
               includeAllOption={false}
             />
           )}
@@ -173,11 +179,11 @@ export function CloseOfDayPage() {
             className="!bg-tn-surface hover:!bg-tn-page/60"
             onClick={() => setRuleOpen(true)}
           >
-            Tip split rule
+            {t("Tip split rule")}
           </Button>
           <span className="font-sans text-xs text-tn-muted-5">
             {day
-              ? new Date(`${day.businessDate}T12:00:00`).toLocaleDateString([], {
+              ? new Date(`${day.businessDate}T12:00:00`).toLocaleDateString(intlLocale(), {
                   weekday: "long",
                   day: "numeric",
                   month: "short",
@@ -194,40 +200,40 @@ export function CloseOfDayPage() {
       )}
 
       <div data-tour="close-stats" className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-        <StatCard label="Tickets" value={String(day?.ticketCount ?? 0)} />
-        <StatCard label="Taken" value={formatCents(day?.grossSalesCents ?? 0)} />
-        <StatCard label="Tips" value={formatCents(day?.tipsCents ?? 0)} />
+        <StatCard label={t("Tickets")} value={String(day?.ticketCount ?? 0)} />
+        <StatCard label={t("Taken")} value={formatCents(day?.grossSalesCents ?? 0)} />
+        <StatCard label={t("Tips")} value={formatCents(day?.tipsCents ?? 0)} />
       </div>
 
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_330px]">
         <section className="flex flex-col gap-3">
           <p className="m-0 font-sans text-xs font-semibold tracking-[0.1em] text-tn-muted-5">
-            WHO IS OWED WHAT
+            {t("WHO IS OWED WHAT")}
           </p>
 
           {day && day.staff.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-tn-border bg-tn-surface px-5 py-10 text-center">
               <p className="m-0 font-sans text-sm font-semibold text-tn-ink">
-                Nothing rung up yet today
+                {t("Nothing rung up yet today")}
               </p>
               <p className="m-0 mt-1 font-sans text-[14px] text-tn-muted-3">
-                Close a ticket on the register and it will show up here.
+                {t("Close a ticket on the register and it will show up here.")}
               </p>
             </div>
           ) : (
             <div className="overflow-hidden rounded-2xl border border-tn-border bg-tn-surface">
               <div className="flex bg-tn-table-head px-4 py-2.5">
                 <span className="flex-[1.4] font-sans text-[12px] font-semibold tracking-[0.06em] text-tn-muted-5">
-                  BARBER
+                  {t("BARBER")}
                 </span>
-                <span className="w-[78px] text-right font-sans text-[12px] font-semibold tracking-[0.06em] text-tn-muted-5">
-                  SERVICES
+                <span className="w-[78px] text-end font-sans text-[12px] font-semibold tracking-[0.06em] text-tn-muted-5">
+                  {t("SERVICES")}
                 </span>
-                <span className="w-[64px] text-right font-sans text-[12px] font-semibold tracking-[0.06em] text-tn-muted-5">
-                  TIPS
+                <span className="w-[64px] text-end font-sans text-[12px] font-semibold tracking-[0.06em] text-tn-muted-5">
+                  {t("TIPS")}
                 </span>
-                <span className="w-[118px] text-right font-sans text-[12px] font-semibold tracking-[0.06em] text-tn-muted-5">
-                  PAYOUT
+                <span className="w-[118px] text-end font-sans text-[12px] font-semibold tracking-[0.06em] text-tn-muted-5">
+                  {t("PAYOUT")}
                 </span>
               </div>
               {day?.staff.map((row) => (
@@ -243,10 +249,10 @@ export function CloseOfDayPage() {
                       {compDescription(row)}
                     </p>
                   </div>
-                  <span className="w-[78px] text-right font-sans text-[14px] text-tn-ink-soft">
+                  <span className="w-[78px] text-end font-sans text-[14px] text-tn-ink-soft">
                     {formatCents(row.serviceCents)}
                   </span>
-                  <span className="w-[64px] text-right font-sans text-[14px] text-tn-ink-soft">
+                  <span className="w-[64px] text-end font-sans text-[14px] text-tn-ink-soft">
                     {formatCents(row.tipsCents)}
                   </span>
                   <span className="flex w-[118px] shrink-0 flex-col items-end">
@@ -269,7 +275,9 @@ export function CloseOfDayPage() {
                         : formatCents(row.payoutCents)}
                     </span>
                     {row.payoutCents < 0 ? (
-                      <span className="font-sans text-[12px] text-tn-danger">owes the shop</span>
+                      <span className="font-sans text-[12px] text-tn-danger">
+                        {t("owes the shop")}
+                      </span>
                     ) : row.id && row.status === "pending" ? (
                       <button
                         type="button"
@@ -277,10 +285,10 @@ export function CloseOfDayPage() {
                         disabled={settle.isPending}
                         className="cursor-pointer border-none bg-transparent font-sans text-[12px] text-tn-gold hover:underline"
                       >
-                        mark settled
+                        {t("mark settled")}
                       </button>
                     ) : row.status === "paid" ? (
-                      <span className="font-sans text-[12px] text-tn-success">settled</span>
+                      <span className="font-sans text-[12px] text-tn-success">{t("settled")}</span>
                     ) : null}
                   </span>
                 </div>
@@ -290,30 +298,32 @@ export function CloseOfDayPage() {
 
           {day && day.deskPoolCents > 0 && (
             <p className="m-0 rounded-xl bg-tn-gold-bg-soft px-4 py-3 font-sans text-[13px] leading-relaxed text-tn-muted-3">
-              {formatCents(day.deskPoolCents)} of tonight&rsquo;s tips is the front desk pool. It is
-              shown on its own rather than folded into someone&rsquo;s total, because the register
-              knows it was earned and does not yet know whose shift it belongs to.
+              {t(
+                "{{deskPoolCents}} of tonight’s tips is the front desk pool. It is shown on its own rather than folded into someone’s total, because the register knows it was earned and does not yet know whose shift it belongs to.",
+                { deskPoolCents: formatCents(day.deskPoolCents) },
+              )}
             </p>
           )}
 
           <p className="m-0 font-sans text-[13px] leading-relaxed text-tn-muted-5">
-            These are payout statements, frozen at tonight&rsquo;s rates — not transfers. Staff see
-            the same breakdown for their own work, so nobody has to ask.
+            {t(
+              "These are payout statements, frozen at tonight’s rates — not transfers. Staff see the same breakdown for their own work, so nobody has to ask.",
+            )}
           </p>
         </section>
 
         <aside className="flex flex-col gap-4 rounded-2xl border border-tn-border bg-tn-surface p-5 lg:sticky lg:top-6">
           <p className="m-0 font-sans text-[12px] font-semibold tracking-[0.1em] text-tn-muted-5">
-            DRAWER COUNT
+            {t("DRAWER COUNT")}
           </p>
           <div className="flex flex-col gap-2.5">
-            <Row label="Opening float" value={formatCents(day?.openingFloatCents ?? 0)} />
-            <Row label="Cash sales" value={formatCents(day?.cashSalesCents ?? 0)} />
-            <Row label="Expected" value={formatCents(day?.expectedCashCents ?? 0)} />
+            <Row label={t("Opening float")} value={formatCents(day?.openingFloatCents ?? 0)} />
+            <Row label={t("Cash sales")} value={formatCents(day?.cashSalesCents ?? 0)} />
+            <Row label={t("Expected")} value={formatCents(day?.expectedCashCents ?? 0)} />
           </div>
 
           <label className="flex flex-col gap-1.5">
-            <span className="font-sans text-[13px] text-tn-muted-5">Counted</span>
+            <span className="font-sans text-[13px] text-tn-muted-5">{t("Counted")}</span>
             <input
               value={counted}
               onChange={(event) => setCountedDraft(event.target.value)}
@@ -342,7 +352,7 @@ export function CloseOfDayPage() {
                       : "text-tn-gold"
                 }`}
               >
-                {variance === 0 ? "Balances" : variance < 0 ? "Short" : "Over"}
+                {variance === 0 ? t("Balances") : variance < 0 ? t("Short") : t("Over")}
               </span>
               <span
                 className={`font-sans text-[14px] font-semibold ${
@@ -361,7 +371,9 @@ export function CloseOfDayPage() {
           <div className="h-px bg-tn-border-soft" />
 
           <div className="flex items-baseline justify-between">
-            <span className="font-sans text-sm font-semibold text-tn-ink">Total payouts</span>
+            <span className="font-sans text-sm font-semibold text-tn-ink">
+              {t("Total payouts")}
+            </span>
             <span className="font-sans text-[20px] font-semibold text-tn-ink">
               {formatCents(day?.payoutTotalCents ?? 0)}
             </span>
@@ -369,10 +381,16 @@ export function CloseOfDayPage() {
 
           {day?.status === "closed" ? (
             <p className="m-0 rounded-lg bg-tn-success-bg px-3 py-2.5 font-sans text-[13px] font-semibold text-tn-success">
-              Closed
-              {day.closedAt
-                ? ` at ${new Date(day.closedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`
-                : ""}
+              {t("Closed{{value}}", {
+                value: day.closedAt
+                  ? t(" at {{localeTimeString}}", {
+                      localeTimeString: new Date(day.closedAt).toLocaleTimeString(intlLocale(), {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      }),
+                    })
+                  : "",
+              })}
             </p>
           ) : (
             <Button
@@ -380,7 +398,7 @@ export function CloseOfDayPage() {
               onClick={() => finish.mutate()}
               disabled={finish.isPending || !day}
             >
-              Count the drawer &amp; close
+              {t("Count the drawer & close")}
             </Button>
           )}
         </aside>

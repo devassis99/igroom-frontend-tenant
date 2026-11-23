@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/auth/auth-store";
 import { usePermissions } from "@/auth/use-permissions";
 import { updateSchedulingSettings } from "@/lib/collisions-api";
+import { t } from "@/i18n";
 
 const OPTIONS = [0, 15, 30, 45, 60, 90];
 
@@ -50,7 +51,7 @@ export function TravelBufferField() {
     // bg-tn-surface like the location and staff filters beside it, so the
     // three controls in the header match.
     <label className="flex items-center gap-2 rounded-xl border border-tn-input-border bg-tn-surface px-3 py-1.5">
-      <span className="font-sans text-[12px] text-tn-muted-5">Travel between shops</span>
+      <span className="font-sans text-[12px] text-tn-muted-5">{t("Travel between shops")}</span>
       <select
         value={value}
         disabled={mutation.isPending}
@@ -63,7 +64,7 @@ export function TravelBufferField() {
       >
         {OPTIONS.map((minutes) => (
           <option key={minutes} value={minutes}>
-            {minutes === 0 ? "Don’t warn" : `${minutes} min`}
+            {minutes === 0 ? t("Don’t warn") : t("{{minutes}} min", { minutes })}
           </option>
         ))}
       </select>

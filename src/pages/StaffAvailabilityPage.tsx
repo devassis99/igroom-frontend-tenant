@@ -7,8 +7,17 @@ import { StepProgress } from "@/components/ui/StepProgress";
 import { TimePicker } from "@/components/ui/TimePicker";
 import { setMyAvailability, type AvailabilityDay } from "@/lib/availability-api";
 import { ApiError } from "@/lib/http";
+import { t } from "@/i18n";
 
-const DAY_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DAY_LABELS = [
+  t("Sunday"),
+  t("Monday"),
+  t("Tuesday"),
+  t("Wednesday"),
+  t("Thursday"),
+  t("Friday"),
+  t("Saturday"),
+];
 
 /**
  * This step's own lightweight per-day shape — a single on/off toggle plus
@@ -102,8 +111,10 @@ export function StaffAvailabilityPage() {
     } catch (err) {
       setError(
         err instanceof ApiError || err instanceof Error
-          ? `${err.message} — you can skip this and set your hours later in Settings.`
-          : "Couldn't save your hours — you can skip this and set them later in Settings.",
+          ? t("{{message}} — you can skip this and set your hours later in Settings.", {
+              message: err.message,
+            })
+          : t("Couldn't save your hours — you can skip this and set them later in Settings."),
       );
     } finally {
       setSaving(false);
@@ -115,10 +126,13 @@ export function StaffAvailabilityPage() {
       <div className="flex w-[460px] flex-col gap-[22px]">
         <div>
           <h1 className="m-0 mb-1.5 font-sans text-[24px] font-semibold text-tn-ink">
-            Set your weekly availability
+            {t("Set your weekly availability")}
           </h1>
           <p className="m-0 font-sans text-[14px] text-tn-muted-5">
-            Step {step.number} of {step.total} — optional, you can change this later in Settings
+            {t("Step {{number}} of {{total}} — optional, you can change this later in Settings", {
+              number: step.number,
+              total: step.total,
+            })}
           </p>
         </div>
 
@@ -131,7 +145,7 @@ export function StaffAvailabilityPage() {
                 type="button"
                 onClick={() => toggleDay(d.dayOfWeek)}
                 aria-pressed={d.isEnabled}
-                aria-label={`Toggle ${DAY_LABELS[d.dayOfWeek]}`}
+                aria-label={t("Toggle {{value}}", { value: DAY_LABELS[d.dayOfWeek] })}
                 className={`flex h-[18px] w-[18px] flex-none cursor-pointer items-center justify-center rounded border text-[12px] ${
                   d.isEnabled
                     ? "border-tn-gold bg-tn-gold text-tn-on-dark"
@@ -146,7 +160,7 @@ export function StaffAvailabilityPage() {
               {d.isEnabled ? (
                 <div className="flex flex-1 items-center gap-2">
                   <TimePicker
-                    label={`${DAY_LABELS[d.dayOfWeek]} start time`}
+                    label={t("{{value}} start time", { value: DAY_LABELS[d.dayOfWeek] })}
                     value={d.startTime}
                     onChange={(next) => updateTime(d.dayOfWeek, "startTime", next)}
                     // `!` on width, not just padding/text — TimePicker's own trigger
@@ -157,16 +171,16 @@ export function StaffAvailabilityPage() {
                     // balloon to fill its row instead of staying a compact 132px.
                     className="!w-[132px] !px-2.5 !py-1.5 !text-[14px]"
                   />
-                  <span className="font-sans text-xs text-tn-muted-6">to</span>
+                  <span className="font-sans text-xs text-tn-muted-6">{t("to")}</span>
                   <TimePicker
-                    label={`${DAY_LABELS[d.dayOfWeek]} end time`}
+                    label={t("{{value}} end time", { value: DAY_LABELS[d.dayOfWeek] })}
                     value={d.endTime}
                     onChange={(next) => updateTime(d.dayOfWeek, "endTime", next)}
                     className="!w-[132px] !px-2.5 !py-1.5 !text-[14px]" // see the start TimePicker's comment above
                   />
                 </div>
               ) : (
-                <span className="font-sans text-[14px] text-tn-faint-2">Off</span>
+                <span className="font-sans text-[14px] text-tn-faint-2">{t("Off")}</span>
               )}
             </div>
           ))}
@@ -176,10 +190,10 @@ export function StaffAvailabilityPage() {
 
         <div className="flex gap-2.5">
           <Button variant="secondary" className="flex-1" onClick={skip} disabled={saving}>
-            Skip for now
+            {t("Skip for now")}
           </Button>
           <Button className="flex-1" onClick={() => void saveAndContinue()} disabled={saving}>
-            {saving ? "Saving…" : "Save & continue"}
+            {saving ? t("Saving…") : t("Save & continue")}
           </Button>
         </div>
       </div>

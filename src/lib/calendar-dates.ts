@@ -1,3 +1,4 @@
+import { intlLocale } from "@/i18n";
 /**
  * Pure date-math helpers for CalendarPage — Monday-start weeks throughout
  * (matches the mockup's MON..SUN week strip and month grid header), kept
@@ -83,30 +84,34 @@ export function formatWeekColumnLabel(date: Date): string {
 
 /** e.g. "Wed, Aug 12" — the Day view's nav label. */
 export function formatDayNavLabel(date: Date): string {
-  return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  return date.toLocaleDateString(intlLocale(), {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 /** e.g. "Aug 10 – Aug 16" — the Week view's nav label. */
 export function formatWeekNavLabel(date: Date): string {
   const start = startOfWeek(date);
   const end = addDays(start, 6);
-  const startLabel = start.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const startLabel = start.toLocaleDateString(intlLocale(), { month: "short", day: "numeric" });
   const endLabel =
     start.getMonth() === end.getMonth()
-      ? end.toLocaleDateString("en-US", { day: "numeric" })
-      : end.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      ? end.toLocaleDateString(intlLocale(), { day: "numeric" })
+      : end.toLocaleDateString(intlLocale(), { month: "short", day: "numeric" });
   return `${startLabel} – ${endLabel}`;
 }
 
 /** e.g. "August 2026" — the Month view's nav label. */
 export function formatMonthNavLabel(date: Date): string {
-  return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  return date.toLocaleDateString(intlLocale(), { month: "long", year: "numeric" });
 }
 
 /** e.g. "1:00 PM" for a booking's start/end time. Pass `timeZone` (an IANA name, e.g. "Asia/Karachi") to show it in a specific zone instead of the browser's own — see CalendarPage.tsx's timezone picker. */
 export function formatTimeLabel(date: Date, timeZone?: string): string {
   return date
-    .toLocaleTimeString("en-US", {
+    .toLocaleTimeString(intlLocale(), {
       hour: "numeric",
       minute: "2-digit",
       ...(timeZone ? { timeZone } : {}),
@@ -122,7 +127,7 @@ export function formatDateTimeLabel(date: Date, timeZone?: string): string {
 /** e.g. "WEDNESDAY, AUG 12" — the List view's date-group headers. */
 export function formatListDateHeader(date: Date, timeZone?: string): string {
   return date
-    .toLocaleDateString("en-US", {
+    .toLocaleDateString(intlLocale(), {
       weekday: "long",
       month: "short",
       day: "numeric",

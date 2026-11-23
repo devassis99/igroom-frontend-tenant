@@ -5,6 +5,7 @@ import { Field } from "@/components/ui/FormField";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { TimePicker } from "@/components/ui/TimePicker";
 import type { UpsertOverrideInput } from "@/lib/availability-api";
+import { t } from "@/i18n";
 
 interface AddOverrideModalProps {
   open: boolean;
@@ -67,16 +68,18 @@ export function AddOverrideModal({
   return (
     <Modal open={open} onClose={onClose} width={400}>
       <div className="flex flex-col gap-5 p-6">
-        <p className="m-0 font-sans text-lg font-semibold text-tn-ink">Add a date override</p>
+        <p className="m-0 font-sans text-lg font-semibold text-tn-ink">
+          {t("Add a date override")}
+        </p>
 
-        <Field label="DATE">
+        <Field label={t("DATE")}>
           {/* The app's own calendar, not <input type="date">. The native
               one opened the browser's chrome — blue accent, its own
               Clear/Today row, its own idea of dd/mm/yyyy — inside a modal
               whose every other control is ours, and the two didn't look
               like the same product. Same swap TimePicker made next to it. */}
           <DatePicker
-            label="Override date"
+            label={t("Override date")}
             value={date}
             onChange={setDate}
             min={minDate ?? todayIso()}
@@ -88,46 +91,50 @@ export function AddOverrideModal({
             type="button"
             onClick={() => setIsUnavailable(true)}
             aria-pressed={isUnavailable}
-            className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-3 text-left font-sans text-sm font-medium ${
+            className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-3 text-start font-sans text-sm font-medium ${
               isUnavailable
                 ? "border-tn-gold bg-tn-gold-bg text-tn-ink"
                 : "border-tn-input-border text-tn-ink-soft"
             }`}
           >
-            Mark unavailable all day
+            {t("Mark unavailable all day")}
           </button>
           <button
             type="button"
             onClick={() => setIsUnavailable(false)}
             aria-pressed={!isUnavailable}
-            className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-3 text-left font-sans text-sm font-medium ${
+            className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-3 text-start font-sans text-sm font-medium ${
               !isUnavailable
                 ? "border-tn-gold bg-tn-gold-bg text-tn-ink"
                 : "border-tn-input-border text-tn-ink-soft"
             }`}
           >
-            Custom hours for this date
+            {t("Custom hours for this date")}
           </button>
         </div>
 
         {!isUnavailable && (
           <div className="flex items-center gap-2">
             <div className="flex-1">
-              <TimePicker label="Override start time" value={startTime} onChange={setStartTime} />
+              <TimePicker
+                label={t("Override start time")}
+                value={startTime}
+                onChange={setStartTime}
+              />
             </div>
-            <span className="font-sans text-xs text-tn-muted-6">to</span>
+            <span className="font-sans text-xs text-tn-muted-6">{t("to")}</span>
             <div className="flex-1">
-              <TimePicker label="Override end time" value={endTime} onChange={setEndTime} />
+              <TimePicker label={t("Override end time")} value={endTime} onChange={setEndTime} />
             </div>
           </div>
         )}
 
         <div className="flex gap-2.5">
           <Button variant="secondary" className="flex-1" onClick={onClose} disabled={submitting}>
-            Cancel
+            {t("Cancel")}
           </Button>
           <Button className="flex-1" onClick={handleSubmit} disabled={!date || submitting}>
-            {submitting ? "Saving…" : "Save override"}
+            {submitting ? t("Saving…") : t("Save override")}
           </Button>
         </div>
       </div>

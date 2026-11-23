@@ -16,6 +16,7 @@ import { BOOKING_STATUS_BAR, BOOKING_STATUS_TONE } from "@/lib/booking-status";
 import { formatListDateHeader, formatTimeLabel } from "@/lib/calendar-dates";
 import { todayIsoIn } from "@/lib/timezones";
 import { invalidateVisitCaches } from "@/lib/visit-cache";
+import { t } from "@/i18n";
 
 type Tab = "upcoming" | "past";
 type OpenMode = "detail" | "reschedule" | "cancel";
@@ -135,8 +136,8 @@ export function AppointmentListView({
         <div className="flex items-end gap-1">
           {(
             [
-              ["upcoming", "Upcoming", upcomingCount],
-              ["past", "Past", pastCount],
+              ["upcoming", t("Upcoming"), upcomingCount],
+              ["past", t("Past"), pastCount],
             ] as [Tab, string, number][]
           ).map(([value, label, count]) => (
             <TabButton
@@ -160,15 +161,15 @@ export function AppointmentListView({
 
       {query.isError && (
         <p className="m-0 font-sans text-sm text-tn-danger">
-          Couldn&rsquo;t load appointments right now (
-          {query.error instanceof Error ? query.error.message : "unknown error"}) — refresh to try
-          again.
+          {t("Couldn’t load appointments right now ({{value}}) — refresh to try again.", {
+            value: query.error instanceof Error ? query.error.message : t("unknown error"),
+          })}
         </p>
       )}
 
       {!query.isError && !query.isPending && bookings.length === 0 && (
         <p className="m-0 py-6 text-center font-sans text-sm text-tn-muted-5">
-          No {tab} appointments.
+          {t("No {{tab}} appointments.", { tab })}
         </p>
       )}
 
@@ -204,7 +205,7 @@ export function AppointmentListView({
                       <button
                         type="button"
                         onClick={() => setExpandedId(expanded ? null : booking.id)}
-                        className="flex flex-1 cursor-pointer items-center gap-4 px-[18px] py-3.5 text-left"
+                        className="flex flex-1 cursor-pointer items-center gap-4 px-[18px] py-3.5 text-start"
                       >
                         <span className="w-[110px] flex-none font-sans text-[14px] font-semibold text-tn-ink-soft">
                           {formatTimeLabel(start, timezone)} – {formatTimeLabel(end, timezone)}
@@ -220,7 +221,7 @@ export function AppointmentListView({
                             </span>
                           </p>
                           <p className="m-0 mt-0.5 truncate font-sans text-xs text-tn-muted-5">
-                            with {booking.staffName}
+                            {t("with {{staffName}}", { staffName: booking.staffName })}
                           </p>
                         </div>
                         <StatusPill tone={status.tone}>{status.label}</StatusPill>
@@ -251,7 +252,7 @@ export function AppointmentListView({
                           <div className="grid grid-cols-3 gap-x-8 gap-y-3">
                             <div>
                               <p className="m-0 font-sans text-[12px] font-semibold tracking-wide text-tn-muted-5">
-                                CLIENT
+                                {t("CLIENT")}
                               </p>
                               <p className="m-0 mt-1 font-sans text-[14px] font-semibold text-tn-ink">
                                 {booking.customerName}
@@ -264,18 +265,21 @@ export function AppointmentListView({
                             </div>
                             <div>
                               <p className="m-0 font-sans text-[12px] font-semibold tracking-wide text-tn-muted-5">
-                                SERVICE &amp; BARBER
+                                {t("SERVICE & BARBER")}
                               </p>
                               <p className="m-0 mt-1 font-sans text-[14px] font-semibold text-tn-ink">
                                 {booking.serviceName}
                               </p>
                               <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
-                                with {booking.staffName} · {booking.durationMinutes} min
+                                {t("with {{staffName}} · {{durationMinutes}} min", {
+                                  staffName: booking.staffName,
+                                  durationMinutes: booking.durationMinutes,
+                                })}
                               </p>
                             </div>
                             <div>
                               <p className="m-0 font-sans text-[12px] font-semibold tracking-wide text-tn-muted-5">
-                                PRICE
+                                {t("PRICE")}
                               </p>
                               <p
                                 className={`m-0 mt-1 font-sans text-[14px] font-semibold ${
@@ -284,21 +288,21 @@ export function AppointmentListView({
                               >
                                 {booking.priceCents != null
                                   ? `$${(booking.priceCents / 100).toFixed(2)}`
-                                  : "Not set"}
+                                  : t("Not set")}
                               </p>
                             </div>
                           </div>
 
                           <div>
                             <p className="m-0 font-sans text-[12px] font-semibold tracking-wide text-tn-muted-5">
-                              NOTES
+                              {t("NOTES")}
                             </p>
                             <p
                               className={`m-0 mt-1 font-sans text-[14px] ${
                                 booking.notes ? "text-tn-ink-soft" : "text-tn-faint-2"
                               }`}
                             >
-                              {booking.notes || "No notes"}
+                              {booking.notes || t("No notes")}
                             </p>
                           </div>
 
@@ -308,16 +312,18 @@ export function AppointmentListView({
                               return (
                                 <div>
                                   <p className="m-0 font-sans text-[12px] font-semibold tracking-wide text-tn-muted-5">
-                                    CUSTOMER REVIEW
+                                    {t("CUSTOMER REVIEW")}
                                   </p>
                                   {reviewsQuery.isPending ? (
                                     <p className="m-0 mt-1 font-sans text-[14px] text-tn-faint-2">
-                                      Loading review…
+                                      {t("Loading review…")}
                                     </p>
                                   ) : review ? (
                                     <div className="mt-1 flex flex-col gap-1">
                                       <span
-                                        aria-label={`${review.rating} out of 5 stars`}
+                                        aria-label={t("{{rating}} out of 5 stars", {
+                                          rating: review.rating,
+                                        })}
                                         className="font-sans text-[14px] text-tn-gold"
                                       >
                                         {"★".repeat(review.rating)}
@@ -330,12 +336,12 @@ export function AppointmentListView({
                                           review.comment ? "text-tn-ink-soft" : "text-tn-faint-2"
                                         }`}
                                       >
-                                        {review.comment || "No written comment"}
+                                        {review.comment || t("No written comment")}
                                       </p>
                                     </div>
                                   ) : (
                                     <p className="m-0 mt-1 font-sans text-[14px] text-tn-faint-2">
-                                      No review yet
+                                      {t("No review yet")}
                                     </p>
                                   )}
                                 </div>
@@ -364,7 +370,7 @@ export function AppointmentListView({
                                       })
                                     }
                                   >
-                                    Mark completed
+                                    {t("Mark completed")}
                                   </Button>
                                   {/* Same rule as AppointmentModal: an arrival and a
                                       no-show can't both be true of one visit. */}
@@ -380,7 +386,7 @@ export function AppointmentListView({
                                         })
                                       }
                                     >
-                                      Mark no-show
+                                      {t("Mark no-show")}
                                     </Button>
                                   )}
                                   <Button
@@ -393,7 +399,7 @@ export function AppointmentListView({
                                       }
                                     }}
                                   >
-                                    Message client
+                                    {t("Message client")}
                                   </Button>
                                 </>
                               ) : (
@@ -403,7 +409,7 @@ export function AppointmentListView({
                                     className="!bg-tn-surface hover:!bg-tn-page"
                                     onClick={() => onOpenBooking(booking, "reschedule")}
                                   >
-                                    Reschedule
+                                    {t("Reschedule")}
                                   </Button>
                                   <Button
                                     variant="secondary"
@@ -415,14 +421,14 @@ export function AppointmentListView({
                                       }
                                     }}
                                   >
-                                    Message client
+                                    {t("Message client")}
                                   </Button>
                                   <Button
                                     variant="danger-outline"
                                     className="!bg-tn-danger-bg hover:!opacity-80"
                                     onClick={() => onOpenBooking(booking, "cancel")}
                                   >
-                                    Cancel appointment
+                                    {t("Cancel appointment")}
                                   </Button>
                                 </>
                               )}

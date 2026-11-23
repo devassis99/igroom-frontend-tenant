@@ -3,6 +3,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { StatCard } from "@/components/ui/StatCard";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { LOCATIONS, TODAY_SCHEDULE, type Appointment } from "@/lib/sample-data";
+import { t } from "@/i18n";
 
 const STATUS_TONE: Record<Appointment["status"], "success" | "neutral"> = {
   Confirmed: "success",
@@ -21,22 +22,22 @@ export function AnalyticsPage() {
   return (
     // White components on the cream page — see .tn-white-components (index.css).
     <div className="tn-white-components flex flex-col gap-7">
-      <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">Analytics</h1>
+      <h1 className="m-0 font-sans text-[24px] font-semibold text-tn-ink">{t("Analytics")}</h1>
 
       <div data-tour="analytics-stats" className="grid grid-cols-2 gap-5 sm:grid-cols-4">
-        <StatCard label="Today's bookings" value="14" />
-        <StatCard label="In waitlist now" value="3" />
-        <StatCard label="Revenue today" value="$612" />
-        <StatCard label="Rating" value="4.9" />
+        <StatCard label={t("Today's bookings")} value="14" />
+        <StatCard label={t("In waitlist now")} value="3" />
+        <StatCard label={t("Revenue today")} value="$612" />
+        <StatCard label={t("Rating")} value="4.9" />
       </div>
 
       <div data-tour="analytics-schedule" className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between">
           <p className="m-0 font-sans text-base font-semibold text-tn-ink">
-            Today&rsquo;s schedule
+            {t("Today’s schedule")}
           </p>
           <Link to="/calendar" className="font-sans text-[14px] font-medium text-tn-gold">
-            View calendar
+            {t("View calendar")}
           </Link>
         </div>
         <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface">
@@ -55,7 +56,9 @@ export function AnalyticsPage() {
                 <p className="m-0 font-sans text-[14px] font-semibold text-tn-ink">
                   {apt.customer} · {apt.service}
                 </p>
-                <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">with {apt.barber}</p>
+                <p className="m-0 mt-0.5 font-sans text-xs text-tn-muted-5">
+                  {t("with {{barber}}", { barber: apt.barber })}
+                </p>
               </div>
               <StatusPill tone={STATUS_TONE[apt.status]}>{apt.status}</StatusPill>
             </div>
@@ -65,17 +68,17 @@ export function AnalyticsPage() {
 
       <div data-tour="analytics-locations" className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between">
-          <p className="m-0 font-sans text-base font-semibold text-tn-ink">By location</p>
+          <p className="m-0 font-sans text-base font-semibold text-tn-ink">{t("By location")}</p>
           <Link to="/locations" className="font-sans text-[14px] font-medium text-tn-gold">
-            View locations
+            {t("View locations")}
           </Link>
         </div>
         <div className="flex flex-col overflow-hidden rounded-2xl border border-tn-border bg-tn-surface">
           <div className="grid grid-cols-[2fr_1fr_1fr_1fr] bg-tn-table-head px-[18px] py-3 font-sans text-xs font-semibold text-tn-muted-5">
-            <span>Location</span>
-            <span>Bookings</span>
-            <span>Waitlist</span>
-            <span>Revenue</span>
+            <span>{t("Location")}</span>
+            <span>{t("Bookings")}</span>
+            <span>{t("Waitlist")}</span>
+            <span>{t("Revenue")}</span>
           </div>
           {LOCATIONS.map((loc, i) => (
             <div

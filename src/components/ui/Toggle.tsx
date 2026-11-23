@@ -41,7 +41,7 @@ export function Toggle({ checked, onChange, label, disabled = false }: TogglePro
           keeps it inside the pill at both ends.
         */}
         <span
-          className={`absolute top-0.5 left-0.5 h-[18px] w-[18px] rounded-full bg-tn-surface transition-transform ${
+          className={`absolute top-0.5 start-0.5 h-[18px] w-[18px] rounded-full bg-tn-surface transition-transform ${
             checked ? "translate-x-[14px]" : "translate-x-0"
           }`}
         />

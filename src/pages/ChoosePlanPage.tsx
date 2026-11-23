@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/Button";
 import { LinkedPlanSummary } from "@/components/signup/LinkedPlanSummary";
 import { createCheckoutSession } from "@/lib/accounts-api";
 import { ApiError } from "@/lib/http";
+import { t } from "@/i18n";
 
 const CYCLES: BillingCycle[] = ["monthly", "quarterly", "biannual", "annual"];
 
@@ -24,9 +25,9 @@ const EMPTY_PRODUCTS: CatalogProduct[] = [];
 
 const CYCLE_SUBTITLE: Record<BillingCycle, string> = {
   monthly: "",
-  quarterly: " · billed quarterly",
-  biannual: " · billed every 6 months",
-  annual: " · billed annually",
+  quarterly: t(" · billed quarterly"),
+  biannual: t(" · billed every 6 months"),
+  annual: t(" · billed annually"),
 };
 
 /**
@@ -148,7 +149,7 @@ function LinkedPlanCheckout({ token }: { token: string }) {
       setError(
         err instanceof ApiError || err instanceof Error
           ? err.message
-          : "Couldn't start checkout — try again.",
+          : t("Couldn't start checkout — try again."),
       );
       setRedirecting(false);
     }
@@ -171,36 +172,38 @@ function LinkedPlanCheckout({ token }: { token: string }) {
           <>
             <div>
               <h1 className="m-0 mb-1.5 font-sans text-[24px] font-semibold text-tn-ink">
-                This link isn't working any more
+                {t("This link isn't working any more")}
               </h1>
               <p className="m-0 font-sans text-[14px] text-tn-muted-5">
-                {linkQuery.error instanceof ApiError
-                  ? linkQuery.error.message
-                  : "We couldn't load the plan on your link."}{" "}
-                Your details are saved — you can pick a plan yourself instead.
+                {t("{{value}} Your details are saved — you can pick a plan yourself instead.", {
+                  value:
+                    linkQuery.error instanceof ApiError
+                      ? linkQuery.error.message
+                      : t("We couldn't load the plan on your link."),
+                })}
               </p>
             </div>
             <Button type="button" onClick={() => setSignupLinkToken(null)}>
-              Choose a plan
+              {t("Choose a plan")}
             </Button>
           </>
         ) : !link || (redirecting && !error) ? (
           <p className="m-0 text-center font-sans text-sm text-tn-muted-5">
-            Taking you to secure checkout…
+            {t("Taking you to secure checkout…")}
           </p>
         ) : (
           <>
             <div>
               <h1 className="m-0 mb-1.5 font-sans text-[24px] font-semibold text-tn-ink">
-                Confirm and pay
+                {t("Confirm and pay")}
               </h1>
               <p className="m-0 font-sans text-[14px] text-tn-muted-5">
-                Payment is handled securely by Stripe.
+                {t("Payment is handled securely by Stripe.")}
               </p>
             </div>
             {canceled && !error && (
               <p className="m-0 rounded-lg bg-tn-danger-bg px-3.5 py-2 font-sans text-xs text-tn-danger">
-                Checkout was canceled — no charge was made. Continue whenever you're ready.
+                {t("Checkout was canceled — no charge was made. Continue whenever you're ready.")}
               </p>
             )}
             {error && (
@@ -210,7 +213,7 @@ function LinkedPlanCheckout({ token }: { token: string }) {
             )}
             <LinkedPlanSummary link={link} />
             <Button type="button" disabled={redirecting} onClick={() => void startCheckout(link)}>
-              {redirecting ? "…" : "Continue to payment"}
+              {redirecting ? "…" : t("Continue to payment")}
             </Button>
           </>
         )}
@@ -301,7 +304,7 @@ function PlanPicker() {
       const message =
         err instanceof ApiError || err instanceof Error
           ? err.message
-          : "Couldn't start checkout — try again.";
+          : t("Couldn't start checkout — try again.");
       setError(message);
       setRedirectingProductId(null);
     }
@@ -311,17 +314,20 @@ function PlanPicker() {
     <div className="flex min-h-screen flex-col items-center justify-center gap-8 bg-tn-plan-bg px-6 py-14">
       <div className="text-center">
         <h1 className="m-0 mb-1.5 font-sans text-[30px] font-semibold text-tn-on-dark">
-          Choose your plan
+          {t("Choose your plan")}
         </h1>
         <p className="m-0 font-sans text-sm text-tn-page/80">
-          Step {step.number} of {step.total} · billed per chair, cancel anytime
-          {CYCLE_SUBTITLE[billingCycle]}
+          {t("Step {{number}} of {{total}} · billed per chair, cancel anytime{{value}}", {
+            number: step.number,
+            total: step.total,
+            value: CYCLE_SUBTITLE[billingCycle],
+          })}
         </p>
       </div>
 
       {canceled && (
         <p className="m-0 max-w-md rounded-lg bg-tn-danger-bg px-3.5 py-2 text-center font-sans text-xs text-tn-danger">
-          Checkout was canceled — no charge was made. Pick a plan whenever you're ready.
+          {t("Checkout was canceled — no charge was made. Pick a plan whenever you're ready.")}
         </p>
       )}
 
@@ -347,7 +353,7 @@ function PlanPicker() {
               {BILLING_CYCLE_LABEL[cycle]}
               {cycle === "annual" && annualDiscount !== null && (
                 <span className="rounded-full bg-tn-gold-bg px-1.5 py-0.5 font-sans text-[11px] font-semibold text-tn-gold">
-                  SAVE {annualDiscount}%
+                  {t("SAVE {{annualDiscount}}%", { annualDiscount })}
                 </span>
               )}
             </button>
@@ -355,17 +361,17 @@ function PlanPicker() {
         </div>
       )}
 
-      {isLoading && <p className="font-sans text-sm text-tn-page/80">Loading plans…</p>}
+      {isLoading && <p className="font-sans text-sm text-tn-page/80">{t("Loading plans…")}</p>}
 
       {isError && (
         <p className="font-sans text-sm text-tn-danger">
-          Couldn&rsquo;t load plans right now — refresh to try again.
+          {t("Couldn’t load plans right now — refresh to try again.")}
         </p>
       )}
 
       {!isLoading && !isError && visibleProducts.length === 0 && (
         <p className="font-sans text-sm text-tn-page/80">
-          No plans are available right now — check back soon.
+          {t("No plans are available right now — check back soon.")}
         </p>
       )}
 
@@ -381,13 +387,13 @@ function PlanPicker() {
                 type="button"
                 onClick={() => handleSelect(product)}
                 disabled={redirectingProductId !== null}
-                className={`flex w-[220px] flex-col rounded-2xl p-1.5 text-left disabled:cursor-not-allowed ${
+                className={`flex w-[220px] flex-col rounded-2xl p-1.5 text-start disabled:cursor-not-allowed ${
                   redirectingProductId !== null && !isRedirecting ? "opacity-50" : ""
                 } ${isTrial ? "bg-tn-gold-soft" : "bg-tn-surface"}`}
               >
                 {isTrial ? (
                   <p className="m-0 px-3.5 py-2 font-sans text-[12px] font-bold tracking-[0.04em] text-[oklch(28%_0.06_60)]">
-                    {product.trialDays}-DAY FREE TRIAL
+                    {t("{{trialDays}}-DAY FREE TRIAL", { trialDays: product.trialDays })}
                   </p>
                 ) : (
                   <div className="h-[29px]" />
@@ -408,7 +414,7 @@ function PlanPicker() {
                   </p>
                   {isRedirecting && (
                     <p className="m-0 font-sans text-[12px] font-semibold text-tn-muted-5">
-                      Redirecting to secure checkout…
+                      {t("Redirecting to secure checkout…")}
                     </p>
                   )}
                 </div>

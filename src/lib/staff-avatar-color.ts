@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * Deterministic flat avatar-circle color for a staff id — same person
  * always gets the same color across renders/sessions without persisting
@@ -11,7 +12,7 @@ export function staffAvatarColor(staffUserId: string): string {
     hash = (hash * 31 + staffUserId.charCodeAt(i)) >>> 0;
   }
   const hue = hash % 360;
-  return `oklch(88% 0.04 ${hue})`;
+  return t("oklch(88% 0.04 {{hue}})", { hue });
 }
 
 /**
@@ -29,5 +30,5 @@ export function staffAvatarColorStrong(staffUserId: string): string {
   for (let i = 0; i < staffUserId.length; i++) {
     hash = (hash * 31 + staffUserId.charCodeAt(i)) >>> 0;
   }
-  return `oklch(52% 0.11 ${hash % 360})`;
+  return t("oklch(52% 0.11 {{value}})", { value: hash % 360 });
 }

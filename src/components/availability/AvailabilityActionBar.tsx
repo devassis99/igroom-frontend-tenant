@@ -1,5 +1,6 @@
 import { Collapsible } from "@/components/ui/Collapsible";
 import type { LiveCollisionStatus } from "./use-live-collisions";
+import { t } from "@/i18n";
 
 /**
  * Component A — the permanent status of the form.
@@ -118,7 +119,10 @@ export function AvailabilityActionBar({
         ? "busy"
         : "clear";
 
-  const changes = `${changeCount} change${changeCount === 1 ? "" : "s"}`;
+  const changes = t("{{changeCount}} change{{value}}", {
+    changeCount,
+    value: changeCount === 1 ? "" : "s",
+  });
 
   /**
    * Line 1 — the state of the form in one sentence.
@@ -128,13 +132,21 @@ export function AvailabilityActionBar({
    * sentence is enough to act on without opening anything.
    */
   const headline = justSaved
-    ? "Saved"
+    ? t("Saved")
     : blocked
       ? blocked.preExisting
-        ? `${blocked.count} existing clash${blocked.count === 1 ? "" : "es"} · not caused by this edit`
-        : `${blocked.count} clash${blocked.count === 1 ? "" : "es"} block${blocked.count === 1 ? "s" : ""} saving · ${blocked.summary}`
+        ? t("{{count}} existing clash{{value}} · not caused by this edit", {
+            count: blocked.count,
+            value: blocked.count === 1 ? "" : "es",
+          })
+        : t("{{count}} clash{{value}} block{{value2}} saving · {{summary}}", {
+            count: blocked.count,
+            value: blocked.count === 1 ? "" : "es",
+            value2: blocked.count === 1 ? "s" : "",
+            summary: blocked.summary,
+          })
       : checking
-        ? "Checking the other shops…"
+        ? t("Checking the other shops…")
         : // Nothing has been edited, so there is nothing for Save to
           // write and the greyed button needs no other explanation. It
           // is worth saying rather than leaving blank, because the bar
@@ -143,13 +155,15 @@ export function AvailabilityActionBar({
           // warning and left the dead button unexplained.
           changeCount === 0
           ? warning
-            ? `${warning.count} ${
-                warning.kind === "unsaved" ? "unsaved clash" : "travel warning"
-              }${warning.count === 1 ? "" : "s"} · nothing to save here`
-            : "Nothing to save yet"
+            ? t("{{count}} {{value}}{{value2}} · nothing to save here", {
+                count: warning.count,
+                value: warning.kind === "unsaved" ? t("unsaved clash") : t("travel warning"),
+                value2: warning.count === 1 ? "" : "s",
+              })
+            : t("Nothing to save yet")
           : warning
-            ? `No clashes · ${changes} ready to save`
-            : `${changes} ready to save`;
+            ? t("No clashes · {{changes}} ready to save", { changes })
+            : t("{{changes}} ready to save", { changes });
 
   /**
    * Line 2 — everything that is true but doesn't decide whether Save
@@ -170,7 +184,7 @@ export function AvailabilityActionBar({
         : warning
           ? warning.summary
           : checkFailed
-            ? "Couldn’t check the other shops — saving still runs the same check on the server."
+            ? t("Couldn’t check the other shops — saving still runs the same check on the server.")
             : (otherTabsNote ?? null);
 
   return (
@@ -227,7 +241,9 @@ export function AvailabilityActionBar({
             onClick={blocked.onReview}
             className="tn-rise-in flex-1 cursor-pointer rounded-lg border border-tn-on-dark/25 bg-transparent px-3.5 py-2 font-sans text-xs font-semibold text-tn-on-dark transition-colors hover:bg-tn-on-dark/10 sm:flex-none"
           >
-            {blocked.count === 1 ? "Review clash" : `Review ${blocked.count} clashes`}
+            {blocked.count === 1
+              ? t("Review clash")
+              : t("Review {{count}} clashes", { count: blocked.count })}
           </button>
         )}
         {!justSaved && !blocked && warning?.onReview && (
@@ -238,11 +254,11 @@ export function AvailabilityActionBar({
           >
             {warning.kind === "unsaved"
               ? warning.count === 1
-                ? "Review clash"
-                : `Review ${warning.count} clashes`
+                ? t("Review clash")
+                : t("Review {{count}} clashes", { count: warning.count })
               : warning.count === 1
-                ? "See warning"
-                : `See ${warning.count} warnings`}
+                ? t("See warning")
+                : t("See {{count}} warnings", { count: warning.count })}
           </button>
         )}
 
@@ -258,7 +274,7 @@ export function AvailabilityActionBar({
             disabled={saving || checking || blocked !== null || changeCount === 0}
             className="flex-1 cursor-pointer rounded-lg border-none bg-tn-on-dark px-4 py-2 font-sans text-xs font-semibold text-tn-plan-bg transition-opacity duration-200 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
           >
-            {saving ? "Saving…" : "Save Changes"}
+            {saving ? t("Saving…") : t("Save Changes")}
           </button>
         )}
       </div>
